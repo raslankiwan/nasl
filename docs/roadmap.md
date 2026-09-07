@@ -14,14 +14,24 @@ independently reviewable. Scope references point at [`scope.md`](scope.md).
 - [x] RTL direction, locale resolution, Hijri + Gregorian formatting, digit systems
 - [x] Product scope committed to `docs/`
 
-## Increment 1 — API skeleton and tenancy
+## Increment 1 — API skeleton and tenancy ✅
 
-- [ ] Express + TypeScript app, config from env, structured logging, error envelope
-- [ ] MongoDB connection, Mongoose models for `farms`, `users`, `memberships`
-- [ ] **Tenant repository layer** — `farmId` a required argument on every read and write (NFR-07)
-- [ ] Integration tests asserting cross-farm isolation per collection
-- [ ] Phone + OTP auth, JWT access token, rotating refresh token bound to device (FR-ACC-01)
-- [ ] Role and permission middleware from `@nasl/shared/roles` (FR-ACC-02)
+- [x] Express 5 + TypeScript app, env parsed and validated at boot, pino logging with phone
+      numbers and tokens redacted, a stable `{ error: { code, message } }` envelope
+- [x] MongoDB connection, Mongoose models for `farms`, `users`, `memberships`
+- [x] **Tenant repository layer** — `farmId` a required first argument on every read and write,
+      injected into the filter last so a caller cannot override it (NFR-07)
+- [x] 19 isolation tests: cross-farm reads, writes, deletes, a `farmId` planted in a filter or
+      payload, `farmId` inside `$or`, `$where`, an empty `farmId`, soft deletion, sync pull
+- [x] Phone + OTP auth: scrypt-hashed codes, attempt limit, rate limiting, identical failure
+      messages so the endpoint is not a phone-number oracle (FR-ACC-01)
+- [x] Rotating refresh tokens bound to a device, with family revocation on reuse
+- [x] Role and permission middleware from `@nasl/shared/roles`; expired and revoked memberships
+      lose access, and a non-member cannot distinguish a farm they cannot see from one that does
+      not exist (FR-ACC-02)
+
+**70 tests across the workspace.** Not yet done here, deliberately deferred: refresh-token
+cleanup job, SMS provider beyond the development stub, and observability beyond request logs.
 
 ## Increment 2 — Flock registry
 

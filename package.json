@@ -18,7 +18,10 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "npm run typecheck && npm run lint && npm run format:check"
+    "check": "npm run typecheck && npm run lint && npm run format:check",
+    "build:packages": "npm run build -w @nasl/shared -w @nasl/i18n",
+    "pretest": "npm run build:packages",
+    "pretypecheck": "npm run build:packages"
   },
   "devDependencies": {
     "@eslint/js": "^9.20.0",

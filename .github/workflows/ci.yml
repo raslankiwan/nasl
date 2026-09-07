@@ -22,6 +22,10 @@ jobs:
 
       - run: npm ci
 
+      # apps/ import the workspace packages from their built dist/.
+      - name: Build packages
+        run: npm run build -w @nasl/shared -w @nasl/i18n
+
       - name: Format
         run: npm run format:check
 
