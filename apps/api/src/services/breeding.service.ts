@@ -1,8 +1,8 @@
 import {
   applyReproEvent,
+  deriveAlerts,
   expectedDueDate,
   InvalidReproTransition,
-  isInDueWindow,
   type ReproEvent,
   type ReproState,
   type ReproStatus,
@@ -436,40 +436,28 @@ export class BreedingService {
   // ---------------------------------------------------------------- alerts --
 
   /**
-   * What needs doing, derived from state rather than stored as rows — so it is always in step with
-   * the events, and can be recomputed identically on the device when offline (FR-ALT-05).
+   * What needs doing. The derivation itself lives in `@nasl/shared` so the device reaches the same
+   * conclusions from its local copy when there is no signal (FR-ALT-05) — one implementation, so
+   * the two can never quietly disagree about whether a ewe is due.
    */
   async alerts(farmId: string, today = new Date()) {
-    const carrying = await this.animals.find(farmId, {
-      sex: 'female',
-      status: 'active',
-      'repro.state': { $in: ['mated', 'pregnant', 'due'] },
-    } as never);
+    const animals = await this.animals.find(farmId, { status: 'active' } as never);
 
-    const dueSoon: Array<{ animalId: string; tagNumber: string; dueDate: string; days: number }> =
-      [];
-    const overdue: typeof dueSoon = [];
+    const derived = deriveAlerts(
+      animals.map((a) => ({
+        id: a._id,
+        tagNumber: a.tagNumber,
+        name: a.name ?? null,
+        species: a.species,
+        sex: a.sex,
+        status: a.status,
+        repro: a.repro ? { state: a.repro.state, dueDate: a.repro.dueDate ?? null } : null,
+        withholdMeatUntil: a.withholdMeatUntil ?? null,
+        withholdMilkUntil: a.withholdMilkUntil ?? null,
+      })),
+      today,
+    );
 
-    for (const animal of carrying) {
-      const due = animal.repro?.dueDate;
-      if (!due) continue;
-      const days = Math.round((due.getTime() - today.getTime()) / 86_400_000);
-      const entry = {
-        animalId: animal._id,
-        tagNumber: animal.tagNumber,
-        dueDate: due.toISOString().slice(0, 10),
-        days,
-      };
-      if (days < 0) overdue.push(entry);
-      else if (isInDueWindow(due, animal.species as Species, today)) dueSoon.push(entry);
-    }
-
-    const nursing = await this.animals.count(farmId, { 'repro.state': 'nursing' } as never);
-
-    return {
-      dueSoon: dueSoon.sort((a, b) => a.days - b.days),
-      overdue: overdue.sort((a, b) => a.days - b.days),
-      nursing,
-    };
+    return { dueSoon: derived.dueSoon, overdue: derived.overdue, nursing: derived.nursing };
   }
 }

@@ -272,8 +272,11 @@ but real withdrawal figures are the one thing that cannot be invented.
 
 ## Increment 9 — Today screen and notifications
 
-- [ ] On-device alert computation so alerts fire offline (FR-ALT-05)
-- [ ] Today list as the mobile home screen (FR-ALT-01)
+- [x] **On-device alert computation** (FR-ALT-05). `deriveAlerts` lives in `@nasl/shared` beside
+      the state machine and is the _only_ implementation: the server runs it over the database, the
+      phone runs it over its local copy. One function, so the two cannot quietly disagree about
+      whether a ewe is due.
+- [x] Today list as the mobile home screen, working with no signal (FR-ALT-01)
 - [ ] Expo push, batched into a morning digest (FR-ALT-03)
 
 ## Increment 10 — Hardening and release

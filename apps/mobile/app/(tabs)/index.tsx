@@ -1,72 +1,37 @@
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { formatDate, formatHijriDate, type Locale } from '@nasl/i18n';
-import { api, ApiError } from '../../src/api/client';
-import { useAuth } from '../../src/auth/AuthProvider';
-import { Body, Card, Notice, Pill, Screen, Title } from '../../src/components/ui';
+import { deriveAlerts, type Alerts } from '@nasl/shared';
+import { useFlock } from '../../src/sync/useFlock';
+import { Body, Card, Pill, Screen, Title } from '../../src/components/ui';
 import { colors, radius, spacing, type } from '../../src/theme';
-
-interface DueRow {
-  animalId: string;
-  tagNumber: string;
-  dueDate: string;
-  days: number;
-}
-interface Alerts {
-  dueSoon: DueRow[];
-  overdue: DueRow[];
-  nursing: number;
-}
-interface Withdrawal {
-  meat: Array<{ animalId: string }>;
-  milk: Array<{ animalId: string }>;
-}
 
 /**
  * The home screen is a list of what needs doing, not a dashboard (scope FR-ALT-01).
- * Overdue comes first, because a ewe past her date is the thing that cannot wait.
+ *
+ * It derives its alerts from the flock cached on the device using the same function the server
+ * runs, so it works with no signal and cannot disagree with the server about who is due
+ * (FR-ALT-05). Overdue comes first, and a milk hold comes before either — milking happens twice a
+ * day and a treated ewe contaminates the whole tank.
  */
 export default function Today() {
   const { t, i18n } = useTranslation(['tasks', 'breeding', 'health', 'common']);
-  const { farmId } = useAuth();
   const router = useRouter();
   const locale = (i18n.resolvedLanguage ?? 'ar') as Locale;
-
-  const [alerts, setAlerts] = useState<Alerts | null>(null);
-  const [withdrawal, setWithdrawal] = useState<Withdrawal | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { animals, loading, stale, refresh } = useFlock();
   const today = new Date();
-
-  const load = useCallback(async () => {
-    if (!farmId) {
-      setLoading(false);
-      return;
-    }
-    setError(null);
-    try {
-      const [nextAlerts, nextWithdrawal] = await Promise.all([
-        api.get<Alerts>(`/v1/farms/${farmId}/breeding/alerts`),
-        api.get<Withdrawal>(`/v1/farms/${farmId}/health/withdrawal`),
-      ]);
-      setAlerts(nextAlerts);
-      setWithdrawal(nextWithdrawal);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : t('common:errorRetry'));
-    } finally {
-      setLoading(false);
-    }
-  }, [farmId, t]);
 
   useFocusEffect(
     useCallback(() => {
-      void load();
-    }, [load]),
+      void refresh();
+    }, [refresh]),
   );
 
-  const Row = ({ row, tone }: { row: DueRow; tone: 'accent' | 'neutral' }) => (
+  const alerts: Alerts = deriveAlerts(animals, today);
+
+  const Row = ({ row, tone }: { row: Alerts['dueSoon'][number]; tone: 'accent' | 'neutral' }) => (
     <Pressable
       accessibilityRole="button"
       onPress={() => router.push(`/animal/${row.animalId}`)}
@@ -86,7 +51,7 @@ export default function Today() {
   return (
     <View style={styles.root}>
       <ScrollView
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void load()} />}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void refresh()} />}
       >
         <Screen>
           <Title>{t('tasks:title')}</Title>
@@ -99,24 +64,24 @@ export default function Today() {
 
           <View style={styles.gap} />
 
-          {error ? <Notice tone="danger">{error}</Notice> : null}
+          {stale ? <Body muted>{t('common:offline')}</Body> : null}
 
           {/*
             Milking happens twice a day and a treated ewe's milk contaminates the whole tank, so
             this belongs at the top of the day rather than inside a health screen.
           */}
-          {withdrawal && withdrawal.milk.length > 0 ? (
+          {alerts.milkWithheld.length > 0 ? (
             <Pressable
               accessibilityRole="button"
               onPress={() => router.push('/health/withdrawal')}
               style={({ pressed }) => [styles.warning, pressed && styles.rowPressed]}
             >
               <Text style={styles.warningText}>{t('health:doNotMilk')}</Text>
-              <Pill tone="accent">{withdrawal.milk.length}</Pill>
+              <Pill tone="accent">{alerts.milkWithheld.length}</Pill>
             </Pressable>
           ) : null}
 
-          {alerts && alerts.overdue.length > 0 ? (
+          {alerts.overdue.length > 0 ? (
             <>
               <Text style={styles.sectionLabel}>{t('tasks:overdue')}</Text>
               {alerts.overdue.map((row) => (
@@ -126,7 +91,7 @@ export default function Today() {
             </>
           ) : null}
 
-          {alerts && alerts.dueSoon.length > 0 ? (
+          {alerts.dueSoon.length > 0 ? (
             <>
               <Text style={styles.sectionLabel}>{t('tasks:upcoming')}</Text>
               {alerts.dueSoon.map((row) => (
