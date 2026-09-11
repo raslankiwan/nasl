@@ -266,7 +266,12 @@ but real withdrawal figures are the one thing that cannot be invented.
       for four. Indentation runs along the inline axis, so the line of descent goes rightward in
       Arabic and leftward in English with no mirroring code. Unknown parents are shown as dashed
       placeholders rather than omitted — a gap in the record is information.
-- [ ] **Carried:** PDF and Excel export (FR-RPT-06)
+- [x] **CSV export** (FR-RPT-06): the flock register, the treatment register and the ewe
+      scorecard. Headers are bilingual, parents appear as their tag rather than a uuid, and the
+      file carries a UTF-8 BOM — without it Excel on Windows reads the system codepage and every
+      Arabic name opens as mojibake. Cells starting with `=`, `+`, `-` or `@` are defused, because
+      a tag number is user input and Excel executes those as formulas.
+- [ ] **Carried:** PDF export
 
 **192 tests.**
 
@@ -288,7 +293,9 @@ but real withdrawal figures are the one thing that cannot be invented.
       `lastWeightKg` follows the latest weighing _by date_, not by entry order, so backfilling an
       old weight does not overwrite the current one.
 - [ ] Finance basics (M8)
-- [ ] Full data export (FR-RPT-07)
+- [x] **Full data export** (FR-RPT-07) — every collection this farm owns as JSON, including the
+      empty ones so the shape is predictable. The customer must be able to leave: a product that
+      holds a herder's records hostage has stopped being a tool.
 - [ ] Performance pass against NFR-02 on a mid-range Android
 - [ ] Device DB encryption, refresh rotation, backup and restore drill
 - [ ] EAS build pipeline, staged rollout
