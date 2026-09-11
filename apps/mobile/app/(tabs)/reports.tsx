@@ -1,6 +1,5 @@
 import { useCallback, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { formatNumber, type Locale } from '@nasl/i18n';
@@ -43,7 +42,6 @@ export default function Reports() {
   const { t, i18n } = useTranslation(['reports', 'breeding', 'common']);
   const { farmId } = useAuth();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const locale = (i18n.resolvedLanguage ?? 'ar') as Locale;
 
   const [scorecard, setScorecard] = useState<Scorecard | null>(null);
@@ -73,7 +71,7 @@ export default function Reports() {
   const n = (value: number | null) => (value === null ? '—' : formatNumber(value, locale));
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
+    <View style={styles.root}>
       <ScrollView
         refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void load()} />}
       >

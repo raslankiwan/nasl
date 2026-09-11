@@ -46,17 +46,17 @@ export default function RecordTreatment() {
     <CaptureScreen
       title={t('health:recordTreatment')}
       canSave={Boolean(farmId && animalId) && administeredBy.trim().length > 0}
-      onSave={() =>
-        api.post(`/v1/farms/${farmId}/health/treatments`, {
-          animalIds: [animalId],
-          date: date.toISOString().slice(0, 10),
-          type: eventType,
-          ...(productId ? { productId } : {}),
-          ...(dose !== null ? { doseValue: dose, doseUnit: 'ml' } : {}),
-          route,
-          administeredBy: administeredBy.trim(),
-        })
-      }
+      path={`/v1/farms/${farmId}/health/treatments`}
+      buildBody={(id) => ({
+        id,
+        animalIds: [animalId],
+        date: date.toISOString().slice(0, 10),
+        type: eventType,
+        ...(productId ? { productId } : {}),
+        ...(dose !== null ? { doseValue: dose, doseUnit: 'ml' } : {}),
+        route,
+        administeredBy: administeredBy.trim(),
+      })}
     >
       <DateField label={t('common:date')} value={date} onChange={setDate} />
 

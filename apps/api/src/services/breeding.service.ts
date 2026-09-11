@@ -97,6 +97,8 @@ export class BreedingService {
   async recordMating(
     farmId: string,
     input: {
+      /** Minted by the device, so a retry after a dropped connection cannot duplicate the record. */
+      id?: string;
       damId: string;
       sireId?: string;
       breedingGroupId?: string;
@@ -122,6 +124,7 @@ export class BreedingService {
     });
 
     const mating = await this.matings.create(farmId, {
+      ...(input.id ? { _id: input.id } : {}),
       damId: input.damId,
       sireId: input.sireId ?? null,
       breedingGroupId: input.breedingGroupId ?? null,
@@ -144,6 +147,7 @@ export class BreedingService {
   async recordPregnancyCheck(
     farmId: string,
     input: {
+      id?: string;
       damId: string;
       date: Date;
       method: string;
@@ -169,6 +173,7 @@ export class BreedingService {
     });
 
     const check = await this.checks.create(farmId, {
+      ...(input.id ? { _id: input.id } : {}),
       damId: input.damId,
       matingId: current.matingId,
       date: input.date,
@@ -199,6 +204,7 @@ export class BreedingService {
   async recordBirth(
     farmId: string,
     input: {
+      id?: string;
       damId: string;
       date: Date;
       assisted?: boolean;
@@ -257,6 +263,7 @@ export class BreedingService {
     }
 
     const birth = await this.births.create(farmId, {
+      ...(input.id ? { _id: input.id } : {}),
       damId: input.damId,
       matingId: current.matingId ?? null,
       sireId: mating?.sireId ?? null,
@@ -283,7 +290,7 @@ export class BreedingService {
 
   async recordWeaning(
     farmId: string,
-    input: { damId: string; date: Date; weightsKg?: Record<string, number> },
+    input: { id?: string; damId: string; date: Date; weightsKg?: Record<string, number> },
     recordedBy: string,
   ) {
     const dam = await this.loadDam(farmId, input.damId);
@@ -295,6 +302,7 @@ export class BreedingService {
     );
 
     const weaning = await this.weanings.create(farmId, {
+      ...(input.id ? { _id: input.id } : {}),
       damId: input.damId,
       lambIds: born.map((l) => l._id),
       date: input.date,
@@ -315,7 +323,7 @@ export class BreedingService {
 
   async recordAbortion(
     farmId: string,
-    input: { damId: string; date: Date; suspectedCause?: string },
+    input: { id?: string; damId: string; date: Date; suspectedCause?: string },
     recordedBy: string,
   ) {
     const dam = await this.loadDam(farmId, input.damId);
@@ -323,6 +331,7 @@ export class BreedingService {
     const next = this.advance(current, { type: 'abortion', date: input.date });
 
     const abortion = await this.abortions.create(farmId, {
+      ...(input.id ? { _id: input.id } : {}),
       damId: input.damId,
       matingId: current.matingId ?? null,
       date: input.date,

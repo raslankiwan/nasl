@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { api } from '../../src/api/client';
 import { useAuth } from '../../src/auth/AuthProvider';
 import { CaptureScreen } from '../../src/components/CaptureScreen';
 import { Choice, DateField, FieldGroup, NumberField } from '../../src/components/form';
@@ -26,15 +25,15 @@ export default function RecordPregnancyCheck() {
     <CaptureScreen
       title={t('breeding:pregnancyCheck')}
       canSave={Boolean(farmId && damId)}
-      onSave={() =>
-        api.post(`/v1/farms/${farmId}/breeding/pregnancy-checks`, {
-          damId,
-          date: date.toISOString().slice(0, 10),
-          method,
-          result,
-          ...(countable && fetusCount !== null ? { fetusCount } : {}),
-        })
-      }
+      path={`/v1/farms/${farmId}/breeding/pregnancy-checks`}
+      buildBody={(id) => ({
+        id,
+        damId,
+        date: date.toISOString().slice(0, 10),
+        method,
+        result,
+        ...(countable && fetusCount !== null ? { fetusCount } : {}),
+      })}
     >
       <DateField label={t('common:date')} value={date} onChange={setDate} />
 

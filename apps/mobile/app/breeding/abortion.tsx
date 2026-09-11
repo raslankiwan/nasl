@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { TextInput } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { api } from '../../src/api/client';
 import { useAuth } from '../../src/auth/AuthProvider';
 import { CaptureScreen } from '../../src/components/CaptureScreen';
 import { DateField, FieldGroup } from '../../src/components/form';
@@ -20,13 +19,13 @@ export default function RecordAbortion() {
     <CaptureScreen
       title={t('breeding:abortion')}
       canSave={Boolean(farmId && damId)}
-      onSave={() =>
-        api.post(`/v1/farms/${farmId}/breeding/abortions`, {
-          damId,
-          date: date.toISOString().slice(0, 10),
-          ...(cause.trim() ? { suspectedCause: cause.trim() } : {}),
-        })
-      }
+      path={`/v1/farms/${farmId}/breeding/abortions`}
+      buildBody={(id) => ({
+        id,
+        damId,
+        date: date.toISOString().slice(0, 10),
+        ...(cause.trim() ? { suspectedCause: cause.trim() } : {}),
+      })}
     >
       <DateField label={t('common:date')} value={date} onChange={setDate} />
       <FieldGroup label={t('breeding:suspectedCause')}>

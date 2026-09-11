@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { api } from '../../src/api/client';
 import { useAuth } from '../../src/auth/AuthProvider';
 import { CaptureScreen } from '../../src/components/CaptureScreen';
 import { DateField } from '../../src/components/form';
@@ -17,12 +16,8 @@ export default function RecordWeaning() {
     <CaptureScreen
       title={t('breeding:weaning')}
       canSave={Boolean(farmId && damId)}
-      onSave={() =>
-        api.post(`/v1/farms/${farmId}/breeding/weanings`, {
-          damId,
-          date: date.toISOString().slice(0, 10),
-        })
-      }
+      path={`/v1/farms/${farmId}/breeding/weanings`}
+      buildBody={(id) => ({ id, damId, date: date.toISOString().slice(0, 10) })}
     >
       <DateField label={t('common:date')} value={date} onChange={setDate} />
       <Card>

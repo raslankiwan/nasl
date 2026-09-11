@@ -155,9 +155,30 @@ The server side is built and tested; the device side — WatermelonDB and the qu
 - [x] Events cannot be deleted by a client. An event is evidence of something that happened.
 - [x] 14 tests including: fourteen days offline then a clean sync, events arriving out of order,
       an impossible event, a stale device trying to undo a withdrawal (NFR-01)
-- [ ] WatermelonDB schema on the device, write queue, sync status UI, offline banner
+- [x] **Durable write queue on the device.** Every capture screen mints the record's id before
+      anything is attempted, writes to disk, then tries the network. A write that cannot be sent
+      waits in the outbox across app restarts and flat batteries, and retries on foreground and on
+      a timer. Because the id travels with the record, a retry cannot duplicate it — the server
+      now accepts a client-minted id on every breeding and health event.
+- [x] Sync banner: what is waiting, what is stuck, and a way to try again now. Silence about
+      queued work is the failure to avoid — a herder who cannot tell whether a birth was saved
+      will write it on paper, and then the app has cost them time rather than saved it.
+- [ ] **Carried: the local read database.** Writes survive without a network; reads do not. The
+      app currently shows a connection error where a cached flock should be. This is the remaining
+      half of NFR-01 and wants SQLite (WatermelonDB) rather than the queue's storage, because the
+      roster has to hold 2,000 animals and 50,000 events (NFR-02).
 
-**179 tests.**
+**193 tests.** Verified by taking the API down: a mating recorded on the phone queued, showed in
+the banner, and flushed on its own once the server returned — leaving the ewe `mated` with the
+right due date.
+
+### The bug this found
+
+Opening the app with the server unreachable **signed the user out and destroyed their tokens**,
+because `loadMe` treated any failure as a rejected session. A herder starting the app in a field
+with no signal would have been logged out, unable to record anything, with the outbox orphaned —
+the exact scenario NFR-01 exists for. Only a 401 ends a session now; anything else falls back to
+the profile cached on the device, and the app comes up ready to record.
 
 ## Increment 6 — Breeding and lambing ✅ (mobile capture carried)
 

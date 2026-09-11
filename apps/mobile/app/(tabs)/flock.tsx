@@ -1,7 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { api, ApiError } from '../../src/api/client';
@@ -25,7 +24,6 @@ export default function Flock() {
   const { t } = useTranslation(['animals', 'breeding', 'common', 'health']);
   const { farmId } = useAuth();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
 
   const [animals, setAnimals] = useState<AnimalRow[]>([]);
   const [total, setTotal] = useState(0);
@@ -60,7 +58,7 @@ export default function Flock() {
 
   if (!farmId) {
     return (
-      <View style={[styles.root, { paddingTop: insets.top }]}>
+      <View style={styles.root}>
         <View style={styles.padded}>
           <Title>{t('animals:title')}</Title>
           <Card>
@@ -72,7 +70,7 @@ export default function Flock() {
   }
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
+    <View style={styles.root}>
       <View style={styles.header}>
         <Title>{t('animals:title')}</Title>
         <View style={styles.headerActions}>

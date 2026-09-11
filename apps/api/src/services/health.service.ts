@@ -8,6 +8,8 @@ import { VetProduct } from '../models/vetProduct.model.ts';
 import type { AnimalDoc } from '../models/animal.model.ts';
 
 export interface TreatmentInput {
+  /** Minted by the device. Only meaningful for a single-animal treatment. */
+  id?: string;
   animalIds: string[];
   date: Date;
   type: string;
@@ -56,6 +58,8 @@ export class HealthService {
       if (!animal) continue;
 
       const event = await this.events.create(farmId, {
+        // A batch mints its own ids; only a single-animal treatment can carry the client's.
+        ...(input.id && input.animalIds.length === 1 ? { _id: input.id } : {}),
         animalId,
         groupBatchId,
         date: input.date,

@@ -1,5 +1,6 @@
 import { after, before, beforeEach, describe, test } from 'node:test';
 import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
 import { Animal } from '../models/animal.model.ts';
 import { clearDatabase, startTestMongo, stopTestMongo } from '../testing/mongo.ts';
 import { api, signInWithFarm, testApp, withServer } from '../testing/harness.ts';
@@ -481,6 +482,29 @@ describe('alerts', () => {
         `/v1/farms/${b.farmId}/breeding/alerts`,
       );
       assert.equal(res.body.dueSoon.length, 0);
+    });
+  });
+});
+
+describe('idempotency', () => {
+  test('re-sending the same event with the same id does not duplicate it', async () => {
+    await withServer(testApp(), async (url) => {
+      const { client, farmId, damId, sireId } = await flock(url);
+      const id = randomUUID();
+      const body = { id, damId, sireId, startDate: '2026-01-10' };
+
+      const first = await client.post<MatingBody>(`/v1/farms/${farmId}/breeding/matings`, body);
+      assert.equal(first.status, 201);
+      assert.equal(first.body.id, id, 'the device keeps the identity it minted');
+
+      // The same request again — which is exactly what a retry after a dropped connection sends.
+      const again = await client.post<ErrorBody>(`/v1/farms/${farmId}/breeding/matings`, body);
+      assert.equal(again.status, 409, 'she is already mated, so the second is refused');
+
+      const history = await client.get<{ matings: unknown[] }>(
+        `/v1/farms/${farmId}/breeding/history/${damId}`,
+      );
+      assert.equal(history.body.matings.length, 1, 'and no duplicate was written');
     });
   });
 });

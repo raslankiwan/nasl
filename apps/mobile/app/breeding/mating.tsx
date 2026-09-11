@@ -37,14 +37,14 @@ export default function RecordMating() {
     <CaptureScreen
       title={t('breeding:recordMating')}
       canSave={Boolean(farmId && damId)}
-      onSave={() =>
-        api.post(`/v1/farms/${farmId}/breeding/matings`, {
-          damId,
-          ...(sireId ? { sireId } : {}),
-          method,
-          startDate: date.toISOString().slice(0, 10),
-        })
-      }
+      path={`/v1/farms/${farmId}/breeding/matings`}
+      buildBody={(id) => ({
+        id,
+        damId,
+        ...(sireId ? { sireId } : {}),
+        method,
+        startDate: date.toISOString().slice(0, 10),
+      })}
     >
       <DateField label={t('breeding:matingDate')} value={date} onChange={setDate} />
 

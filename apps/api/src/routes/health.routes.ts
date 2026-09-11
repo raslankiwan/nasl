@@ -13,6 +13,7 @@ const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD');
 const today = () => new Date(new Date().toISOString().slice(0, 10));
 
 const treatmentInput = z.object({
+  id: z.string().uuid().optional(),
   animalIds: z.array(z.string().uuid()).min(1).max(500),
   date: isoDate,
   type: z.enum(HEALTH_EVENT_TYPES),

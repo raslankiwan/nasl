@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ApiError } from '../api/client';
+import { useSync } from '../sync/SyncProvider';
 import { Button, Notice, Title } from './ui';
 import { colors, spacing } from '../theme';
 
@@ -15,19 +16,23 @@ import { colors, spacing } from '../theme';
 export function CaptureScreen({
   title,
   subtitle,
-  onSave,
+  path,
+  buildBody,
   canSave,
   children,
 }: {
   title: string;
   subtitle?: string;
-  onSave: () => Promise<unknown>;
+  /** Where the record goes. Paired with `buildBody` so the write can be queued verbatim. */
+  path: string;
+  buildBody: (id: string) => unknown;
   canSave: boolean;
   children: ReactNode;
 }) {
   const { t } = useTranslation('common');
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { send } = useSync();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -44,10 +49,18 @@ export function CaptureScreen({
   const save = async () => {
     setBusy(true);
     setError(null);
+    /**
+     * The id is minted here, before anything is attempted, and travels with the record whether it
+     * goes over the network now or waits in the outbox for days. That is what makes a retry safe.
+     */
+    const id = globalThis.crypto.randomUUID();
     try {
-      await onSave();
+      // `send` resolves false when the write was queued rather than delivered; either way the
+      // record is safe, so the herder moves on. The banner shows what is still waiting.
+      await send(id, path, buildBody(id));
       leave();
     } catch (err) {
+      // Only a refusal reaches here — a network failure was queued, not thrown.
       setError(err instanceof ApiError ? err.message : t('errorRetry'));
     } finally {
       setBusy(false);

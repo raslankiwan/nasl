@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { api } from '../../src/api/client';
 import { useAuth } from '../../src/auth/AuthProvider';
 import { CaptureScreen } from '../../src/components/CaptureScreen';
 import { Choice, DateField, FieldGroup, NumberField } from '../../src/components/form';
@@ -52,20 +51,20 @@ export default function RecordBirth() {
     <CaptureScreen
       title={t('breeding:recordBirth')}
       canSave={Boolean(farmId && damId) && lambs.length > 0}
-      onSave={() =>
-        api.post(`/v1/farms/${farmId}/breeding/births`, {
-          damId,
-          date: date.toISOString().slice(0, 10),
-          difficulty: Number(difficulty),
-          assisted: Number(difficulty) > 1,
-          offspring: lambs.map((lamb) => ({
-            sex: lamb.sex,
-            outcome: lamb.outcome,
-            ...(lamb.birthWeightKg !== null ? { birthWeightKg: lamb.birthWeightKg } : {}),
-            ...(lamb.tagNumber.trim() ? { tagNumber: lamb.tagNumber.trim() } : {}),
-          })),
-        })
-      }
+      path={`/v1/farms/${farmId}/breeding/births`}
+      buildBody={(id) => ({
+        id,
+        damId,
+        date: date.toISOString().slice(0, 10),
+        difficulty: Number(difficulty),
+        assisted: Number(difficulty) > 1,
+        offspring: lambs.map((lamb) => ({
+          sex: lamb.sex,
+          outcome: lamb.outcome,
+          ...(lamb.birthWeightKg !== null ? { birthWeightKg: lamb.birthWeightKg } : {}),
+          ...(lamb.tagNumber.trim() ? { tagNumber: lamb.tagNumber.trim() } : {}),
+        })),
+      })}
     >
       <DateField label={t('breeding:birth')} value={date} onChange={setDate} />
 

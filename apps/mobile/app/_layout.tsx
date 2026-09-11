@@ -5,6 +5,7 @@ import { Slot, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '../src/auth/AuthProvider';
 import { initI18n } from '../src/i18n';
+import { SyncProvider } from '../src/sync/SyncProvider';
 import { colors } from '../src/theme';
 
 function Loading() {
@@ -61,7 +62,9 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <StatusBar style="dark" />
       <AuthProvider>
-        <AuthGate />
+        <SyncProvider>
+          <AuthGate />
+        </SyncProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );

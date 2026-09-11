@@ -1,6 +1,5 @@
 import { useCallback, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { formatDate, formatHijriDate, type Locale } from '@nasl/i18n';
@@ -33,7 +32,6 @@ export default function Today() {
   const { t, i18n } = useTranslation(['tasks', 'breeding', 'health', 'common']);
   const { farmId } = useAuth();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const locale = (i18n.resolvedLanguage ?? 'ar') as Locale;
 
   const [alerts, setAlerts] = useState<Alerts | null>(null);
@@ -86,7 +84,7 @@ export default function Today() {
   const nothingToDo = alerts && alerts.overdue.length === 0 && alerts.dueSoon.length === 0;
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
+    <View style={styles.root}>
       <ScrollView
         refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void load()} />}
       >

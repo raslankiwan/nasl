@@ -1,6 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { api, clearTokens, deviceId, loadTokens, saveTokens } from '../api/client';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { api, ApiError, clearTokens, deviceId, loadTokens, saveTokens } from '../api/client';
+
+const ME_CACHE_KEY = 'nasl.me';
 
 export interface Me {
   id: string;
@@ -29,21 +32,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [me, setMe] = useState<Me | null>(null);
   const [farmId, setFarmId] = useState<string | null>(null);
 
+  const adopt = useCallback((profile: Me) => {
+    setMe(profile);
+    setFarmId((current) => current ?? profile.farms[0]?.farmId ?? null);
+    setStatus('signedIn');
+  }, []);
+
+  /**
+   * Establish who is signed in — without requiring a network.
+   *
+   * A herder opens this app in a field with no signal. Treating an unreachable server as a
+   * rejected session would sign them out, destroy their tokens, and orphan everything waiting in
+   * the outbox. So only an actual 401 ends a session; anything else falls back to the profile
+   * cached on the device, and the app comes up ready to record.
+   */
   const refresh = useCallback(async () => {
     if (!(await loadTokens())) {
       setStatus('signedOut');
       return;
     }
+
     try {
       const profile = await api.get<Me>('/v1/auth/me');
-      setMe(profile);
-      setFarmId((current) => current ?? profile.farms[0]?.farmId ?? null);
-      setStatus('signedIn');
-    } catch {
-      await clearTokens();
-      setStatus('signedOut');
+      await AsyncStorage.setItem(ME_CACHE_KEY, JSON.stringify(profile));
+      adopt(profile);
+      return;
+    } catch (err) {
+      // The server said no. That is the only thing that ends a session.
+      if (err instanceof ApiError && err.status === 401) {
+        await clearTokens();
+        await AsyncStorage.removeItem(ME_CACHE_KEY);
+        setStatus('signedOut');
+        return;
+      }
     }
-  }, []);
+
+    try {
+      const cached = await AsyncStorage.getItem(ME_CACHE_KEY);
+      if (cached) {
+        adopt(JSON.parse(cached) as Me);
+        return;
+      }
+    } catch {
+      // Fall through: there is nothing cached to fall back to.
+    }
+
+    // Tokens but no cached profile, and the server is unreachable. Keep the tokens — they may
+    // still be good — but there is nothing to show yet.
+    setStatus('signedOut');
+  }, [adopt]);
 
   useEffect(() => {
     void refresh();
@@ -69,6 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     await clearTokens();
+    await AsyncStorage.removeItem(ME_CACHE_KEY);
     setMe(null);
     setFarmId(null);
     setStatus('signedOut');

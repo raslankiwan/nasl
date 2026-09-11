@@ -12,6 +12,7 @@ const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD');
 const today = () => new Date(new Date().toISOString().slice(0, 10));
 
 const matingInput = z.object({
+  id: z.string().uuid().optional(),
   damId: z.string().uuid(),
   sireId: z.string().uuid().optional(),
   breedingGroupId: z.string().uuid().optional(),
@@ -22,6 +23,7 @@ const matingInput = z.object({
 });
 
 const checkInput = z.object({
+  id: z.string().uuid().optional(),
   damId: z.string().uuid(),
   date: isoDate,
   method: z.enum(CHECK_METHODS),
@@ -30,6 +32,7 @@ const checkInput = z.object({
 });
 
 const birthInput = z.object({
+  id: z.string().uuid().optional(),
   damId: z.string().uuid(),
   date: isoDate,
   assisted: z.boolean().default(false),
@@ -51,12 +54,14 @@ const birthInput = z.object({
 });
 
 const weaningInput = z.object({
+  id: z.string().uuid().optional(),
   damId: z.string().uuid(),
   date: isoDate,
   weightsKg: z.record(z.string().uuid(), z.number().min(0).max(150)).optional(),
 });
 
 const abortionInput = z.object({
+  id: z.string().uuid().optional(),
   damId: z.string().uuid(),
   date: isoDate,
   suspectedCause: z.string().trim().max(200).optional(),

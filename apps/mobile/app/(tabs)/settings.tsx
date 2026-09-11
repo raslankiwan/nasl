@@ -1,5 +1,4 @@
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { LOCALE_META, type Locale } from '@nasl/i18n';
 import { useAuth } from '../../src/auth/AuthProvider';
@@ -10,12 +9,11 @@ import { colors, spacing } from '../../src/theme';
 export default function Settings() {
   const { t, i18n } = useTranslation(['common', 'auth', 'roles']);
   const { me, farmId, signOut } = useAuth();
-  const insets = useSafeAreaInsets();
   const locale = (i18n.resolvedLanguage ?? 'ar') as Locale;
   const role = me?.farms.find((f) => f.farmId === farmId)?.role;
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
+    <View style={styles.root}>
       <ScrollView>
         <Screen>
           <Title>{t('common:settings')}</Title>
