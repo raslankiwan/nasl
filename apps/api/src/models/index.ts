@@ -9,6 +9,7 @@ export * from './auditLog.model.ts';
 export * from './base.ts';
 export * from './breeding.model.ts';
 export * from './farm.model.ts';
+export * from './finance.model.ts';
 export * from './group.model.ts';
 export * from './health.model.ts';
 export * from './membership.model.ts';

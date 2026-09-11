@@ -292,7 +292,14 @@ but real withdrawal figures are the one thing that cannot be invented.
       phone shows a gain without a round trip, and weights join the sync registry as append-only.
       `lastWeightKg` follows the latest weighing _by date_, not by entry order, so backfilling an
       old weight does not overwrite the current one.
-- [ ] Finance basics (M8)
+- [x] **Finance basics (M8).** Sales, purchases, expenses and feed logs — deliberately not
+      accounting. A herder will not maintain a chart of accounts, and the useful question is "did
+      this season pay", not "does it balance". Buying animals registers them in the same action,
+      because otherwise it happens twice or not at all. A feed log counts as feed spend wherever it
+      was entered, so the answer does not depend on which screen was used. **The withdrawal gate is
+      enforced on the sale as well as on the status change** — that is the other door an animal can
+      leave through, and a sale is one act, so one blocked animal blocks the whole sale rather than
+      half-completing it.
 - [x] **Full data export** (FR-RPT-07) — every collection this farm owns as JSON, including the
       empty ones so the shape is predictable. The customer must be able to leave: a product that
       holds a herder's records hostage has stopped being a tool.
