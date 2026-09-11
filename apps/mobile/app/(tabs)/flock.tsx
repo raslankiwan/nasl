@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { api, ApiError } from '../../src/api/client';
 import { useAuth } from '../../src/auth/AuthProvider';
@@ -50,9 +50,12 @@ export default function Flock() {
     }
   }, [farmId, t]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  // Reload on focus, so animals added in quick add appear on the way back.
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
 
   if (!farmId) {
     return (
@@ -71,7 +74,17 @@ export default function Flock() {
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <View style={styles.header}>
         <Title>{t('animals:title')}</Title>
-        <Text style={styles.count}>{t('animals:headCount', { count: total })}</Text>
+        <View style={styles.headerActions}>
+          <Text style={styles.count}>{t('animals:headCount', { count: total })}</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('animals:addAnimal')}
+            onPress={() => router.push('/animal/new')}
+            style={({ pressed }) => [styles.add, pressed && styles.rowPressed]}
+          >
+            <Text style={styles.addLabel}>＋</Text>
+          </Pressable>
+        </View>
       </View>
 
       {error ? (
@@ -141,6 +154,16 @@ const styles = StyleSheet.create({
   },
   padded: { padding: spacing.lg },
   count: { fontSize: type.label, color: colors.muted, fontWeight: '600' },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  add: {
+    width: MIN_TOUCH,
+    height: MIN_TOUCH,
+    borderRadius: radius.pill,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addLabel: { fontSize: 24, color: colors.onAccent, fontWeight: '700', lineHeight: 28 },
   list: { padding: spacing.lg },
   row: {
     minHeight: MIN_TOUCH + 8,

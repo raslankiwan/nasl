@@ -110,8 +110,10 @@ than the database; only veterinary products are curated so far.
 - [x] Phone + OTP sign-in, tokens in AsyncStorage, single in-flight refresh
 - [x] Flock roster on FlashList, animal detail with both calendars on every date
 - [x] Withdrawal period shown as a blocking notice on the animal, not a footnote
-- [ ] **Carried to Increment 5:** add-animal form and quick-add mode (FR-REG-01, 03). The API and
-      the bulk endpoint are done and tested; only the on-device form is outstanding.
+- [x] Quick add (FR-REG-01, 03): species and sex chosen once for the session, tag entered on a
+      large custom keypad, one tap per animal, with an undo log. Nothing else is asked for — the
+      rest can be filled in later, from anywhere. Duplicate tags come back as the conflict message
+      with the tag retained, so it can be corrected rather than retyped.
 
 Verified in a browser through Expo's web target: Arabic RTL by default, Umm al-Qura dates beside
 Gregorian, and a clean flip to English LTR with the tab bar reordering.
