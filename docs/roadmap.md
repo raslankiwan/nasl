@@ -217,13 +217,25 @@ route happens to import cannot be missed.
 **165 tests.** The library itself is still empty: the schema and the cited-source rule are built,
 but real withdrawal figures are the one thing that cannot be invented.
 
-## Increment 8 — Pedigree and reports
+## Increment 8 — Reports ✅ (pedigree UI and export carried)
 
-- [ ] Ancestor traversal, 4+ generations, RTL-correct rendering (FR-PED-01)
-- [ ] Parentage validation: no cycles, no impossible sire/dam (FR-PED-05)
-- [ ] Ewe productivity scorecard and cull list (FR-RPT-01)
-- [ ] Season summary, flock composition, treatment register
-- [ ] PDF and Excel export (FR-RPT-06)
+- [x] Ancestor traversal and parentage validation shipped in Increment 2 (FR-PED-01, 05)
+- [x] **Ewe productivity scorecard** (FR-RPT-01): lifetime lambings, lambs born and weaned,
+      average litter size, mean lambing interval, kg weaned, assisted lambings — all derived from
+      the event stream at read time rather than kept as running totals, because a total drifts and
+      the number a culling decision rests on has to be one the events actually support.
+- [x] **Cull signals** rather than a bare list of numbers: barren, never lambed, long since
+      lambing, repeated difficult births, lost most of a litter, below the flock's litter average.
+      Sorted worst-first, so the conversation starts at the top instead of the herder scanning.
+- [x] Season summary — lambing percentage, weaning rate, lamb mortality, average birth weight
+      (FR-RPT-02)
+- [x] Flock composition by sex, species, breed, age band and reproductive state (FR-RPT-03)
+- [x] Treatment register with batch numbers and withdrawal dates (FR-RPT-04)
+- [x] Mobile reports tab, **gated on the permission matrix** — a worker records what happened;
+      the owner decides which ewes stay, and the tab does not exist for roles without the right
+- [ ] **Carried:** PDF and Excel export (FR-RPT-06), pedigree tree rendering on the phone
+
+**192 tests.**
 
 ## Increment 9 — Today screen and notifications
 

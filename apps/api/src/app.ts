@@ -16,6 +16,7 @@ import { adminRoutes } from './routes/admin.routes.ts';
 import { breedingRoutes } from './routes/breeding.routes.ts';
 import { healthRoutes } from './routes/health.routes.ts';
 import { syncRoutes } from './routes/sync.routes.ts';
+import { reportRoutes } from './routes/reports.routes.ts';
 
 export interface AppDeps {
   config: Config;
@@ -52,6 +53,7 @@ export function createApp({ config, logger }: AppDeps): Express {
   app.use('/v1/farms/:farmId/breeding', breedingRoutes(config));
   app.use('/v1/farms/:farmId/health', healthRoutes(config));
   app.use('/v1/farms/:farmId/sync', syncRoutes(config));
+  app.use('/v1/farms/:farmId/reports', reportRoutes(config));
 
   app.use(notFoundHandler);
   app.use(errorHandler(logger));
