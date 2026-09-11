@@ -134,14 +134,30 @@ root `overrides`, following the version Expo ships, and the whole reasoning is w
 [`dependencies.md`](dependencies.md) along with two audit findings whose only "fix" is a downgrade
 of Expo by fifty major versions.
 
-## Increment 5 — Offline foundation
+## Increment 5 — Offline foundation ⬤ server half done
 
-- [ ] WatermelonDB schema mirroring the server collections
-- [ ] `POST /v1/sync/pull` and `/push` with the change-set protocol (scope §10)
-- [ ] Client-generated IDs end to end
-- [ ] Conflict handling: append-only events, last-write-wins per field on mutable documents
-- [ ] Sync status UI, offline banner, queued-write indicator
-- [ ] Test: 14 days offline, then a clean sync (NFR-01)
+The server side is built and tested; the device side — WatermelonDB and the queue — is next.
+
+- [x] `POST /sync/pull` and `/sync/push` with the change-set protocol (scope §10)
+- [x] Client-generated IDs end to end
+- [x] **Append-only events cannot conflict.** Two shepherds recording two treatments on the same
+      ewe from two phones produce two documents, not a conflict. Only `animals` and `groups` carry
+      mutable fields. Re-pushing an event the server already has is a no-op, so a retry after a
+      dropped connection is safe.
+- [x] **Derived state is never trusted from the device.** After a push, every affected female's
+      reproductive state is replayed from her whole event stream. A device offline for weeks can
+      contribute events; it cannot dictate conclusions — and it cannot clear a withdrawal the
+      server applied.
+- [x] The replay is _total_: an event that cannot apply is skipped and counted rather than thrown,
+      because the aim is the best state the evidence supports, not an animal left with no state.
+- [x] One malformed row does not strand the batch — a fortnight of records must not be lost to a
+      single bad one.
+- [x] Events cannot be deleted by a client. An event is evidence of something that happened.
+- [x] 14 tests including: fourteen days offline then a clean sync, events arriving out of order,
+      an impossible event, a stale device trying to undo a withdrawal (NFR-01)
+- [ ] WatermelonDB schema on the device, write queue, sync status UI, offline banner
+
+**179 tests.**
 
 ## Increment 6 — Breeding and lambing ✅ (mobile capture carried)
 

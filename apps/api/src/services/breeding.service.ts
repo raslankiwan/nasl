@@ -4,6 +4,7 @@ import {
   InvalidReproTransition,
   isInDueWindow,
   type ReproEvent,
+  type ReproState,
   type ReproStatus,
   type Species,
 } from '@nasl/shared';
@@ -331,6 +332,96 @@ export class BreedingService {
 
     await this.persist(farmId, input.damId, next);
     return abortion;
+  }
+
+  // --------------------------------------------------------------- replay --
+
+  /**
+   * Rebuild a female's reproductive state by replaying her events in order.
+   *
+   * This is what makes offline sync safe. A device that has been away for weeks pushes events the
+   * server has never seen, interleaved with ones it has; rather than trusting whatever `repro` the
+   * client computed, the server derives it again from the full stream. A stale client therefore
+   * cannot corrupt the state — the worst it can do is contribute an event.
+   *
+   * The replay is deliberately *total*. An event that cannot apply is skipped and counted rather
+   * than thrown, because the purpose here is to arrive at the best state the evidence supports,
+   * and refusing to finish would leave the animal with no state at all.
+   */
+  async recomputeRepro(
+    farmId: string,
+    damId: string,
+  ): Promise<{ state: ReproState; skipped: number }> {
+    const animal = await this.animals.findById(farmId, damId);
+    if (!animal) throw AppError.notFound('Animal not found');
+    if (animal.sex !== 'female') return { state: 'open', skipped: 0 };
+
+    const species = animal.species as Species;
+    const [matings, checks, births, weanings, abortions] = await Promise.all([
+      this.matings.find(farmId, { damId } as never, { sort: { startDate: 1 } }),
+      this.checks.find(farmId, { damId } as never, { sort: { date: 1 } }),
+      this.births.find(farmId, { damId } as never, { sort: { date: 1 } }),
+      this.weanings.find(farmId, { damId } as never, { sort: { date: 1 } }),
+      this.abortions.find(farmId, { damId } as never, { sort: { date: 1 } }),
+    ]);
+
+    interface Step {
+      at: Date;
+      /** Orders events recorded on the same day: a birth precedes the nursing it starts. */
+      rank: number;
+      event: ReproEvent;
+      matingId?: string;
+    }
+
+    const steps: Step[] = [
+      ...matings.map((m) => ({
+        at: m.startDate,
+        rank: 0,
+        event: { type: 'mating', date: m.startDate, species } as ReproEvent,
+        matingId: m._id,
+      })),
+      ...checks.map((c) => ({
+        at: c.date,
+        rank: 1,
+        event: {
+          type: 'pregnancyCheck',
+          date: c.date,
+          result: c.result as 'pregnant' | 'open' | 'uncertain',
+        } as ReproEvent,
+      })),
+      ...abortions.map((a) => ({
+        at: a.date,
+        rank: 2,
+        event: { type: 'abortion', date: a.date } as ReproEvent,
+      })),
+      ...births.flatMap((b) => {
+        const base: Step[] = [{ at: b.date, rank: 3, event: { type: 'birth', date: b.date } }];
+        if (b.offspring.some((o) => o.outcome === 'live')) {
+          base.push({ at: b.date, rank: 4, event: { type: 'nursingStarted', date: b.date } });
+        }
+        return base;
+      }),
+      ...weanings.map((w) => ({
+        at: w.date,
+        rank: 5,
+        event: { type: 'weaning', date: w.date } as ReproEvent,
+      })),
+    ].sort((a, b) => a.at.getTime() - b.at.getTime() || a.rank - b.rank);
+
+    let status: ReproStatus = { state: 'open', sinceDate: animal.createdAt };
+    let skipped = 0;
+
+    for (const step of steps) {
+      try {
+        status = applyReproEvent(status, step.event);
+        if (step.matingId) status = { ...status, matingId: step.matingId };
+      } catch {
+        skipped += 1;
+      }
+    }
+
+    await this.persist(farmId, damId, status);
+    return { state: status.state, skipped };
   }
 
   // ---------------------------------------------------------------- alerts --
