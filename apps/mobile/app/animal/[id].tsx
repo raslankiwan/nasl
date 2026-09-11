@@ -12,6 +12,13 @@ import { ACTION_LABELS, ACTION_ROUTES } from '../../src/breeding';
 import { actionsFor, type ReproState } from '@nasl/shared';
 import { colors, spacing, type } from '../../src/theme';
 
+interface WeightHistory {
+  current: number | null;
+  lifetimeGainPerDay: number | null;
+  adjusted90DayWeightKg: number | null;
+  entries: Array<{ id: string; date: string; kg: number; gainPerDay: number | null }>;
+}
+
 interface TreatmentRow {
   id: string;
   date: string;
@@ -39,6 +46,7 @@ export default function AnimalScreen() {
   // Read from the device first, refresh behind it — the pen is where the signal is not.
   const { animal, loading, stale } = useAnimal(id);
   const [treatments, setTreatments] = useState<TreatmentRow[]>([]);
+  const [weights, setWeights] = useState<WeightHistory | null>(null);
 
   useEffect(() => {
     if (!farmId || !id) return;
@@ -47,6 +55,11 @@ export default function AnimalScreen() {
       .get<{ events: TreatmentRow[] }>(`/v1/farms/${farmId}/health/animals/${id}`)
       .then((res) => setTreatments(res.events))
       .catch(() => setTreatments([]));
+
+    api
+      .get<WeightHistory>(`/v1/farms/${farmId}/weights/${id}`)
+      .then(setWeights)
+      .catch(() => setWeights(null));
   }, [farmId, id]);
 
   const dash = '—';
@@ -166,6 +179,47 @@ export default function AnimalScreen() {
                   ) : (
                     <Body muted>{t('breeding:nothingToRecord')}</Body>
                   )}
+                </>
+              ) : null}
+
+              <View style={styles.gap} />
+              <Button
+                label={t('animals:recordWeight')}
+                variant="secondary"
+                onPress={() =>
+                  router.push({ pathname: '/animal/weigh', params: { animalId: animal.id } })
+                }
+              />
+
+              {weights && weights.entries.length > 0 ? (
+                <>
+                  <View style={styles.gap} />
+                  <Card>
+                    <Body>{t('animals:weightHistory')}</Body>
+                    <View style={styles.gap} />
+                    {weights.lifetimeGainPerDay !== null ? (
+                      <Row
+                        label={t('animals:gainPerDay')}
+                        value={`${weights.lifetimeGainPerDay} kg`}
+                      />
+                    ) : null}
+                    {weights.adjusted90DayWeightKg !== null ? (
+                      <Row
+                        label={t('animals:adjusted90')}
+                        value={`${weights.adjusted90DayWeightKg} kg`}
+                      />
+                    ) : null}
+                    {weights.entries
+                      .slice(-5)
+                      .reverse()
+                      .map((entry) => (
+                        <Row
+                          key={entry.id}
+                          label={formatDate(new Date(entry.date), locale)}
+                          value={`${entry.kg} kg${entry.gainPerDay !== null ? `  ·  ${entry.gainPerDay}/d` : ''}`}
+                        />
+                      ))}
+                  </Card>
                 </>
               ) : null}
 

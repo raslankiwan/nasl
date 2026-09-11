@@ -281,7 +281,13 @@ but real withdrawal figures are the one thing that cannot be invented.
 
 ## Increment 10 — Hardening and release
 
-- [ ] Weights and growth (M6), finance basics (M8)
+- [x] **Weights and growth (M6).** Individual and whole-pen weighing, average daily gain between
+      any two weighings, lifetime gain, and the adjusted 90-day weight that makes two lambs born
+      five weeks apart comparable (FR-WGT-01…04). The arithmetic lives in `@nasl/shared` so the
+      phone shows a gain without a round trip, and weights join the sync registry as append-only.
+      `lastWeightKg` follows the latest weighing _by date_, not by entry order, so backfilling an
+      old weight does not overwrite the current one.
+- [ ] Finance basics (M8)
 - [ ] Full data export (FR-RPT-07)
 - [ ] Performance pass against NFR-02 on a mid-range Android
 - [ ] Device DB encryption, refresh rotation, backup and restore drill

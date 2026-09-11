@@ -4,6 +4,7 @@ import { Animal } from '../models/animal.model.ts';
 import { Group } from '../models/group.model.ts';
 import { Movement } from '../models/movement.model.ts';
 import { HealthEvent } from '../models/health.model.ts';
+import { Weight } from '../models/weight.model.ts';
 import { Abortion, Birth, Mating, PregnancyCheck, Weaning } from '../models/breeding.model.ts';
 import type { TenantDocument } from '../models/base.ts';
 import { BreedingService } from './breeding.service.ts';
@@ -55,6 +56,7 @@ const COLLECTIONS: readonly Syncable[] = [
   { name: 'weanings', model: Weaning as unknown as SyncModel, mode: 'append-only' },
   { name: 'abortions', model: Abortion as unknown as SyncModel, mode: 'append-only' },
   { name: 'healthEvents', model: HealthEvent as unknown as SyncModel, mode: 'append-only' },
+  { name: 'weights', model: Weight as unknown as SyncModel, mode: 'append-only' },
 ];
 
 export interface ChangeSet {
