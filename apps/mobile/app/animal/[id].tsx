@@ -37,7 +37,7 @@ function Row({ label, value }: { label: string; value: string }) {
 
 export default function AnimalScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { t, i18n } = useTranslation(['animals', 'breeding', 'health', 'common']);
+  const { t, i18n } = useTranslation(['animals', 'breeding', 'health', 'pens', 'common']);
   const { farmId } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -181,6 +181,15 @@ export default function AnimalScreen() {
                   )}
                 </>
               ) : null}
+
+              <View style={styles.gap} />
+              <Button
+                label={t('pens:moveTo')}
+                variant="secondary"
+                onPress={() =>
+                  router.push({ pathname: '/animal/move', params: { animalId: animal.id } })
+                }
+              />
 
               <View style={styles.gap} />
               <Button

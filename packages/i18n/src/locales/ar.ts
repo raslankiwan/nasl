@@ -299,6 +299,28 @@ export const ar: Translated<Catalogue> = {
     withdrawalWarning:
       'فترات الأمان مأخوذة من نشرات الشركات المصنّعة. أي قيمة خاطئة هنا قد تُدخل لحماً معالَجاً إلى السلسلة الغذائية.',
   },
+  pens: {
+    title: 'الحظائر',
+    addPen: 'إضافة حظيرة',
+    penName: 'اسم الحظيرة',
+    moveTo: 'نقل إلى',
+    moveHere: 'نقل إلى هنا',
+    noPen: 'بدون حظيرة',
+    empty: 'لا توجد حظائر بعد',
+    emptyPen: 'هذه الحظيرة فارغة',
+    headCount: '{{count}} رأس',
+    moved: 'نُقل {{count}}',
+    reason: 'السبب',
+    types: {
+      pen: 'حظيرة',
+      pasture: 'مرعى',
+      breeding: 'مجموعة تلقيح',
+      drop: 'حظيرة الولادة',
+      hospital: 'العزل',
+      weaning: 'مجموعة الفطام',
+      fattening: 'التسمين',
+    },
+  },
   roles: {
     owner: 'المالك',
     manager: 'المدير',

@@ -1,4 +1,5 @@
 import { ScrollView, StyleSheet, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { LOCALE_META, type Locale } from '@nasl/i18n';
 import { useAuth } from '../../src/auth/AuthProvider';
@@ -7,7 +8,8 @@ import { LanguageToggle } from '../../src/components/LanguageToggle';
 import { colors, spacing } from '../../src/theme';
 
 export default function Settings() {
-  const { t, i18n } = useTranslation(['common', 'auth', 'roles']);
+  const { t, i18n } = useTranslation(['common', 'auth', 'roles', 'pens']);
+  const router = useRouter();
   const { me, farmId, signOut } = useAuth();
   const locale = (i18n.resolvedLanguage ?? 'ar') as Locale;
   const role = me?.farms.find((f) => f.farmId === farmId)?.role;
@@ -34,6 +36,14 @@ export default function Settings() {
             <Body>{me?.name ?? t('common:unknown')}</Body>
             {role ? <Body muted>{t(`roles:${role}` as 'roles:owner')}</Body> : null}
           </Card>
+
+          <View style={styles.gap} />
+
+          <Button
+            label={t('pens:title')}
+            variant="secondary"
+            onPress={() => router.push('/pens')}
+          />
 
           <View style={styles.gap} />
 

@@ -221,6 +221,18 @@ an index. `connectDatabase` now waits for `createIndexes()` across every model b
 listens, the test harness does the same, and `models/index.ts` registers them all so a model no
 route happens to import cannot be missed.
 
+## Pens on the phone ✅
+
+The API had pens and movements from Increment 2, but the phone could not move an animal — and
+moving ewes to the drop pen before lambing is a daily job.
+
+- [x] Pen list with live occupancy, and creating a pen from the phone
+- [x] Pen detail listing who is in it, with **multi-select**: a herder does not move one ewe to
+      the drop pen, they move the five that are close, so animals are tapped and moved together
+- [x] Single-animal move from the animal screen, queued through the outbox like every other write
+- [x] Pens are read from the network rather than cached — a farm has a handful and they change
+      rarely, so being wrong offline costs a short list rather than a lost record
+
 ## Increment 7 — Health and withdrawal ✅ (medicine cabinet carried)
 
 - [x] `healthEvents` as immutable records. Withhold dates are copied onto the event when it is

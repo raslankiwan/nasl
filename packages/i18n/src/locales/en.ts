@@ -295,6 +295,28 @@ export const en = {
     withdrawalWarning:
       'Withdrawal periods come from manufacturer datasheets. An incorrect value here can put treated meat into the food chain.',
   },
+  pens: {
+    title: 'Pens',
+    addPen: 'Add pen',
+    penName: 'Pen name',
+    moveTo: 'Move to',
+    moveHere: 'Move here',
+    noPen: 'No pen',
+    empty: 'No pens yet',
+    emptyPen: 'This pen is empty',
+    headCount: '{{count}} head',
+    moved: '{{count}} moved',
+    reason: 'Reason',
+    types: {
+      pen: 'Pen',
+      pasture: 'Pasture',
+      breeding: 'Breeding group',
+      drop: 'Drop pen',
+      hospital: 'Isolation',
+      weaning: 'Weaning group',
+      fattening: 'Fattening',
+    },
+  },
   roles: {
     owner: 'Owner',
     manager: 'Manager',
