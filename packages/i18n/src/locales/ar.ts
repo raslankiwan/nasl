@@ -134,6 +134,8 @@ export const ar: Translated<Catalogue> = {
     lambsWeaned: 'المفطومة',
     pedigree: 'شجرة النسب',
     offspring: 'النتاج',
+    unknownParent: 'غير مسجّل',
+    generations: '{{count}} أجيال',
     lamb: 'مولود',
     addLamb: 'إضافة مولود',
     remove: 'حذف',

@@ -260,7 +260,13 @@ but real withdrawal figures are the one thing that cannot be invented.
 - [x] Treatment register with batch numbers and withdrawal dates (FR-RPT-04)
 - [x] Mobile reports tab, **gated on the permission matrix** — a worker records what happened;
       the owner decides which ewes stay, and the tab does not exist for roles without the right
-- [ ] **Carried:** PDF and Excel export (FR-RPT-06), pedigree tree rendering on the phone
+- [x] **Pedigree tree on the phone** (FR-PED-01, gap G2 — no Arabic competitor renders one).
+      Drawn as an indented list rather than a branching diagram: a phone is 375 points wide, a
+      graphical tree stops being readable at two generations, and a buyer of breeding stock asks
+      for four. Indentation runs along the inline axis, so the line of descent goes rightward in
+      Arabic and leftward in English with no mirroring code. Unknown parents are shown as dashed
+      placeholders rather than omitted — a gap in the record is information.
+- [ ] **Carried:** PDF and Excel export (FR-RPT-06)
 
 **192 tests.**
 

@@ -169,6 +169,15 @@ export default function AnimalScreen() {
                 </>
               ) : null}
 
+              <View style={styles.gap} />
+              <Button
+                label={t('breeding:pedigree')}
+                variant="secondary"
+                onPress={() =>
+                  router.push({ pathname: '/animal/pedigree', params: { id: animal.id } })
+                }
+              />
+
               {/* Health applies to every animal, not only the breeding females. */}
               {animal.status === 'active' ? (
                 <>

@@ -129,6 +129,8 @@ export const en = {
     lambsWeaned: 'Weaned',
     pedigree: 'Family tree',
     offspring: 'Offspring',
+    unknownParent: 'Not recorded',
+    generations: '{{count}} generations',
     lamb: 'Lamb',
     addLamb: 'Add lamb',
     remove: 'Remove',
