@@ -100,14 +100,37 @@ than the database; only veterinary products are curated so far.
 3. A signed-in farm user reaching the console saw an empty dashboard of zeros instead of being
    told it was not for them.
 
-## Increment 4 — Mobile shell
+## Increment 4 — Mobile shell ✅ (one item carried)
 
-- [ ] Expo app, Expo Router, NativeWind or Unistyles
-- [ ] i18n wired to `@nasl/i18n` + `expo-localization`, **language toggle in settings**
-- [ ] `I18nManager.forceRTL` handled with the reload it requires — before first render
-- [ ] Phone + OTP sign-in, session persistence
-- [ ] Flock list with FlashList, animal detail (NFR-02)
-- [ ] Add-animal form and quick-add mode (FR-REG-01, 03)
+- [x] Expo SDK 57 / React Native 0.86, Expo Router, Metro configured for the workspace
+- [x] i18n wired to `@nasl/i18n`, **language toggle in settings and on the sign-in screen**
+- [x] `I18nManager.forceRTL` handled properly: switching direction is a _restart_, not a
+      re-render, so the app asks first rather than vanishing under the user's hands. Web applies
+      immediately and needs no restart.
+- [x] Phone + OTP sign-in, tokens in AsyncStorage, single in-flight refresh
+- [x] Flock roster on FlashList, animal detail with both calendars on every date
+- [x] Withdrawal period shown as a blocking notice on the animal, not a footnote
+- [ ] **Carried to Increment 5:** add-animal form and quick-add mode (FR-REG-01, 03). The API and
+      the bulk endpoint are done and tested; only the on-device form is outstanding.
+
+Verified in a browser through Expo's web target: Arabic RTL by default, Umm al-Qura dates beside
+Gregorian, and a clean flip to English LTR with the tab bar reordering.
+
+### Two bugs found by clicking through, both fixed
+
+1. Tag numbers rendered as `1,001` — they were being run through a number formatter. A tag is an
+   identifier, not a quantity: never grouped, never localised into other digits, and not
+   necessarily numeric at all. It now prints verbatim, left-to-right, in either language.
+2. The auth gate keyed on being inside the `(tabs)` route group rather than on being
+   authenticated, so tapping an animal bounced straight back to the home tab.
+
+### A dependency fault this increment exposed
+
+Adding React Native put a second React in the tree and the console's tests died with
+`Cannot read properties of null (reading 'useState')`. The workspace now pins one React through
+root `overrides`, following the version Expo ships, and the whole reasoning is written down in
+[`dependencies.md`](dependencies.md) along with two audit findings whose only "fix" is a downgrade
+of Expo by fifty major versions.
 
 ## Increment 5 — Offline foundation
 

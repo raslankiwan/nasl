@@ -6,6 +6,8 @@ Built around the breeding female — her matings, pregnancies, lambings, medicin
 than around a herd roster. An Expo mobile app for the herder, a React web console for operations,
 one Express + MongoDB backend behind both.
 
+Dependency decisions and known audit findings: [`docs/dependencies.md`](docs/dependencies.md)
+
 Full product scope: [`docs/scope.md`](docs/scope.md) · [PDF](docs/Nasl-Flock-Management-Scope.pdf)
 Delivery plan: [`docs/roadmap.md`](docs/roadmap.md)
 

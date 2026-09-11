@@ -33,4 +33,13 @@ export default tseslint.config(
     files: ['apps/admin/**'],
     languageOptions: { globals: { ...globals.browser } },
   },
+  {
+    // Metro and Babel read plain CommonJS config files; they are not application source.
+    files: ['**/metro.config.js', '**/babel.config.js', '**/*.config.cjs'],
+    languageOptions: {
+      sourceType: 'commonjs',
+      globals: { ...globals.node, ...globals.commonjs },
+    },
+    rules: { '@typescript-eslint/no-require-imports': 'off' },
+  },
 );

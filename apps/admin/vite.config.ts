@@ -19,6 +19,9 @@ export default defineConfig({
       '@nasl/i18n': fromHere('../../packages/i18n/src/index.ts'),
       '@nasl/shared': fromHere('../../packages/shared/src/index.ts'),
     },
+    // A workspace can easily end up with React hoisted at the root and again under an app.
+    // Two copies in one tree makes every hook read null internals.
+    dedupe: ['react', 'react-dom'],
   },
   server: {
     port: 5174,
