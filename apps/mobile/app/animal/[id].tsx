@@ -4,7 +4,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { formatDate, formatHijriDate, type Locale } from '@nasl/i18n';
-import { api, ApiError } from '../../src/api/client';
+import { api } from '../../src/api/client';
+import { useAnimal } from '../../src/sync/useFlock';
 import { useAuth } from '../../src/auth/AuthProvider';
 import { Body, Button, Card, Notice, Pill, Screen, Title } from '../../src/components/ui';
 import { ACTION_LABELS, ACTION_ROUTES } from '../../src/breeding';
@@ -16,21 +17,6 @@ interface TreatmentRow {
   date: string;
   type: string;
   productName: string | null;
-}
-
-interface AnimalDetail {
-  id: string;
-  tagNumber: string;
-  name: string | null;
-  species: string;
-  breedId: string | null;
-  sex: string;
-  dateOfBirth: string | null;
-  status: string;
-  repro: { state: string; dueDate: string | null } | null;
-  lastWeightKg: number | null;
-  withholdMeatUntil: string | null;
-  withholdMilkUntil: string | null;
 }
 
 function Row({ label, value }: { label: string; value: string }) {
@@ -50,22 +36,18 @@ export default function AnimalScreen() {
   const insets = useSafeAreaInsets();
   const locale = (i18n.resolvedLanguage ?? 'ar') as Locale;
 
-  const [animal, setAnimal] = useState<AnimalDetail | null>(null);
+  // Read from the device first, refresh behind it — the pen is where the signal is not.
+  const { animal, loading, stale } = useAnimal(id);
   const [treatments, setTreatments] = useState<TreatmentRow[]>([]);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!farmId || !id) return;
-    api
-      .get<AnimalDetail>(`/v1/farms/${farmId}/animals/${id}`)
-      .then(setAnimal)
-      .catch((err) => setError(err instanceof ApiError ? err.message : t('common:errorRetry')));
-
+    // Treatment history is still network-only; an empty list is the honest offline answer.
     api
       .get<{ events: TreatmentRow[] }>(`/v1/farms/${farmId}/health/animals/${id}`)
       .then((res) => setTreatments(res.events))
       .catch(() => setTreatments([]));
-  }, [farmId, id, t]);
+  }, [farmId, id]);
 
   const dash = '—';
   const actions =
@@ -80,7 +62,7 @@ export default function AnimalScreen() {
           <Button label={t('common:back')} variant="secondary" onPress={() => router.back()} />
           <View style={styles.gap} />
 
-          {error ? <Notice tone="danger">{error}</Notice> : null}
+          {stale ? <Body muted>{t('common:offline')}</Body> : null}
 
           {animal ? (
             <>
@@ -221,8 +203,10 @@ export default function AnimalScreen() {
                 </>
               ) : null}
             </>
-          ) : error ? null : (
+          ) : loading ? (
             <Body muted>{t('common:loading')}</Body>
+          ) : (
+            <Body muted>{t('common:empty')}</Body>
           )}
         </Screen>
       </ScrollView>

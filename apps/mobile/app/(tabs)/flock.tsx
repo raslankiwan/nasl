@@ -1,59 +1,29 @@
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { api, ApiError } from '../../src/api/client';
 import { useAuth } from '../../src/auth/AuthProvider';
-import { Body, Button, Card, Notice, Pill, Title } from '../../src/components/ui';
+import { useFlock } from '../../src/sync/useFlock';
+import { Body, Card, Pill, Title } from '../../src/components/ui';
 import { colors, MIN_TOUCH, radius, spacing, type } from '../../src/theme';
 
-interface AnimalRow {
-  id: string;
-  tagNumber: string;
-  name: string | null;
-  species: string;
-  sex: string;
-  status: string;
-  repro: { state: string } | null;
-  withholdMeatUntil: string | null;
-  withholdMilkUntil: string | null;
-}
-
+/**
+ * The flock roster, read from the device.
+ *
+ * It renders from the local copy first and refreshes behind that, so opening it in a pen with no
+ * coverage shows the flock rather than a connection error.
+ */
 export default function Flock() {
   const { t } = useTranslation(['animals', 'breeding', 'common', 'health']);
   const { farmId } = useAuth();
   const router = useRouter();
+  const { animals, loading, stale, refresh } = useFlock();
 
-  const [animals, setAnimals] = useState<AnimalRow[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    if (!farmId) {
-      setLoading(false);
-      return;
-    }
-    setError(null);
-    try {
-      const res = await api.get<{ animals: AnimalRow[]; total: number }>(
-        `/v1/farms/${farmId}/animals?limit=200`,
-      );
-      setAnimals(res.animals);
-      setTotal(res.total);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : t('common:errorRetry'));
-    } finally {
-      setLoading(false);
-    }
-  }, [farmId, t]);
-
-  // Reload on focus, so animals added in quick add appear on the way back.
   useFocusEffect(
     useCallback(() => {
-      void load();
-    }, [load]),
+      void refresh();
+    }, [refresh]),
   );
 
   if (!farmId) {
@@ -74,7 +44,7 @@ export default function Flock() {
       <View style={styles.header}>
         <Title>{t('animals:title')}</Title>
         <View style={styles.headerActions}>
-          <Text style={styles.count}>{t('animals:headCount', { count: total })}</Text>
+          <Text style={styles.count}>{t('animals:headCount', { count: animals.length })}</Text>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t('animals:addAnimal')}
@@ -86,18 +56,14 @@ export default function Flock() {
         </View>
       </View>
 
-      {error ? (
-        <View style={styles.padded}>
-          <Notice tone="danger">{error}</Notice>
-          <Button label={t('common:retry')} variant="secondary" onPress={() => void load()} />
-        </View>
-      ) : null}
+      {/* Not an error: it says the list is what was last known, which is still worth reading. */}
+      {stale ? <Text style={styles.stale}>{t('common:offline')}</Text> : null}
 
       <FlashList
         data={animals}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void load()} />}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void refresh()} />}
         ListEmptyComponent={
           loading ? null : (
             <View style={styles.padded}>
@@ -113,9 +79,8 @@ export default function Flock() {
           >
             <View style={styles.rowMain}>
               {/*
-                A tag number is an identifier, not a quantity: it is never grouped ("1,001"), never
-                localised into other digits, and may not be numeric at all. It is printed verbatim,
-                left-to-right, in either language.
+                A tag number is an identifier, not a quantity: never grouped, never localised into
+                other digits, and not necessarily numeric at all. Printed verbatim, left-to-right.
               */}
               <Text style={styles.tag}>{item.tagNumber}</Text>
               <Text style={styles.name} numberOfLines={1}>
@@ -125,7 +90,7 @@ export default function Flock() {
             </View>
 
             <View style={styles.rowMeta}>
-              {/* A milk hold outranks everything else here: it is the question asked at milking. */}
+              {/* A milk hold outranks everything else: it is the question asked at milking. */}
               {item.withholdMilkUntil ? (
                 <Pill tone="accent">{t('health:doNotMilk')}</Pill>
               ) : item.withholdMeatUntil ? (
@@ -154,8 +119,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg,
   },
-  padded: { padding: spacing.lg },
-  count: { fontSize: type.label, color: colors.muted, fontWeight: '600' },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   add: {
     width: MIN_TOUCH,
@@ -166,6 +129,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   addLabel: { fontSize: 24, color: colors.onAccent, fontWeight: '700', lineHeight: 28 },
+  padded: { padding: spacing.lg },
+  count: { fontSize: type.label, color: colors.muted, fontWeight: '600' },
+  stale: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    fontSize: type.caption,
+    color: colors.muted,
+  },
   list: { padding: spacing.lg },
   row: {
     minHeight: MIN_TOUCH + 8,

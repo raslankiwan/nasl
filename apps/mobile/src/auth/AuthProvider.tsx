@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api, ApiError, clearTokens, deviceId, loadTokens, saveTokens } from '../api/client';
+import { forget } from '../sync/cache';
 
 const ME_CACHE_KEY = 'nasl.me';
 
@@ -107,10 +108,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     await clearTokens();
     await AsyncStorage.removeItem(ME_CACHE_KEY);
+    // The next person to sign in on this phone must not see the last one's flock.
+    if (farmId) await forget(farmId);
     setMe(null);
     setFarmId(null);
     setStatus('signedOut');
-  }, []);
+  }, [farmId]);
 
   const value = useMemo<AuthValue>(
     () => ({

@@ -163,10 +163,16 @@ The server side is built and tested; the device side — WatermelonDB and the qu
 - [x] Sync banner: what is waiting, what is stuck, and a way to try again now. Silence about
       queued work is the failure to avoid — a herder who cannot tell whether a birth was saved
       will write it on paper, and then the app has cost them time rather than saved it.
-- [ ] **Carried: the local read database.** Writes survive without a network; reads do not. The
-      app currently shows a connection error where a cached flock should be. This is the remaining
-      half of NFR-01 and wants SQLite (WatermelonDB) rather than the queue's storage, because the
-      roster has to hold 2,000 animals and 50,000 events (NFR-02).
+- [x] **Local flock cache fed by `sync/pull`.** The roster and the animal screen read from the
+      device first and refresh behind that, so opening either in a pen with no coverage shows the
+      flock rather than a connection error. Incremental: the first pull takes the farm, every
+      later one takes only what moved, and nothing is written until the whole response is in hand
+      — a connection that drops mid-pull leaves the previous cursor and cache intact.
+- [x] Signing out forgets the cached flock, so the next person on that phone does not see it.
+- [ ] **Carried: SQLite.** The cache is AsyncStorage, which is honest for the flocks this launches
+      with — Palestinian holdings run to tens or low hundreds of head. It is not right for the
+      commercial tier at 2,000 animals and 50,000 events (NFR-02). The interface in `cache.ts` is
+      deliberately narrow so that swap is one file. Treatment history is still network-only.
 
 **193 tests.** Verified by taking the API down: a mating recorded on the phone queued, showed in
 the banner, and flushed on its own once the server returned — leaving the ewe `mated` with the
