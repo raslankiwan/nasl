@@ -59,7 +59,7 @@ describe('registering animals', () => {
 
       const created = await client.post<AnimalBody>(
         `/v1/farms/${farmId}/animals`,
-        ewe('1001', { name: 'غزال', breedId: 'najdi', dateOfBirth: '2024-03-01' }),
+        ewe('1001', { name: 'غزال', breedId: 'awassi', dateOfBirth: '2024-03-01' }),
       );
       assert.equal(created.status, 201);
       assert.equal(created.body.tagNumber, '1001');

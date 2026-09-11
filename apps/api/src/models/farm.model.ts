@@ -22,9 +22,11 @@ export interface FarmDoc {
 const schema = globalSchema<FarmDoc>({
   name: { type: String, required: true, trim: true },
   ownerUserId: { type: String, required: true, index: true },
-  country: { type: String, required: true, default: 'SA' },
-  currency: { type: String, required: true, default: 'SAR' },
-  timezone: { type: String, required: true, default: 'Asia/Riyadh' },
+  // Launch market is Palestine. ILS is the everyday currency; JOD and USD also circulate, which
+  // is why currency is per-farm rather than a constant.
+  country: { type: String, required: true, default: 'PS' },
+  currency: { type: String, required: true, default: 'ILS' },
+  timezone: { type: String, required: true, default: 'Asia/Hebron' },
   species: { type: [String], enum: SPECIES, default: ['sheep'] },
   calendarPreference: { type: String, enum: ['hijri', 'gregorian'], default: 'gregorian' },
   gestationDays: { type: Object },

@@ -192,7 +192,9 @@ describe('reference data', () => {
         '/v1/reference/breeds',
       );
       assert.equal(breeds.status, 200);
-      assert.ok(breeds.body.breeds.some((b) => b.id === 'najdi' && b.nameAr === 'نجدي'));
+      // Awassi leads the list: it is the indigenous Levantine breed and the launch market.
+      assert.equal(breeds.body.breeds[0]?.id, 'awassi');
+      assert.ok(breeds.body.breeds.some((b) => b.id === 'assaf' && b.nameAr === 'عساف'));
 
       const diseases = await client.get<{ diseases: Array<{ id: string }> }>(
         '/v1/reference/diseases',
