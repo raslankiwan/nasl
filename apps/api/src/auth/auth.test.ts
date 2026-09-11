@@ -1,7 +1,7 @@
 import { after, before, beforeEach, describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { clearDatabase, startTestMongo, stopTestMongo } from '../testing/mongo.ts';
-import { api, testApp, withServer } from '../testing/harness.ts';
+import { api, signIn, testApp, TEST_DEVICE, withServer } from '../testing/harness.ts';
 
 interface ChallengeBody {
   challengeId: string;
@@ -16,23 +16,6 @@ interface SessionBody {
 }
 interface ErrorBody {
   error: { code: string; message: string };
-}
-
-const DEVICE = 'device-0123456789';
-
-/** Request a code and redeem it. Returns the session the client would hold. */
-async function signIn(baseUrl: string, phone: string, name?: string) {
-  const client = api(baseUrl);
-  const challenge = await client.post<ChallengeBody>('/v1/auth/otp/request', { phone });
-  assert.equal(challenge.status, 201, JSON.stringify(challenge.body));
-  const session = await client.post<SessionBody>('/v1/auth/otp/verify', {
-    challengeId: challenge.body.challengeId,
-    code: challenge.body.devCode,
-    deviceId: DEVICE,
-    ...(name ? { name } : {}),
-  });
-  assert.equal(session.status, 200, JSON.stringify(session.body));
-  return session.body;
 }
 
 before(async () => {
@@ -73,7 +56,7 @@ describe('phone sign-in', () => {
       const res = await client.post<ErrorBody>('/v1/auth/otp/verify', {
         challengeId: challenge.body.challengeId,
         code: '000000',
-        deviceId: DEVICE,
+        deviceId: TEST_DEVICE,
       });
       assert.equal(res.status, 400);
     });
@@ -88,7 +71,7 @@ describe('phone sign-in', () => {
       const body = {
         challengeId: challenge.body.challengeId,
         code: challenge.body.devCode,
-        deviceId: DEVICE,
+        deviceId: TEST_DEVICE,
       };
       assert.equal((await client.post('/v1/auth/otp/verify', body)).status, 200);
       assert.equal((await client.post('/v1/auth/otp/verify', body)).status, 400);
@@ -101,7 +84,7 @@ describe('phone sign-in', () => {
       const unknownChallenge = await client.post<ErrorBody>('/v1/auth/otp/verify', {
         challengeId: '00000000-0000-4000-8000-000000000000',
         code: '123456',
-        deviceId: DEVICE,
+        deviceId: TEST_DEVICE,
       });
       const challenge = await client.post<ChallengeBody>('/v1/auth/otp/request', {
         phone: '+966501234567',
@@ -109,7 +92,7 @@ describe('phone sign-in', () => {
       const wrongCode = await client.post<ErrorBody>('/v1/auth/otp/verify', {
         challengeId: challenge.body.challengeId,
         code: '000000',
-        deviceId: DEVICE,
+        deviceId: TEST_DEVICE,
       });
       assert.equal(unknownChallenge.body.error.message, wrongCode.body.error.message);
     });
@@ -141,14 +124,14 @@ describe('refresh token rotation', () => {
 
       const refreshed = await client.post<SessionBody>('/v1/auth/refresh', {
         refreshToken: session.refreshToken,
-        deviceId: DEVICE,
+        deviceId: TEST_DEVICE,
       });
       assert.equal(refreshed.status, 200);
       assert.notEqual(refreshed.body.refreshToken, session.refreshToken, 'tokens rotate');
 
       const reused = await client.post<ErrorBody>('/v1/auth/refresh', {
         refreshToken: session.refreshToken,
-        deviceId: DEVICE,
+        deviceId: TEST_DEVICE,
       });
       assert.equal(reused.status, 401, 'the retired token is dead');
     });
@@ -161,18 +144,18 @@ describe('refresh token rotation', () => {
 
       const second = await client.post<SessionBody>('/v1/auth/refresh', {
         refreshToken: session.refreshToken,
-        deviceId: DEVICE,
+        deviceId: TEST_DEVICE,
       });
 
       // A copied token being replayed is the signal that the device was compromised.
       await client.post('/v1/auth/refresh', {
         refreshToken: session.refreshToken,
-        deviceId: DEVICE,
+        deviceId: TEST_DEVICE,
       });
 
       const afterBreach = await client.post<ErrorBody>('/v1/auth/refresh', {
         refreshToken: second.body.refreshToken,
-        deviceId: DEVICE,
+        deviceId: TEST_DEVICE,
       });
       assert.equal(afterBreach.status, 401, 'the live token is revoked too');
     });

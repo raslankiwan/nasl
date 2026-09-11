@@ -2,16 +2,8 @@ import { after, before, beforeEach, describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Membership } from '../models/membership.model.ts';
 import { clearDatabase, startTestMongo, stopTestMongo } from '../testing/mongo.ts';
-import { api, testApp, withServer } from '../testing/harness.ts';
+import { api, signIn, testApp, withServer } from '../testing/harness.ts';
 
-interface ChallengeBody {
-  challengeId: string;
-  devCode: string;
-}
-interface SessionBody {
-  accessToken: string;
-  user: { id: string };
-}
 interface FarmBody {
   id: string;
   name: string;
@@ -19,17 +11,6 @@ interface FarmBody {
 }
 interface ErrorBody {
   error: { code: string; message: string };
-}
-
-async function signIn(baseUrl: string, phone: string): Promise<SessionBody> {
-  const client = api(baseUrl);
-  const challenge = await client.post<ChallengeBody>('/v1/auth/otp/request', { phone });
-  const session = await client.post<SessionBody>('/v1/auth/otp/verify', {
-    challengeId: challenge.body.challengeId,
-    code: challenge.body.devCode,
-    deviceId: 'device-0123456789',
-  });
-  return session.body;
 }
 
 before(async () => {

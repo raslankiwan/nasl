@@ -16,6 +16,7 @@ import {
 } from './tokens.ts';
 import { RefreshToken } from '../models/refreshToken.model.ts';
 import { requireAuth } from '../middleware/requireAuth.ts';
+import { parse } from '../http/validate.ts';
 
 const requestSchema = z.object({ phone: z.string().min(6).max(20) });
 const verifySchema = z.object({
@@ -28,16 +29,6 @@ const refreshSchema = z.object({
   refreshToken: z.string().min(1),
   deviceId: z.string().min(8).max(128),
 });
-
-function parse<T extends z.ZodTypeAny>(schema: T, body: unknown): z.infer<T> {
-  const result = schema.safeParse(body);
-  if (!result.success) {
-    throw AppError.badRequest('Check the details and try again.', {
-      fields: result.error.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
-    });
-  }
-  return result.data;
-}
 
 export function authRoutes(config: Config, logger: Logger): Router {
   const router = Router();

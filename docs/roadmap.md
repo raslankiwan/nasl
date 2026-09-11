@@ -33,13 +33,27 @@ independently reviewable. Scope references point at [`scope.md`](scope.md).
 **70 tests across the workspace.** Not yet done here, deliberately deferred: refresh-token
 cleanup job, SMS provider beyond the development stub, and observability beyond request logs.
 
-## Increment 2 — Flock registry
+## Increment 2 — Flock registry ✅
 
-- [ ] `animals` model with the derived `repro` sub-document
-- [ ] Unique partial index on `{ farmId, tagNumber }` — duplicates rejected at the database (FR-REG-02)
-- [ ] CRUD endpoints, list with filters (FR-REG-01, 05, 07)
-- [ ] `groups` and `movements` (FR-GRP-01, 02)
-- [ ] Seed reference data — breeds and diseases from `@nasl/shared`
+- [x] `animals` model with the derived `repro` sub-document and the indexes the Today list needs
+- [x] Unique **partial** index on `{ farmId, tagNumber }` — duplicates rejected by the database
+      rather than a read-then-write, which races between two phones. Partial on live animals, so a
+      culled animal's tag can be reused; scoped per farm, so two farms may share a tag (FR-REG-02)
+- [x] CRUD, filters (tag prefix, name, sex, species, breed, pen, repro state, withdrawal),
+      status changes, soft delete (FR-REG-01, 05, 07)
+- [x] Bulk registration that reports each row, so one bad tag does not discard the pen (FR-REG-03)
+- [x] Client-minted ids accepted on create, ready for offline capture
+- [x] Parentage validation: dam female, sire male, parent born first, parent on the same farm,
+      no animal its own ancestor, cycle detection depth-capped (FR-PED-05)
+- [x] Ancestor tree to 6 generations and descendant listing (FR-PED-01, 02)
+- [x] `groups` and `movements` — pens with head counts, bulk moves writing immutable history,
+      occupied pens protected from deletion (FR-GRP-01, 02, 05)
+- [x] Reference libraries for breeds and diseases served from `@nasl/shared`
+- [x] **Withdrawal enforcement on sale and slaughter brought forward from Increment 7** — the
+      status change is the moment an animal would leave the farm as meat, so the check belongs
+      here rather than being bolted on later (FR-HLT-03)
+
+**95 tests across the workspace.**
 
 ## Increment 3 — Admin console shell
 

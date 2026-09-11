@@ -7,6 +7,9 @@ import type { Logger } from './logger.ts';
 import { errorHandler, notFoundHandler } from './errors.ts';
 import { authRoutes } from './auth/auth.routes.ts';
 import { farmRoutes } from './routes/farms.routes.ts';
+import { animalRoutes } from './routes/animals.routes.ts';
+import { groupRoutes, movementRoutes } from './routes/groups.routes.ts';
+import { referenceRoutes } from './routes/reference.routes.ts';
 
 export interface AppDeps {
   config: Config;
@@ -34,7 +37,11 @@ export function createApp({ config, logger }: AppDeps): Express {
   });
 
   app.use('/v1/auth', authRoutes(config, logger));
+  app.use('/v1/reference', referenceRoutes(config));
   app.use('/v1/farms', farmRoutes(config));
+  app.use('/v1/farms/:farmId/animals', animalRoutes(config));
+  app.use('/v1/farms/:farmId/animals', movementRoutes(config));
+  app.use('/v1/farms/:farmId/groups', groupRoutes(config));
 
   app.use(notFoundHandler);
   app.use(errorHandler(logger));

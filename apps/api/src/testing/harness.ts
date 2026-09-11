@@ -65,3 +65,53 @@ export function api(baseUrl: string, token?: string) {
     as: (nextToken: string) => api(baseUrl, nextToken),
   };
 }
+
+// ---------------------------------------------------------------------------
+// Scenario helpers
+// ---------------------------------------------------------------------------
+
+export interface TestSession {
+  accessToken: string;
+  refreshToken: string;
+  user: { id: string; name: string | null; locale: string };
+}
+
+export const TEST_DEVICE = 'device-0123456789';
+
+/** Request a code and redeem it, returning the session a client would hold. */
+export async function signIn(baseUrl: string, phone: string, name?: string): Promise<TestSession> {
+  const client = api(baseUrl);
+  const challenge = await client.post<{ challengeId: string; devCode: string }>(
+    '/v1/auth/otp/request',
+    { phone },
+  );
+  if (challenge.status !== 201) {
+    throw new Error(`OTP request failed: ${challenge.status} ${JSON.stringify(challenge.body)}`);
+  }
+  const session = await client.post<TestSession>('/v1/auth/otp/verify', {
+    challengeId: challenge.body.challengeId,
+    code: challenge.body.devCode,
+    deviceId: TEST_DEVICE,
+    ...(name ? { name } : {}),
+  });
+  if (session.status !== 200) {
+    throw new Error(`OTP verify failed: ${session.status} ${JSON.stringify(session.body)}`);
+  }
+  return session.body;
+}
+
+/** Sign a new user in and give them a farm they own. */
+export async function signInWithFarm(
+  baseUrl: string,
+  phone: string,
+  farmName = 'مراح الاختبار',
+): Promise<{ session: TestSession; farmId: string }> {
+  const session = await signIn(baseUrl, phone);
+  const farm = await api(baseUrl, session.accessToken).post<{ id: string }>('/v1/farms', {
+    name: farmName,
+  });
+  if (farm.status !== 201) {
+    throw new Error(`Farm creation failed: ${farm.status} ${JSON.stringify(farm.body)}`);
+  }
+  return { session, farmId: farm.body.id };
+}
