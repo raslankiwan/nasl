@@ -18,6 +18,7 @@ interface AnimalRow {
   status: string;
   repro: { state: string } | null;
   withholdMeatUntil: string | null;
+  withholdMilkUntil: string | null;
 }
 
 export default function Flock() {
@@ -126,8 +127,11 @@ export default function Flock() {
             </View>
 
             <View style={styles.rowMeta}>
-              {item.withholdMeatUntil ? (
-                <Pill tone="accent">{t('health:underWithdrawal')}</Pill>
+              {/* A milk hold outranks everything else here: it is the question asked at milking. */}
+              {item.withholdMilkUntil ? (
+                <Pill tone="accent">{t('health:doNotMilk')}</Pill>
+              ) : item.withholdMeatUntil ? (
+                <Pill tone="accent">{t('health:doNotSell')}</Pill>
               ) : item.repro ? (
                 <Pill tone={item.repro.state === 'due' ? 'accent' : 'good'}>
                   {t(`breeding:states.${item.repro.state}` as 'breeding:states.open')}

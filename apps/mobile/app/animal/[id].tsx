@@ -11,6 +11,13 @@ import { ACTION_LABELS, ACTION_ROUTES } from '../../src/breeding';
 import { actionsFor, type ReproState } from '@nasl/shared';
 import { colors, spacing, type } from '../../src/theme';
 
+interface TreatmentRow {
+  id: string;
+  date: string;
+  type: string;
+  productName: string | null;
+}
+
 interface AnimalDetail {
   id: string;
   tagNumber: string;
@@ -23,6 +30,7 @@ interface AnimalDetail {
   repro: { state: string; dueDate: string | null } | null;
   lastWeightKg: number | null;
   withholdMeatUntil: string | null;
+  withholdMilkUntil: string | null;
 }
 
 function Row({ label, value }: { label: string; value: string }) {
@@ -43,6 +51,7 @@ export default function AnimalScreen() {
   const locale = (i18n.resolvedLanguage ?? 'ar') as Locale;
 
   const [animal, setAnimal] = useState<AnimalDetail | null>(null);
+  const [treatments, setTreatments] = useState<TreatmentRow[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -51,6 +60,11 @@ export default function AnimalScreen() {
       .get<AnimalDetail>(`/v1/farms/${farmId}/animals/${id}`)
       .then(setAnimal)
       .catch((err) => setError(err instanceof ApiError ? err.message : t('common:errorRetry')));
+
+    api
+      .get<{ events: TreatmentRow[] }>(`/v1/farms/${farmId}/health/animals/${id}`)
+      .then((res) => setTreatments(res.events))
+      .catch(() => setTreatments([]));
   }, [farmId, id, t]);
 
   const dash = '—';
@@ -76,7 +90,17 @@ export default function AnimalScreen() {
                 {animal.name ? <Text style={styles.tag}>{animal.tagNumber}</Text> : null}
               </View>
 
-              {/* The one thing that must never be missed when deciding to sell (FR-HLT-03). */}
+              {/*
+                Both restrictions, and milk first. For a dairy flock the milk hold is the one that
+                bites twice a day; the meat hold only matters on the day she leaves.
+              */}
+              {animal.withholdMilkUntil ? (
+                <Notice tone="danger">
+                  {t('health:milkWithholdUntil', {
+                    date: formatDate(new Date(animal.withholdMilkUntil), locale),
+                  })}
+                </Notice>
+              ) : null}
               {animal.withholdMeatUntil ? (
                 <Notice tone="danger">
                   {t('health:meatWithholdUntil', {
@@ -160,6 +184,40 @@ export default function AnimalScreen() {
                   ) : (
                     <Body muted>{t('breeding:nothingToRecord')}</Body>
                   )}
+                </>
+              ) : null}
+
+              {/* Health applies to every animal, not only the breeding females. */}
+              {animal.status === 'active' ? (
+                <>
+                  <View style={styles.gap} />
+                  <Button
+                    label={t('health:recordTreatment')}
+                    variant="secondary"
+                    onPress={() =>
+                      router.push({ pathname: '/health/treat', params: { animalId: animal.id } })
+                    }
+                  />
+                </>
+              ) : null}
+
+              {treatments.length > 0 ? (
+                <>
+                  <View style={styles.gap} />
+                  <Card>
+                    <Body>{t('health:history')}</Body>
+                    <View style={styles.gap} />
+                    {treatments.map((event) => (
+                      <Row
+                        key={event.id}
+                        label={formatDate(new Date(event.date), locale)}
+                        value={
+                          event.productName ??
+                          t(`health:eventTypes.${event.type}` as 'health:eventTypes.treatment')
+                        }
+                      />
+                    ))}
+                  </Card>
                 </>
               ) : null}
             </>

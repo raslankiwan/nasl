@@ -10,6 +10,7 @@ export * from './base.ts';
 export * from './breeding.model.ts';
 export * from './farm.model.ts';
 export * from './group.model.ts';
+export * from './health.model.ts';
 export * from './membership.model.ts';
 export * from './movement.model.ts';
 export * from './otpChallenge.model.ts';

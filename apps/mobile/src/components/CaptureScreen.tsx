@@ -31,12 +31,22 @@ export function CaptureScreen({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  /**
+   * These screens are reachable directly — from a deep link, and later from a notification — so
+   * there is not always a history to return to. Falling back to the flock beats stranding the
+   * herder on a form they have already submitted.
+   */
+  const leave = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace('/(tabs)/flock');
+  };
+
   const save = async () => {
     setBusy(true);
     setError(null);
     try {
       await onSave();
-      router.back();
+      leave();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t('errorRetry'));
     } finally {
@@ -59,7 +69,7 @@ export function CaptureScreen({
 
         <Button label={t('save')} onPress={() => void save()} busy={busy} disabled={!canSave} />
         <View style={styles.gap} />
-        <Button label={t('cancel')} variant="secondary" onPress={() => router.back()} />
+        <Button label={t('cancel')} variant="secondary" onPress={leave} />
       </ScrollView>
     </KeyboardAvoidingView>
   );

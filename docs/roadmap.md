@@ -178,12 +178,28 @@ an index. `connectDatabase` now waits for `createIndexes()` across every model b
 listens, the test harness does the same, and `models/index.ts` registers them all so a model no
 route happens to import cannot be missed.
 
-## Increment 7 — Health and withdrawal
+## Increment 7 — Health and withdrawal ✅ (medicine cabinet carried)
 
-- [ ] `healthEvents`, veterinary product library, withdrawal computation
-- [ ] **Sale and slaughter blocked inside a withdrawal window** (FR-HLT-03)
-- [ ] Flock-wide "under withdrawal" view (FR-HLT-04)
-- [ ] Treatment history per animal (FR-HLT-10)
+- [x] `healthEvents` as immutable records. Withhold dates are copied onto the event when it is
+      recorded rather than recomputed later: the product library is curated and can change, and a
+      treatment must be judged by the period that applied on the day it was given.
+- [x] Withdrawal always **widens, never shortens** — a shorter hold from a later treatment cannot
+      cancel a longer one still running
+- [x] Sale and slaughter blocked inside a meat window (FR-HLT-03, brought forward in Increment 2)
+- [x] **Milk given the same force as meat.** For a Palestinian dairy flock this is the gate that
+      actually bites: milking happens twice a day and a treated ewe's milk contaminates the whole
+      tank, where a meat hold only matters on the day she leaves. So milk leads the Today screen,
+      leads the withdrawal view, and outranks the repro state on the roster pill.
+- [x] The consequence is shown **before** the treatment is saved, not after
+- [x] Group treatment writes one event per animal under a shared batch id (FR-GRP-03)
+- [x] Flock-wide "under withdrawal" view, split by milk and meat (FR-HLT-04)
+- [x] Treatment history per animal (FR-HLT-10)
+- [x] Mobile treatment capture
+- [ ] **Carried:** medicine cabinet — stock, batches, expiry (FR-HLT-05) — and the protocol engine
+      (FR-HLT-07). Neither is worth building until the product library holds real datasheets.
+
+**165 tests.** The library itself is still empty: the schema and the cited-source rule are built,
+but real withdrawal figures are the one thing that cannot be invented.
 
 ## Increment 8 — Pedigree and reports
 

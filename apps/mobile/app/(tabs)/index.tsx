@@ -20,19 +20,24 @@ interface Alerts {
   overdue: DueRow[];
   nursing: number;
 }
+interface Withdrawal {
+  meat: Array<{ animalId: string }>;
+  milk: Array<{ animalId: string }>;
+}
 
 /**
  * The home screen is a list of what needs doing, not a dashboard (scope FR-ALT-01).
  * Overdue comes first, because a ewe past her date is the thing that cannot wait.
  */
 export default function Today() {
-  const { t, i18n } = useTranslation(['tasks', 'breeding', 'common']);
+  const { t, i18n } = useTranslation(['tasks', 'breeding', 'health', 'common']);
   const { farmId } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const locale = (i18n.resolvedLanguage ?? 'ar') as Locale;
 
   const [alerts, setAlerts] = useState<Alerts | null>(null);
+  const [withdrawal, setWithdrawal] = useState<Withdrawal | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const today = new Date();
@@ -44,7 +49,12 @@ export default function Today() {
     }
     setError(null);
     try {
-      setAlerts(await api.get<Alerts>(`/v1/farms/${farmId}/breeding/alerts`));
+      const [nextAlerts, nextWithdrawal] = await Promise.all([
+        api.get<Alerts>(`/v1/farms/${farmId}/breeding/alerts`),
+        api.get<Withdrawal>(`/v1/farms/${farmId}/health/withdrawal`),
+      ]);
+      setAlerts(nextAlerts);
+      setWithdrawal(nextWithdrawal);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t('common:errorRetry'));
     } finally {
@@ -92,6 +102,21 @@ export default function Today() {
           <View style={styles.gap} />
 
           {error ? <Notice tone="danger">{error}</Notice> : null}
+
+          {/*
+            Milking happens twice a day and a treated ewe's milk contaminates the whole tank, so
+            this belongs at the top of the day rather than inside a health screen.
+          */}
+          {withdrawal && withdrawal.milk.length > 0 ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push('/health/withdrawal')}
+              style={({ pressed }) => [styles.warning, pressed && styles.rowPressed]}
+            >
+              <Text style={styles.warningText}>{t('health:doNotMilk')}</Text>
+              <Pill tone="accent">{withdrawal.milk.length}</Pill>
+            </Pressable>
+          ) : null}
 
           {alerts && alerts.overdue.length > 0 ? (
             <>
@@ -150,4 +175,19 @@ const styles = StyleSheet.create({
   },
   rowPressed: { opacity: 0.85 },
   tag: { fontSize: type.heading, fontWeight: '700', color: colors.ink, writingDirection: 'ltr' },
+  warning: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.rustSoft,
+    borderWidth: 1,
+    borderColor: colors.rust,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    marginBottom: spacing.lg,
+    minHeight: 56,
+    gap: spacing.md,
+  },
+  warningText: { fontSize: type.body, fontWeight: '700', color: colors.rust },
 });
