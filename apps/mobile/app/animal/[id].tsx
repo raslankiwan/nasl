@@ -7,6 +7,8 @@ import { formatDate, formatHijriDate, type Locale } from '@nasl/i18n';
 import { api, ApiError } from '../../src/api/client';
 import { useAuth } from '../../src/auth/AuthProvider';
 import { Body, Button, Card, Notice, Pill, Screen, Title } from '../../src/components/ui';
+import { ACTION_LABELS, ACTION_ROUTES } from '../../src/breeding';
+import { actionsFor, type ReproState } from '@nasl/shared';
 import { colors, spacing, type } from '../../src/theme';
 
 interface AnimalDetail {
@@ -52,6 +54,10 @@ export default function AnimalScreen() {
   }, [farmId, id, t]);
 
   const dash = '—';
+  const actions =
+    animal && animal.sex === 'female' && animal.status === 'active'
+      ? actionsFor(animal.repro?.state as ReproState | undefined)
+      : [];
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -66,7 +72,8 @@ export default function AnimalScreen() {
             <>
               <View style={styles.head}>
                 <Title>{animal.name ?? animal.tagNumber}</Title>
-                <Text style={styles.tag}>{animal.tagNumber}</Text>
+                {/* Only worth repeating the tag when the title is a name. */}
+                {animal.name ? <Text style={styles.tag}>{animal.tagNumber}</Text> : null}
               </View>
 
               {/* The one thing that must never be missed when deciding to sell (FR-HLT-03). */}
@@ -109,22 +116,50 @@ export default function AnimalScreen() {
                 />
               </Card>
 
-              {animal.repro ? (
+              {animal.sex === 'female' && animal.status === 'active' ? (
                 <>
                   <View style={styles.gap} />
                   <Card>
                     <Body>{t('breeding:title')}</Body>
                     <View style={styles.gap} />
-                    <Pill tone={animal.repro.state === 'due' ? 'accent' : 'good'}>
-                      {t(`breeding:states.${animal.repro.state}` as 'breeding:states.open')}
+                    <Pill tone={animal.repro?.state === 'due' ? 'accent' : 'good'}>
+                      {t(
+                        `breeding:states.${animal.repro?.state ?? 'open'}` as 'breeding:states.open',
+                      )}
                     </Pill>
-                    {animal.repro.dueDate ? (
+                    {animal.repro?.dueDate ? (
                       <Row
                         label={t('breeding:dueDate')}
                         value={formatDate(new Date(animal.repro.dueDate), locale)}
                       />
                     ) : null}
                   </Card>
+
+                  <View style={styles.gap} />
+
+                  {/*
+                    Only the actions her current state actually allows. The list comes from the
+                    same state machine the server enforces, so the phone never offers a form that
+                    will come back refused.
+                  */}
+                  {actions.length > 0 ? (
+                    actions.map((action) => (
+                      <View key={action} style={styles.actionSpacing}>
+                        <Button
+                          label={t(ACTION_LABELS[action] as 'breeding:recordMating')}
+                          variant={action === 'abortion' ? 'secondary' : 'primary'}
+                          onPress={() =>
+                            router.push({
+                              pathname: ACTION_ROUTES[action],
+                              params: { damId: animal.id },
+                            })
+                          }
+                        />
+                      </View>
+                    ))
+                  ) : (
+                    <Body muted>{t('breeding:nothingToRecord')}</Body>
+                  )}
                 </>
               ) : null}
             </>
@@ -142,6 +177,7 @@ const styles = StyleSheet.create({
   head: { marginBottom: spacing.md },
   tag: { fontSize: type.heading, color: colors.muted, fontWeight: '600', writingDirection: 'ltr' },
   gap: { height: spacing.md },
+  actionSpacing: { marginBottom: spacing.sm },
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

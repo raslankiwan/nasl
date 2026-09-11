@@ -183,3 +183,32 @@ export function daysUntilDue(dueDate: Date, today: Date): number {
 export function gestationDay(matingDate: Date, today: Date): number {
   return daysBetween(matingDate, today);
 }
+
+// ---------------------------------------------------------------------------
+// What may be recorded next
+// ---------------------------------------------------------------------------
+
+/** The events a user can actually record for a female, given where she is. */
+export type ReproAction = 'mating' | 'check' | 'birth' | 'weaning' | 'abortion';
+
+const ACTIONS_BY_STATE: Record<ReproState, readonly ReproAction[]> = {
+  open: ['mating'],
+  weaned: ['mating'],
+  aborted: ['mating'],
+  barren: ['mating'],
+  mated: ['check', 'birth', 'abortion'],
+  pregnant: ['birth', 'abortion'],
+  due: ['birth', 'abortion'],
+  lambed: ['weaning'],
+  nursing: ['weaning'],
+};
+
+/**
+ * Offer only what the state machine will accept.
+ *
+ * Clients drive their menus from this rather than hard-coding a list, so a screen can never
+ * present a form whose submission comes back refused. A female with no history yet is open.
+ */
+export function actionsFor(state: ReproState | null | undefined): readonly ReproAction[] {
+  return ACTIONS_BY_STATE[state ?? 'open'] ?? [];
+}

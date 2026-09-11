@@ -158,8 +158,11 @@ of Expo by fifty major versions.
 - [x] Derived alerts — due, overdue, nursing — computed from state rather than stored as rows, so
       they are always in step with the events and can be recomputed on-device offline (FR-ALT-05)
 - [x] Mobile **Today** screen reads those alerts, overdue first (FR-ALT-01)
-- [ ] **Carried:** mobile capture forms for mating / check / birth / weaning. The API is complete
-      and tested; the phone can read the cycle but not yet write to it.
+- [x] Mobile capture forms for mating, pregnancy check, birth, weaning and abortion. The animal
+      screen offers **only the actions her current state allows** — `actionsFor` lives in
+      `@nasl/shared` beside the state machine, and a property test asserts every action it offers
+      is one the machine actually accepts, so a screen can never present a form that comes back
+      refused.
 
 Pre-lambing booster and scan-window alerts wait on the protocol engine in Increment 7.
 

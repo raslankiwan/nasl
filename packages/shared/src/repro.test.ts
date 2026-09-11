@@ -1,6 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  actionsFor,
   applyReproEvent,
   canApply,
   expectedDueDate,
@@ -8,7 +9,9 @@ import {
   InvalidReproTransition,
   isInDueWindow,
   preLambingBoosterWindow,
+  REPRO_STATES,
   scanWindow,
+  type ReproEvent,
   type ReproStatus,
 } from './repro.ts';
 import { toDateString } from './dates.ts';
@@ -162,5 +165,53 @@ describe('derived windows', () => {
 
   test('gestation day counts from the mating', () => {
     assert.equal(gestationDay(d('2026-01-10'), d('2026-02-24')), 45);
+  });
+});
+
+describe('what may be recorded next', () => {
+  test('an open female can only be mated', () => {
+    assert.deepEqual(actionsFor('open'), ['mating']);
+    assert.deepEqual(actionsFor(null), ['mating'], 'no history means open');
+    assert.deepEqual(actionsFor(undefined), ['mating']);
+  });
+
+  test('a mated female can be checked, can lamb, or can lose it', () => {
+    assert.deepEqual(actionsFor('mated'), ['check', 'birth', 'abortion']);
+  });
+
+  test('a confirmed pregnancy is past checking', () => {
+    assert.deepEqual(actionsFor('pregnant'), ['birth', 'abortion']);
+    assert.deepEqual(actionsFor('due'), ['birth', 'abortion']);
+  });
+
+  test('a nursing female is offered weaning and nothing else', () => {
+    assert.deepEqual(actionsFor('nursing'), ['weaning']);
+    assert.deepEqual(actionsFor('lambed'), ['weaning']);
+  });
+
+  test('every offered action is one the state machine actually accepts', () => {
+    const date = d('2026-03-01');
+    for (const state of REPRO_STATES) {
+      const status: ReproStatus = { state, sinceDate: d('2026-01-01'), matingId: 'm1' };
+      for (const action of actionsFor(state)) {
+        const event: ReproEvent =
+          action === 'mating'
+            ? { type: 'mating', date, species: 'sheep' }
+            : action === 'check'
+              ? { type: 'pregnancyCheck', date, result: 'pregnant' }
+              : action === 'birth'
+                ? { type: 'birth', date }
+                : action === 'abortion'
+                  ? { type: 'abortion', date }
+                  : { type: 'weaning', date };
+        assert.ok(canApply(status, event), `${state} offers "${action}" but cannot apply it`);
+      }
+    }
+  });
+
+  test('every state that can be acted on offers at least one action', () => {
+    for (const state of REPRO_STATES) {
+      assert.ok(actionsFor(state).length > 0, `${state} offers nothing`);
+    }
   });
 });
