@@ -135,6 +135,7 @@ export function authRoutes(config: Config, logger: Logger): Router {
       id: user._id,
       name: user.name ?? null,
       locale: user.locale,
+      isPlatformAdmin: user.isPlatformAdmin === true,
       farms: memberships.map((m) => ({ farmId: m.farmId, role: m.role })),
     });
   });

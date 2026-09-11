@@ -10,6 +10,8 @@ export interface UserDoc {
   name?: string;
   locale: string;
   defaultFarmId?: string;
+  /** Our own staff. Grants access to the operator console, never to a farm's data by itself. */
+  isPlatformAdmin: boolean;
   lastSeenAt?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -20,6 +22,7 @@ const schema = globalSchema<UserDoc>({
   name: { type: String, trim: true },
   locale: { type: String, enum: LOCALES, default: 'ar' },
   defaultFarmId: { type: String },
+  isPlatformAdmin: { type: Boolean, default: false },
   lastSeenAt: { type: Date },
 });
 

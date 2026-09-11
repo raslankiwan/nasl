@@ -55,13 +55,48 @@ cleanup job, SMS provider beyond the development stub, and observability beyond 
 
 **95 tests across the workspace.**
 
-## Increment 3 — Admin console shell
+## Increment 3 — Admin console ✅
 
-- [ ] Vite + React + TanStack Router + TanStack Query
-- [ ] i18n wired to `@nasl/i18n`, `dir` on `<html>`, **language toggle in the header**
-- [ ] Auth flow, protected routes, role-aware navigation
-- [ ] Farm directory and farm detail (FR-ADM-01)
-- [ ] Reference data curation for breeds and diseases (FR-ADM-03)
+Built as the **internal operator console** — see Q1 in scope §14. That remains the open question;
+if the intent was a farm-owner console, this increment moves and the backend is unaffected.
+
+Backend
+- [x] `isPlatformAdmin` on users, `requirePlatformAdmin` answering **404 rather than 403**, so the
+      console is not advertised to farm users
+- [x] Append-only audit log; every privileged write records actor, before, after and a reason
+- [x] Tenant directory with live head counts, farm detail with members (FR-ADM-01)
+- [x] Plan changes require a written reason (FR-ADM-02)
+- [x] DB-backed veterinary product library; withdrawal figures require a cited source, and every
+      change is audited (FR-ADM-03, FR-ADM-06)
+- [x] `scripts/grant-platform-admin.mjs` — there is deliberately no API path to the first admin
+
+Console
+- [x] Vite + React 19 + TanStack Router + TanStack Query
+- [x] i18n wired to `@nasl/i18n`; `lang`/`dir` set on `<html>` **before first paint**
+- [x] **Language toggle** on every screen including sign-in, naming the other language in its own
+      script so a reader who cannot read the current interface can still leave it
+- [x] Phone + OTP sign-in, token refresh with a single in-flight refresh, sign-out
+- [x] Dashboard, farm directory, farm detail, product library, audit log
+- [x] Direction-agnostic CSS: logical properties throughout, no `.rtl` class, no mirrored sheet
+- [x] Workspace packages aliased to source in both Vite and tsc, so a stale `dist` can no longer
+      masquerade as a missing translation
+
+Reference-data curation for breeds and diseases is still served from `@nasl/shared` seeds rather
+than the database; only veterinary products are curated so far.
+
+**119 tests.** Verified end to end in a browser against a live API and MongoDB.
+
+### Three bugs this increment surfaced, all now covered by tests
+
+1. `mongoose.set('sanitizeFilter', true)` rewrote `{ _id: { $in: [...] } }` into an equality check
+   against the operator object and turned the tenant directory into a 500. The tests could not
+   catch it because the test harness connected without the server's mongoose settings — that
+   fidelity gap was the real bug, and the harness now shares one `applyMongooseSettings()`.
+2. The router was built inside a component with an inline handler among its dependencies, so it
+   was replaced on every render and never settled on a match. The page went blank with nothing
+   thrown and nothing logged. A shell smoke test now asserts the navigation renders.
+3. A signed-in farm user reaching the console saw an empty dashboard of zeros instead of being
+   told it was not for them.
 
 ## Increment 4 — Mobile shell
 

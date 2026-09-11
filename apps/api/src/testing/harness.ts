@@ -115,3 +115,9 @@ export async function signInWithFarm(
   }
   return { session, farmId: farm.body.id };
 }
+
+/** Promote a signed-in user to platform staff. */
+export async function makePlatformAdmin(userId: string): Promise<void> {
+  const { User } = await import('../models/user.model.ts');
+  await User.updateOne({ _id: userId }, { $set: { isPlatformAdmin: true } }).exec();
+}

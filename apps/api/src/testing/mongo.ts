@@ -1,10 +1,13 @@
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
+import { applyMongooseSettings } from '../db.ts';
 
 let server: MongoMemoryServer | undefined;
 
 /** Start a throwaway MongoDB and connect mongoose to it. */
 export async function startTestMongo(): Promise<string> {
+  // The same settings the server runs with, so configuration bugs surface here first.
+  applyMongooseSettings();
   server = await MongoMemoryServer.create();
   const uri = server.getUri();
   await mongoose.connect(uri, { dbName: 'nasl-test' });
