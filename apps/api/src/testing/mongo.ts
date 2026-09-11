@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
-import { applyMongooseSettings } from '../db.ts';
+import { applyMongooseSettings, ensureIndexes } from '../db.ts';
 
 let server: MongoMemoryServer | undefined;
 
@@ -11,6 +11,8 @@ export async function startTestMongo(): Promise<string> {
   server = await MongoMemoryServer.create();
   const uri = server.getUri();
   await mongoose.connect(uri, { dbName: 'nasl-test' });
+  // Same as the server: no test runs until the unique indexes it relies on actually exist.
+  await ensureIndexes();
   return uri;
 }
 

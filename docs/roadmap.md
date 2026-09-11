@@ -143,13 +143,37 @@ of Expo by fifty major versions.
 - [ ] Sync status UI, offline banner, queued-write indicator
 - [ ] Test: 14 days offline, then a clean sync (NFR-01)
 
-## Increment 6 — Breeding and lambing
+## Increment 6 — Breeding and lambing ✅ (mobile capture carried)
 
-- [ ] Mating, pregnancy check, birth, weaning endpoints, each applying the state machine server-side
-- [ ] Breeding groups and paternity attribution (FR-BR-02)
-- [ ] Birth flow creating lambs with dam and sire pre-linked (FR-LMB-03)
-- [ ] Mobile flows for all four events, optimised for one hand in a pen
-- [ ] Derived alerts: scan window, pre-lambing booster, due, overdue, weaning (FR-ALT-02)
+- [x] Mating, pregnancy check, birth, weaning and abortion as **immutable events**, each applying
+      the state machine from `@nasl/shared` server-side. The device and the server reach identical
+      conclusions from the same events, which is the property offline sync will rest on.
+- [x] Breeding groups: a mating with no named ram flags paternity uncertain (FR-BR-02)
+- [x] Birth creates each live lamb with dam and sire already linked, inheriting breed and pen
+      (FR-LMB-03). A stillbirth is recorded on the birth, never added to the roster.
+- [x] A lamb with no tag to hand gets a provisional tag from its dam's, rather than the record
+      being refused — which is how births go unrecorded.
+- [x] A dam that loses the whole litter is `lambed`, not `nursing`.
+- [x] Foetus counts accepted only from an ultrasound.
+- [x] Derived alerts — due, overdue, nursing — computed from state rather than stored as rows, so
+      they are always in step with the events and can be recomputed on-device offline (FR-ALT-05)
+- [x] Mobile **Today** screen reads those alerts, overdue first (FR-ALT-01)
+- [ ] **Carried:** mobile capture forms for mating / check / birth / weaning. The API is complete
+      and tested; the phone can read the cycle but not yet write to it.
+
+Pre-lambing booster and scan-window alerts wait on the protocol engine in Increment 7.
+
+**139 tests.** Verified end to end: a mating recorded by API appears on the phone as
+"الولادة بعد 8 يوم" / "Due in 8 days".
+
+### A latent production bug this increment surfaced
+
+Two tests started failing once more models existed: duplicate tag numbers and duplicate pen names
+were being accepted. Mongoose builds indexes in the _background_, so a freshly started process
+serves writes before its unique indexes exist — and tag uniqueness (FR-REG-02) is enforced **by**
+an index. `connectDatabase` now waits for `createIndexes()` across every model before the server
+listens, the test harness does the same, and `models/index.ts` registers them all so a model no
+route happens to import cannot be missed.
 
 ## Increment 7 — Health and withdrawal
 

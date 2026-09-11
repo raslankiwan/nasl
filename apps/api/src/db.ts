@@ -24,6 +24,17 @@ export function applyMongooseSettings(): void {
    */
 }
 
+/**
+ * Build every model's indexes and wait for them.
+ *
+ * Mongoose creates indexes in the background, so a freshly started process will happily accept
+ * writes before its unique indexes exist — and tag uniqueness (FR-REG-02) is enforced *by* an
+ * index. Serving traffic before they are ready means duplicates slip through at startup.
+ */
+export async function ensureIndexes(): Promise<void> {
+  await Promise.all(Object.values(mongoose.models).map((model) => model.createIndexes()));
+}
+
 export async function connectDatabase(uri: string, logger: Logger): Promise<void> {
   applyMongooseSettings();
 
@@ -31,6 +42,7 @@ export async function connectDatabase(uri: string, logger: Logger): Promise<void
   mongoose.connection.on('disconnected', () => logger.warn('MongoDB disconnected'));
 
   await mongoose.connect(uri);
+  await ensureIndexes();
   logger.info('MongoDB connected');
 }
 

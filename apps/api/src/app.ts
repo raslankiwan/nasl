@@ -5,12 +5,15 @@ import { pinoHttp } from 'pino-http';
 import type { Config } from './config.ts';
 import type { Logger } from './logger.ts';
 import { errorHandler, notFoundHandler } from './errors.ts';
+// Registers every model, so index creation covers all of them.
+import './models/index.ts';
 import { authRoutes } from './auth/auth.routes.ts';
 import { farmRoutes } from './routes/farms.routes.ts';
 import { animalRoutes } from './routes/animals.routes.ts';
 import { groupRoutes, movementRoutes } from './routes/groups.routes.ts';
 import { referenceRoutes } from './routes/reference.routes.ts';
 import { adminRoutes } from './routes/admin.routes.ts';
+import { breedingRoutes } from './routes/breeding.routes.ts';
 
 export interface AppDeps {
   config: Config;
@@ -44,6 +47,7 @@ export function createApp({ config, logger }: AppDeps): Express {
   app.use('/v1/farms/:farmId/animals', animalRoutes(config));
   app.use('/v1/farms/:farmId/animals', movementRoutes(config));
   app.use('/v1/farms/:farmId/groups', groupRoutes(config));
+  app.use('/v1/farms/:farmId/breeding', breedingRoutes(config));
 
   app.use(notFoundHandler);
   app.use(errorHandler(logger));
