@@ -595,16 +595,42 @@ chore. **Optimise the birth-entry flow above all else.**
 
 ### Open questions
 
-| #      | Question                                                                                                                                                                          | Blocks         |
-| ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
-| **Q1** | **Is the web console for our operations team, or for farm owners?** Both are specced in §8; the answer decides which ships in v1.                                                 | Phase 1 scope  |
-| **Q2** | Which market leads — Saudi only, or Gulf plus Levant and North Africa? Determines currency, dialect, breed library and the compliance export format.                              | Discovery, M11 |
-| **Q3** | Species at launch: sheep and goats only, or camels and cattle too? The model supports all four; the defaults and terminology cannot serve all four well at once.                  | M1, M2         |
-| **Q4** | Subscription shape: flat per farm, or tiered by head count? Tiering aligns price to value but punishes exactly the growth we want to encourage.                                   | M12, pricing   |
-| **Q5** | Do we build toward the نما numbering and سجل مربي compliance path as a headline feature, or keep it a quiet export? It is a strong wedge but drags us into regulatory dependency. | FR-RPT-05      |
-| **Q6** | Is there an existing brand, farm network or vet chain behind this? Distribution decides whether the free tier should be generous or narrow.                                       | Go-to-market   |
+| #          | Question                                                                                                                                                                                                                                                                                                                                                            | Blocks       |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| ~~**Q1**~~ | **Answered 2026-09-11: the internal operations console**, which is what is built. A farm-owner console is not planned; owners work from the phone.                                                                                                                                                                                                                  | —            |
+| ~~**Q2**~~ | **Answered 2026-09-11: Palestine first, possibly the wider Middle East later.** This moved the defaults (ILS, `Asia/Hebron`), replaced the Gulf breed library with Awassi / Assaf / Awassi×Assaf / Baladi / Shami / Jabali, and retired the Saudi compliance wedge — نما and سجل مربي are MEWA programmes and do not apply. It also raises the milk question below. | —            |
+| ~~**Q3**~~ | **Answered 2026-09-11: sheep and goats only.** Camels and cattle remain a configuration change, not a rewrite.                                                                                                                                                                                                                                                      | —            |
+| **Q4**     | Subscription shape: flat per farm, or tiered by head count? Tiering aligns price to value but punishes exactly the growth we want to encourage.                                                                                                                                                                                                                     | M12, pricing |
+| **Q5**     | Do we build toward the نما numbering and سجل مربي compliance path as a headline feature, or keep it a quiet export? It is a strong wedge but drags us into regulatory dependency.                                                                                                                                                                                   | FR-RPT-05    |
+| **Q6**     | Is there an existing brand, farm network or vet chain behind this? Distribution decides whether the free tier should be generous or narrow.                                                                                                                                                                                                                         | Go-to-market |
 
 ---
+
+## Milk changes the product
+
+**Raised 2026-09-11, unresolved.**
+
+This document was written for a meat flock — withdrawal gating slaughter, the Eid selling season
+as the year's main revenue event, kg weaned per ewe as the productivity measure. That is the Gulf.
+Palestine is not that market:
+
+- **72.4% of Palestinian sheep are kept primarily for milk.**
+- Awassi — the indigenous fat-tailed breed and the highest-yielding dairy sheep in the Middle
+  East — is 55.7% of the dairy flock. Assaf and Awassi×Assaf crosses have been displacing it in
+  the northern West Bank precisely for yield, reaching roughly 60% of sheep in the north.
+- Reported yields run 125–330 kg over a 150-day lactation, varying by breed and district.
+
+If the product is for a dairy flock, three things above are weighted wrongly:
+
+1. **Milk withdrawal, not meat withdrawal, is the daily safety gate.** A treated ewe whose milk
+   enters the tank contaminates the whole collection, today — where a meat withdrawal matters only
+   on the day an animal is sold. FR-HLT-03 enforces the meat side; the milk side needs the same
+   force, and it needs to be visible at milking rather than at sale.
+2. **Milk yield belongs in the ewe scorecard** (FR-RPT-01) beside lambs weaned, and lactation
+   recording becomes a module rather than a field.
+3. **The Eid planner (FR-LOC-04) drops in priority**, and a milk-collection record rises.
+
+Worth settling before Increment 7 rather than after.
 
 ## 15. Sources
 
