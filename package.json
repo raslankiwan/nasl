@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Nasl (نَسْل) — Arabic-first, offline-first flock management for sheep and goats",
+  "description": "Nasl (\u0646\u064e\u0633\u0652\u0644) \u2014 Arabic-first, offline-first flock management for sheep and goats",
   "workspaces": [
     "packages/*",
     "apps/*"
@@ -21,7 +21,8 @@
     "check": "npm run typecheck && npm run lint && npm run format:check",
     "build:packages": "npm run build -w @nasl/shared -w @nasl/i18n",
     "pretest": "npm run build:packages",
-    "pretypecheck": "npm run build:packages"
+    "pretypecheck": "npm run build:packages",
+    "prepare": "git config core.hooksPath .githooks || true"
   },
   "devDependencies": {
     "@eslint/js": "^9.20.0",
