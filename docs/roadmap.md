@@ -61,6 +61,7 @@ Built as the **internal operator console** — see Q1 in scope §14. That remain
 if the intent was a farm-owner console, this increment moves and the backend is unaffected.
 
 Backend
+
 - [x] `isPlatformAdmin` on users, `requirePlatformAdmin` answering **404 rather than 403**, so the
       console is not advertised to farm users
 - [x] Append-only audit log; every privileged write records actor, before, after and a reason
@@ -71,6 +72,7 @@ Backend
 - [x] `scripts/grant-platform-admin.mjs` — there is deliberately no API path to the first admin
 
 Console
+
 - [x] Vite + React 19 + TanStack Router + TanStack Query
 - [x] i18n wired to `@nasl/i18n`; `lang`/`dir` set on `<html>` **before first paint**
 - [x] **Language toggle** on every screen including sign-in, naming the other language in its own
