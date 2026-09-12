@@ -5,6 +5,7 @@ import { AnimalRepository } from '../repositories/animal.repository.ts';
 import { TenantRepository } from '../repositories/tenantRepository.ts';
 import { HealthEvent, type HealthEventDoc } from '../models/health.model.ts';
 import { VetProduct } from '../models/vetProduct.model.ts';
+import { InventoryService } from './inventory.service.ts';
 import type { AnimalDoc } from '../models/animal.model.ts';
 
 export interface TreatmentInput {
@@ -33,6 +34,7 @@ export interface TreatmentInput {
 export class HealthService {
   private readonly animals = new AnimalRepository();
   private readonly events = new TenantRepository<HealthEventDoc>(HealthEvent);
+  private readonly inventory = new InventoryService();
 
   async recordTreatment(farmId: string, input: TreatmentInput, recordedBy: string) {
     if (input.animalIds.length === 0) {
@@ -83,6 +85,18 @@ export class HealthService {
     }
 
     if (created.length === 0) throw AppError.badRequest('None of those animals are in this flock.');
+
+    // Take what was used off the shelf. Best effort: a herder who is not keeping stock must still
+    // be able to record a treatment, so this never blocks the write (FR-HLT-05).
+    if (product && input.doseValue) {
+      await this.inventory.consume(
+        farmId,
+        product._id,
+        input.batchNo ?? null,
+        input.doseValue * created.length,
+      );
+    }
+
     return { events: created, groupBatchId, withdrawal: window };
   }
 

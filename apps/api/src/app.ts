@@ -20,6 +20,7 @@ import { reportRoutes } from './routes/reports.routes.ts';
 import { weightRoutes } from './routes/weights.routes.ts';
 import { exportRoutes } from './routes/export.routes.ts';
 import { financeRoutes } from './routes/finance.routes.ts';
+import { inventoryRoutes } from './routes/inventory.routes.ts';
 
 export interface AppDeps {
   config: Config;
@@ -60,6 +61,7 @@ export function createApp({ config, logger }: AppDeps): Express {
   app.use('/v1/farms/:farmId/weights', weightRoutes(config));
   app.use('/v1/farms/:farmId/export', exportRoutes(config));
   app.use('/v1/farms/:farmId/finance', financeRoutes(config));
+  app.use('/v1/farms/:farmId/inventory', inventoryRoutes(config));
 
   app.use(notFoundHandler);
   app.use(errorHandler(logger));

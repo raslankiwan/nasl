@@ -258,8 +258,13 @@ moving ewes to the drop pen before lambing is a daily job.
 - [x] Flock-wide "under withdrawal" view, split by milk and meat (FR-HLT-04)
 - [x] Treatment history per animal (FR-HLT-10)
 - [x] Mobile treatment capture
-- [ ] **Carried:** medicine cabinet — stock, batches, expiry (FR-HLT-05) — and the protocol engine
-      (FR-HLT-07). Neither is worth building until the product library holds real datasheets.
+- [x] **Medicine cabinet** (FR-HLT-05). Stock is held **per batch**, not per product, because the
+      batch number is what a treatment record carries: a recall or a contamination investigation
+      asks which animals got which batch, and a per-product total cannot answer that. Expiry,
+      expiring-soon and low-stock warnings. Recording a treatment takes the dose off the shelf —
+      off the named batch, or off the bottle expiring soonest, which is the one a herder reaches
+      for. Unlike the product library, the cabinet is the farm's own data, so it is usable today.
+- [ ] **Carried:** the protocol engine (FR-HLT-07), which wants real vaccination schedules.
 
 **165 tests.** The library itself is still empty: the schema and the cited-source rule are built,
 but real withdrawal figures are the one thing that cannot be invented.
