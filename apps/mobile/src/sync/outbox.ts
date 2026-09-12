@@ -1,17 +1,16 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { KeyValueStore } from './storage.ts';
 
 const OUTBOX_KEY = 'nasl.outbox';
 const MAX_ATTEMPTS = 8;
+/** Enough failures that a person should look at it, but not yet enough to give up. */
+const STUCK_AFTER = 3;
 
 /**
  * A durable queue of writes that have not reached the server yet.
  *
  * Grazing land has no signal. A birth recorded at the back of a pen must survive the walk home,
- * the app being closed, and the phone being flat — so the record goes to disk before anything is
+ * the app being closed, and the phone going flat — so the record goes to disk before anything is
  * attempted over the network, and is only removed once the server has acknowledged it.
- *
- * This is not the whole of offline: reads still need a local database (see docs/roadmap.md). But
- * losing a write is the failure that cannot be recovered from, and this closes it.
  */
 
 export interface OutboxEntry {
@@ -26,73 +25,74 @@ export interface OutboxEntry {
 
 type Listener = (entries: OutboxEntry[]) => void;
 
-const listeners = new Set<Listener>();
-let cache: OutboxEntry[] | null = null;
+export class Outbox {
+  private readonly store: KeyValueStore;
+  private readonly listeners = new Set<Listener>();
+  private cache: OutboxEntry[] | null = null;
 
-async function read(): Promise<OutboxEntry[]> {
-  if (cache) return cache;
-  try {
-    const raw = await AsyncStorage.getItem(OUTBOX_KEY);
-    cache = raw ? (JSON.parse(raw) as OutboxEntry[]) : [];
-  } catch {
-    // A corrupt outbox is worse than an empty one only if it blocks every future write.
-    cache = [];
+  constructor(store: KeyValueStore) {
+    this.store = store;
   }
-  return cache;
-}
 
-async function write(entries: OutboxEntry[]): Promise<void> {
-  cache = entries;
-  try {
-    await AsyncStorage.setItem(OUTBOX_KEY, JSON.stringify(entries));
-  } catch {
-    // Out of storage. The in-memory copy still lets this session finish.
+  private async read(): Promise<OutboxEntry[]> {
+    if (this.cache) return this.cache;
+    const raw = await this.store.get(OUTBOX_KEY);
+    try {
+      this.cache = raw ? (JSON.parse(raw) as OutboxEntry[]) : [];
+    } catch {
+      // A corrupt outbox is only worse than an empty one if it blocks every future write.
+      this.cache = [];
+    }
+    return this.cache;
   }
-  for (const listener of listeners) listener(entries);
-}
 
-export async function enqueue(entry: Omit<OutboxEntry, 'attempts' | 'createdAt'>): Promise<void> {
-  const entries = await read();
-  // Re-queuing the same id replaces rather than duplicates: the id is the record's identity.
-  const next = entries.filter((e) => e.id !== entry.id);
-  next.push({ ...entry, attempts: 0, createdAt: new Date().toISOString() });
-  await write(next);
-}
+  private async write(entries: OutboxEntry[]): Promise<void> {
+    this.cache = entries;
+    await this.store.set(OUTBOX_KEY, JSON.stringify(entries));
+    for (const listener of this.listeners) listener(entries);
+  }
 
-export async function pending(): Promise<OutboxEntry[]> {
-  return read();
-}
+  async enqueue(entry: Pick<OutboxEntry, 'id' | 'path' | 'body'>): Promise<void> {
+    const entries = await this.read();
+    // Re-queuing the same id replaces rather than duplicates: the id is the record's identity.
+    const next = entries.filter((e) => e.id !== entry.id);
+    next.push({ ...entry, attempts: 0, createdAt: new Date().toISOString() });
+    await this.write(next);
+  }
 
-export async function pendingCount(): Promise<number> {
-  return (await read()).length;
-}
+  async pending(): Promise<OutboxEntry[]> {
+    return this.read();
+  }
 
-export async function remove(id: string): Promise<void> {
-  await write((await read()).filter((e) => e.id !== id));
-}
+  async remove(id: string): Promise<void> {
+    await this.write((await this.read()).filter((e) => e.id !== id));
+  }
 
-export async function recordFailure(id: string, message: string): Promise<void> {
-  const entries = await read();
-  await write(
-    entries
-      .map((e) => (e.id === id ? { ...e, attempts: e.attempts + 1, lastError: message } : e))
-      // A request the server keeps rejecting is not a network problem, and retrying it forever
-      // blocks everything queued behind it.
-      .filter((e) => e.attempts < MAX_ATTEMPTS),
-  );
-}
+  /**
+   * Note a failure. Past `MAX_ATTEMPTS` the entry is dropped: a request the server keeps refusing
+   * is not a network problem, and retrying it forever blocks everything queued behind it.
+   */
+  async recordFailure(id: string, message: string): Promise<void> {
+    const entries = await this.read();
+    await this.write(
+      entries
+        .map((e) => (e.id === id ? { ...e, attempts: e.attempts + 1, lastError: message } : e))
+        .filter((e) => e.attempts < MAX_ATTEMPTS),
+    );
+  }
 
-export async function clear(): Promise<void> {
-  await write([]);
-}
+  async clear(): Promise<void> {
+    await this.write([]);
+  }
 
-export function subscribe(listener: Listener): () => void {
-  listeners.add(listener);
-  void read().then((entries) => listener(entries));
-  return () => listeners.delete(listener);
+  subscribe(listener: Listener): () => void {
+    this.listeners.add(listener);
+    void this.read().then((entries) => listener(entries));
+    return () => this.listeners.delete(listener);
+  }
 }
 
 /** Entries that have failed enough times to need a person to look at them. */
 export function isStuck(entry: OutboxEntry): boolean {
-  return entry.attempts >= 3;
+  return entry.attempts >= STUCK_AFTER;
 }

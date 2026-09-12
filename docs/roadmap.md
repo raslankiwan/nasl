@@ -169,10 +169,18 @@ The server side is built and tested; the device side — WatermelonDB and the qu
       later one takes only what moved, and nothing is written until the whole response is in hand
       — a connection that drops mid-pull leaves the previous cursor and cache intact.
 - [x] Signing out forgets the cached flock, so the next person on that phone does not see it.
-- [ ] **Carried: SQLite.** The cache is AsyncStorage, which is honest for the flocks this launches
-      with — Palestinian holdings run to tens or low hundreds of head. It is not right for the
-      commercial tier at 2,000 animals and 50,000 events (NFR-02). The interface in `cache.ts` is
-      deliberately narrow so that swap is one file. Treatment history is still network-only.
+- [x] **Storage is injected, so the data-loss paths are tested.** The outbox and the cache take a
+      `KeyValueStore` rather than importing AsyncStorage, which means the logic that decides
+      whether a birth record survives can be exercised without a React Native runtime. 26 mobile
+      tests cover it: order, deduplication by id, the attempt limit, surviving a restart, a corrupt
+      store, cross-farm isolation, and the document mapping.
+- [x] The cache knows nothing about HTTP. Fetching a change set is `pullFlock`'s job; the cache is
+      storage and merge, which is the part worth testing in isolation.
+- [ ] **Carried: SQLite.** Still AsyncStorage, which is honest for the flocks this launches with —
+      Palestinian holdings run to tens or low hundreds of head — and not right for the commercial
+      tier at 2,000 animals and 50,000 events (NFR-02). With the dependency injected, the swap is
+      now a new `KeyValueStore` in `storage.native.ts` rather than a rewrite. Treatment history is
+      still network-only.
 
 **193 tests.** Verified by taking the API down: a mating recorded on the phone queued, showed in
 the banner, and flushed on its own once the server returned — leaving the ewe `mated` with the

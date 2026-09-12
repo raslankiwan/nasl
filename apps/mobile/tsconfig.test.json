@@ -1,0 +1,11 @@
+{
+  "$comment": "Tests run under Node, not Metro, so they typecheck against Node's globals.",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "lib": ["ES2023"],
+    "noEmit": true
+  },
+  "include": ["**/*.test.ts", "**/*.test.tsx", "src/sync/**/*"],
+  "exclude": ["node_modules", "src/sync/storage.native.ts", "src/sync/device.ts"]
+}

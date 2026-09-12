@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../auth/AuthProvider';
-import { getAnimal, listAnimals, pull, type CachedAnimal } from './cache';
+import type { CachedAnimal } from './cache';
+import { flockCache, pullFlock } from './device';
 
 /**
  * Read the flock from the device first, then refresh from the server if it can be reached.
@@ -22,13 +23,13 @@ export function useFlock() {
         setLoading(false);
         return;
       }
-      setAnimals(await listAnimals(farmId));
+      setAnimals(await flockCache.listAnimals(farmId));
       setLoading(false);
 
       if (!fromNetwork) return;
       try {
-        await pull(farmId);
-        setAnimals(await listAnimals(farmId));
+        await pullFlock(farmId);
+        setAnimals(await flockCache.listAnimals(farmId));
         setStale(false);
       } catch {
         // Unreachable. What is on screen is still the best we have.
@@ -56,12 +57,12 @@ export function useAnimal(id: string | undefined) {
       setLoading(false);
       return;
     }
-    setAnimal(await getAnimal(farmId, id));
+    setAnimal(await flockCache.getAnimal(farmId, id));
     setLoading(false);
 
     try {
-      await pull(farmId);
-      setAnimal(await getAnimal(farmId, id));
+      await pullFlock(farmId);
+      setAnimal(await flockCache.getAnimal(farmId, id));
       setStale(false);
     } catch {
       setStale(true);

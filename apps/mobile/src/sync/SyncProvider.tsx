@@ -10,7 +10,8 @@ import {
 import type { ReactNode } from 'react';
 import { AppState } from 'react-native';
 import { ApiError, request } from '../api/client';
-import { enqueue, pending, recordFailure, remove, subscribe, type OutboxEntry } from './outbox';
+import { isStuck, type OutboxEntry } from './outbox';
+import { outbox } from './device';
 
 interface SyncValue {
   /** Writes waiting to reach the server. */
@@ -39,20 +40,20 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   const [flushing, setFlushing] = useState(false);
   const flushingRef = useRef(false);
 
-  useEffect(() => subscribe(setEntries), []);
+  useEffect(() => outbox.subscribe(setEntries), []);
 
   const flush = useCallback(async () => {
     if (flushingRef.current) return;
     flushingRef.current = true;
     setFlushing(true);
     try {
-      for (const entry of await pending()) {
+      for (const entry of await outbox.pending()) {
         try {
           await request(entry.path, { method: 'POST', body: entry.body });
-          await remove(entry.id);
+          await outbox.remove(entry.id);
           setOnline(true);
         } catch (err) {
-          await recordFailure(entry.id, err instanceof Error ? err.message : 'failed');
+          await outbox.recordFailure(entry.id, err instanceof Error ? err.message : 'failed');
           if (isNetworkFailure(err)) {
             setOnline(false);
             // No point walking the rest of the queue while the network is down.
@@ -73,7 +74,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       return true;
     } catch (err) {
       if (!isNetworkFailure(err)) throw err; // the server refused it; the user must see why
-      await enqueue({ id, path, body });
+      await outbox.enqueue({ id, path, body });
       setOnline(false);
       return false;
     }
@@ -95,7 +96,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   const value = useMemo<SyncValue>(
     () => ({
       pending: entries.length,
-      stuck: entries.filter((e) => e.attempts >= 3).length,
+      stuck: entries.filter(isStuck).length,
       online,
       flushing,
       send,
