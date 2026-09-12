@@ -49,24 +49,32 @@ export function Choice<T extends string>({
 /**
  * A date field built for the pen, not the office.
  *
- * These events are recorded the day they happen or the day after, so a calendar wheel is the wrong
- * instrument: it takes several taps to say "yesterday". This steps by a day at a time, shows both
- * calendars, and refuses future dates — a lamb cannot be born tomorrow.
+ * Events are recorded the day they happen or the day after, so a calendar wheel is the wrong
+ * instrument — it takes several taps to say "yesterday". This steps a day at a time and shows both
+ * calendars.
+ *
+ * By default it refuses future dates, because a lamb cannot be born tomorrow. `allowFuture` is for
+ * the fields where the opposite is true: a medicine's expiry is always ahead of today, and a
+ * stepper that stops at the present is useless for it. The step size widens with it, because a
+ * date a year out is not reached one day at a time.
  */
 export function DateField({
   label,
   value,
   onChange,
+  allowFuture = false,
 }: {
   label: string;
   value: Date;
   onChange: (next: Date) => void;
+  allowFuture?: boolean;
 }) {
   const { t, i18n } = useTranslation('common');
   const locale = (i18n.resolvedLanguage ?? 'ar') as Locale;
 
   const startOfToday = new Date(new Date().toISOString().slice(0, 10));
   const dayOffset = Math.round((value.getTime() - startOfToday.getTime()) / 86_400_000);
+  const stepDays = allowFuture ? 30 : 1;
   const shift = (days: number) => onChange(new Date(value.getTime() + days * 86_400_000));
 
   const relative = dayOffset === 0 ? t('today') : dayOffset === -1 ? t('yesterday') : null;
@@ -78,7 +86,7 @@ export function DateField({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="-1"
-          onPress={() => shift(-1)}
+          onPress={() => shift(-stepDays)}
           style={({ pressed }) => [styles.step, pressed && styles.pressed]}
         >
           <Text style={styles.stepLabel}>−</Text>
@@ -94,11 +102,11 @@ export function DateField({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="+1"
-          onPress={() => shift(1)}
-          disabled={dayOffset >= 0}
+          onPress={() => shift(stepDays)}
+          disabled={!allowFuture && dayOffset >= 0}
           style={({ pressed }) => [
             styles.step,
-            dayOffset >= 0 && styles.stepDisabled,
+            !allowFuture && dayOffset >= 0 && styles.stepDisabled,
             pressed && styles.pressed,
           ]}
         >
