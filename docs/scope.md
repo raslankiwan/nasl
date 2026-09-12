@@ -608,7 +608,13 @@ chore. **Optimise the birth-entry flow above all else.**
 
 ## Milk changes the product
 
-**Raised 2026-09-11, unresolved.**
+**Raised 2026-09-11. Answered 2026-09-12: both lambs and milk, recorded on test days.**
+
+Awassi is genuinely dual-purpose, so a ewe's worth is her lambs _and_ her litres, and the scorecard
+now carries both. Per-ewe yield comes from periodic **test days** rather than every milking —
+weighing eighty ewes twice a day is not something a farm outside a selection scheme will do — with
+lactation estimated by the Fleischmann (test-interval) method that ICAR schemes use. Tank
+collections are recorded separately as the flock's income line.
 
 This document was written for a meat flock — withdrawal gating slaughter, the Eid selling season
 as the year's main revenue event, kg weaned per ewe as the productivity measure. That is the Gulf.

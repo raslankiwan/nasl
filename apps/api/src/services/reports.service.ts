@@ -1,7 +1,8 @@
-import { daysBetween } from '@nasl/shared';
+import { daysBetween, standardisedYield, type TestDay } from '@nasl/shared';
 import { Animal, type AnimalDoc } from '../models/animal.model.ts';
 import { Birth, Weaning } from '../models/breeding.model.ts';
 import { HealthEvent } from '../models/health.model.ts';
+import { Lactation, MilkTestDay } from '../models/milk.model.ts';
 
 /**
  * The reports that make recording worth doing.
@@ -25,6 +26,9 @@ export interface EweRow {
   averageLambingIntervalDays: number | null;
   kgWeaned: number;
   assistedLambings: number;
+  /** Best standardised 150-day lactation. Awassi is dual-purpose: her worth is lambs and litres. */
+  bestLactationKg: number | null;
+  lactations: number;
   lastLambedAt: string | null;
   daysSinceLastLambing: number | null;
   reproState: string | null;
@@ -55,12 +59,19 @@ export class ReportsService {
     if (ewes.length === 0) return [];
 
     const eweIds = ewes.map((e) => e._id);
-    const [births, weanings] = await Promise.all([
+    const [births, weanings, lactations, testDays] = await Promise.all([
       Birth.find({ farmId, deletedAt: null, damId: { $in: eweIds } })
         .sort({ date: 1 })
         .lean()
         .exec(),
       Weaning.find({ farmId, deletedAt: null, damId: { $in: eweIds } })
+        .lean()
+        .exec(),
+      Lactation.find({ farmId, deletedAt: null, animalId: { $in: eweIds } })
+        .lean()
+        .exec(),
+      MilkTestDay.find({ farmId, deletedAt: null, animalId: { $in: eweIds } })
+        .sort({ date: 1 })
         .lean()
         .exec(),
     ]);
@@ -80,18 +91,44 @@ export class ReportsService {
       weanedByDam.set(weaning.damId, entry);
     }
 
+    // Best standardised lactation per ewe, so the scorecard ranks on milk as well as lambs.
+    const testsByLactation = new Map<string, TestDay[]>();
+    for (const test of testDays) {
+      const list = testsByLactation.get(test.lactationId) ?? [];
+      list.push({ date: test.date, kg: test.kg });
+      testsByLactation.set(test.lactationId, list);
+    }
+
+    const milkByEwe = new Map<string, { best: number | null; count: number }>();
+    for (const lactation of lactations) {
+      const entry = milkByEwe.get(lactation.animalId) ?? { best: null, count: 0 };
+      entry.count += 1;
+      const yielded = standardisedYield(
+        lactation.startDate,
+        testsByLactation.get(lactation._id) ?? [],
+        lactation.endDate ?? today,
+      );
+      if (yielded > 0 && (entry.best === null || yielded > entry.best)) entry.best = yielded;
+      milkByEwe.set(lactation.animalId, entry);
+    }
+
     const flockAverageLitter = this.mean(
       births.map((b) => b.offspring.length).filter((n) => n > 0),
     );
 
     const rows = ewes.map((ewe) =>
-      this.buildRow(ewe, birthsByDam, weanedByDam, flockAverageLitter, today),
+      this.buildRow(ewe, birthsByDam, weanedByDam, milkByEwe, flockAverageLitter, today),
     );
 
-    // Worst first: most cull signals, then least productive.
+    /**
+     * Worst first: most cull signals, then least productive. Productivity is lambs *and* litres —
+     * a ewe who rears one lamb but milks well is not the one to cull, and ranking her on lambs
+     * alone would say she is.
+     */
     return rows.sort(
       (a, b) =>
         b.cullSignals.length - a.cullSignals.length ||
+        (a.bestLactationKg ?? 0) - (b.bestLactationKg ?? 0) ||
         (a.averageLitterSize ?? 0) - (b.averageLitterSize ?? 0) ||
         a.lambsWeaned - b.lambsWeaned,
     );
@@ -109,11 +146,13 @@ export class ReportsService {
       }>
     >,
     weanedByDam: Map<string, { count: number; kg: number }>,
+    milkByEwe: Map<string, { best: number | null; count: number }>,
     flockAverageLitter: number | null,
     today: Date,
   ): EweRow {
     const herBirths = birthsByDam.get(ewe._id) ?? [];
     const weaned = weanedByDam.get(ewe._id) ?? { count: 0, kg: 0 };
+    const milk = milkByEwe.get(ewe._id) ?? { best: null, count: 0 };
 
     const lambsBorn = herBirths.reduce((sum, b) => sum + b.offspring.length, 0);
     const lambsLive = herBirths.reduce(
@@ -163,6 +202,8 @@ export class ReportsService {
       averageLambingIntervalDays: intervals.length > 0 ? Math.round(this.mean(intervals)!) : null,
       kgWeaned: Number(weaned.kg.toFixed(1)),
       assistedLambings: assisted,
+      bestLactationKg: milk.best,
+      lactations: milk.count,
       lastLambedAt: last ? last.date.toISOString().slice(0, 10) : null,
       daysSinceLastLambing: daysSince,
       reproState: ewe.repro?.state ?? null,

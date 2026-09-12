@@ -6,6 +6,7 @@ import { Movement } from '../models/movement.model.ts';
 import { HealthEvent } from '../models/health.model.ts';
 import { Weight } from '../models/weight.model.ts';
 import { FeedLog, Transaction } from '../models/finance.model.ts';
+import { MilkCollection, MilkTestDay } from '../models/milk.model.ts';
 import { Abortion, Birth, Mating, PregnancyCheck, Weaning } from '../models/breeding.model.ts';
 import type { TenantDocument } from '../models/base.ts';
 import { BreedingService } from './breeding.service.ts';
@@ -60,6 +61,8 @@ const COLLECTIONS: readonly Syncable[] = [
   { name: 'weights', model: Weight as unknown as SyncModel, mode: 'append-only' },
   { name: 'transactions', model: Transaction as unknown as SyncModel, mode: 'append-only' },
   { name: 'feedLogs', model: FeedLog as unknown as SyncModel, mode: 'append-only' },
+  { name: 'milkTestDays', model: MilkTestDay as unknown as SyncModel, mode: 'append-only' },
+  { name: 'milkCollections', model: MilkCollection as unknown as SyncModel, mode: 'append-only' },
 ];
 
 export interface ChangeSet {

@@ -241,6 +241,29 @@ moving ewes to the drop pen before lambing is a daily job.
 - [x] Pens are read from the network rather than cached — a farm has a handful and they change
       rarely, so being wrong offline costs a short list rather than a lost record
 
+## Milk and lactation ✅
+
+Answers the milk question raised when the launch market moved to Palestine, where 72.4% of sheep
+are kept for milk: **both lambs and milk**, with per-ewe yield from **test days**.
+
+- [x] Lactation opens automatically at lambing — a ewe that has lambed is in milk whether or not
+      anyone has weighed her, and a separate "start lactation" step would be skipped
+- [x] Lambing again closes the previous lactation on the new lambing date
+- [x] Test-day recording for a group of ewes, with re-entry correcting rather than duplicating
+- [x] **Fleischmann (test-interval) lactation estimation**, the method ICAR schemes use: yield
+      changes linearly between tests, the first test's rate holds back to lambing and the last
+      forward to drying off. A worked example gives 297 kg over 150 days, inside the 125–330 kg
+      range reported for Awassi flocks in the West Bank.
+- [x] Standardised 150-day yield so ewes that lambed months apart compare. A lactation cut short is
+      **not** extrapolated — reporting milk she did not give would flatter a ewe who dried off
+      early, and drying off early is itself the thing worth seeing.
+- [x] A ewe under a milk withdrawal is recorded but **named back in the response**: the measurement
+      is real, her milk must not reach the tank, and the parlour is where that needs saying
+- [x] Tank collections as the flock's milk income line
+- [x] **Milk in the ewe scorecard**, and in its ranking. A ewe who rears one lamb but milks well is
+      not the one to cull, and ranking on lambs alone would say she is.
+- [ ] Mobile: test-day entry at the parlour, tank collection, milk on the animal screen
+
 ## Increment 7 — Health and withdrawal ✅ (medicine cabinet carried)
 
 - [x] `healthEvents` as immutable records. Withhold dates are copied onto the event when it is

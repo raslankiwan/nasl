@@ -9,3 +9,4 @@ export * from './species.ts';
 export * from './alerts.ts';
 export * from './growth.ts';
 export * from './csv.ts';
+export * from './lactation.ts';

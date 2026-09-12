@@ -10,6 +10,7 @@ import {
 } from '@nasl/shared';
 import { AppError } from '../errors.ts';
 import { AnimalRepository } from '../repositories/animal.repository.ts';
+import { MilkService } from './milk.service.ts';
 import { TenantRepository } from '../repositories/tenantRepository.ts';
 import type { AnimalDoc } from '../models/animal.model.ts';
 import {
@@ -35,6 +36,7 @@ import {
  */
 export class BreedingService {
   private readonly animals = new AnimalRepository();
+  private readonly milk = new MilkService();
   private readonly matings = new TenantRepository<MatingDoc>(Mating);
   private readonly checks = new TenantRepository<PregnancyCheckDoc>(PregnancyCheck);
   private readonly births = new TenantRepository<BirthDoc>(Birth);
@@ -281,6 +283,14 @@ export class BreedingService {
     const finalState = recorded.some((o) => o.outcome === 'live')
       ? this.advance(next, { type: 'nursingStarted', date: input.date })
       : next;
+
+    // She is in milk from the day she lambs, whether or not anyone weighs her. Opening the
+    // lactation here means the herder never has to declare it — a step that would be skipped.
+    await this.milk.openLactation(
+      farmId,
+      { animalId: input.damId, birthId: birth._id, startDate: input.date },
+      recordedBy,
+    );
 
     await this.persist(farmId, input.damId, finalState);
     return birth;
