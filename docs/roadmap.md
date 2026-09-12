@@ -176,11 +176,22 @@ The server side is built and tested; the device side — WatermelonDB and the qu
       store, cross-farm isolation, and the document mapping.
 - [x] The cache knows nothing about HTTP. Fetching a change set is `pullFlock`'s job; the cache is
       storage and merge, which is the part worth testing in isolation.
-- [ ] **Carried: SQLite.** Still AsyncStorage, which is honest for the flocks this launches with —
-      Palestinian holdings run to tens or low hundreds of head — and not right for the commercial
-      tier at 2,000 animals and 50,000 events (NFR-02). With the dependency injected, the swap is
-      now a new `KeyValueStore` in `storage.native.ts` rather than a rewrite. Treatment history is
-      still network-only.
+- [ ] **Carried: SQLite — the store _inside the phone_, not the server database.** Worth saying
+      plainly, because the two get conflated. The server's database is MongoDB and is not in
+      question. This item is about the copy of the flock the Expo app keeps on the handset so the
+      roster works in a pen with no signal, which today is AsyncStorage: a key-value store where
+      reading one ewe means parsing the whole flock out of a JSON blob.
+
+      Postgres and MongoDB are not alternatives here. Both are servers — a separate process
+              listening on a port — and there is no such process inside an iOS or Android app. SQLite is
+              the only one of the three that is a _file_ and a library linked into the app, which is why
+              every offline mobile app on both platforms uses it and why `expo-sqlite` exists.
+
+              AsyncStorage is honest for the flocks this launches with — Palestinian holdings run to tens
+              or low hundreds of head — and wrong for the commercial tier at 2,000 animals and 50,000
+              events (NFR-02), where the parse cost per read stops being free. With the dependency
+              injected, the swap is a new `KeyValueStore` in `storage.native.ts` rather than a rewrite.
+              Treatment history is still network-only.
 
 **193 tests.** Verified by taking the API down: a mating recorded on the phone queued, showed in
 the banner, and flushed on its own once the server returned — leaving the ewe `mated` with the
@@ -398,6 +409,20 @@ but real withdrawal figures are the one thing that cannot be invented.
       is a list nobody reads; "24 ewes, booster due this week" is a job.
 - [x] A worker or a visiting vet can see the schedule and cannot change it — new `farm:manage`
       permission. Switching off a brucellosis reminder is a management act.
+
+### The bug this found
+
+Opening the schedule on a farm created **before** this shipped showed an empty list — where a
+flock of fifteen was seven doses overdue. A Mongoose schema default only applies when a document
+is created, and a lean read does not hydrate defaults either, so `protocolIds` was simply absent
+on every existing farm and `protocolIds ?? []` read that as _this farm has chosen to run nothing_.
+Never chose now means the defaults; an empty array is still a choice and is still respected. Both
+cases have a test.
+
+Two smaller things the browser caught and the tests could not: the protocol sources were
+English-only, which is no answer at all for the Arabic-first half of the product, and the
+produced-weight field opened at the exact expected yield — 21.11 kg — which is not a number
+anyone wants to step up from.
 
 ## Last — ship
 
