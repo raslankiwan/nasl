@@ -422,6 +422,9 @@ English-only, which is no answer at all for the Arabic-first half of the product
 produced-weight field opened at the exact expected yield — 21.11 kg — which is not a number
 anyone wants to step up from.
 
+**346 tests** across the four packages — 198 API, 107 shared, 26 mobile, 15 admin — and verified
+end to end against a live API with the app running in Arabic.
+
 ## Last — ship
 
 Deliberately after the feature work. Both of these are about a build going to real phones, and
