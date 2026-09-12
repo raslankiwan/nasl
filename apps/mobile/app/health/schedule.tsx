@@ -41,7 +41,7 @@ interface Protocol {
   nameEn: string;
   nameAr: string;
   deliveredBy: 'farm' | 'official';
-  source: string;
+  source: { en: string; ar: string };
   enabled: boolean;
 }
 
@@ -172,7 +172,9 @@ export default function ScheduleScreen() {
                 >
                   <View style={styles.toggleText}>
                     <Text style={styles.name}>{arabic ? protocol.nameAr : protocol.nameEn}</Text>
-                    <Text style={styles.source}>{protocol.source}</Text>
+                    <Text style={styles.source}>
+                      {arabic ? protocol.source.ar : protocol.source.en}
+                    </Text>
                   </View>
                   <Switch
                     value={protocol.enabled}

@@ -37,9 +37,10 @@ describe('the default library', () => {
     assert.equal(step.trigger, 'age');
   });
 
-  test('every protocol cites where its schedule came from', () => {
+  test('every protocol cites where its schedule came from, in both languages', () => {
     for (const protocol of PROTOCOL_LIBRARY) {
-      assert.ok(protocol.source.length > 20, protocol.id);
+      assert.ok(protocol.source.en.length > 20, protocol.id);
+      assert.ok(protocol.source.ar.length > 20, protocol.id);
     }
   });
 

@@ -1,6 +1,7 @@
 import { after, before, beforeEach, describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { clearDatabase, startTestMongo, stopTestMongo } from '../testing/mongo.ts';
+import { Farm } from '../models/farm.model.ts';
 import { Membership } from '../models/membership.model.ts';
 import { api, signInWithFarm, testApp, withServer } from '../testing/harness.ts';
 
@@ -10,7 +11,7 @@ interface ProtocolSettings {
     id: string;
     enabled: boolean;
     deliveredBy: string;
-    source: string;
+    source: { en: string; ar: string };
     steps: Array<{ id: string }>;
   }>;
 }
@@ -66,8 +67,10 @@ describe('which protocols a farm runs', () => {
       const res = await client.get<ProtocolSettings>(`/v1/farms/${farmId}/health/protocols`);
       assert.ok(res.body.disclaimer.ar.length > 0);
       assert.ok(res.body.disclaimer.en.includes('veterinarian'));
-      for (const protocol of res.body.protocols)
-        assert.ok(protocol.source.length > 20, protocol.id);
+      for (const protocol of res.body.protocols) {
+        assert.ok(protocol.source.en.length > 20, protocol.id);
+        assert.ok(protocol.source.ar.length > 20, protocol.id);
+      }
     });
   });
 
@@ -78,6 +81,32 @@ describe('which protocols a farm runs', () => {
 
       const res = await client.get<ProtocolSettings>(`/v1/farms/${farmId}/health/protocols`);
       assert.equal(res.body.protocols.find((p) => p.id === 'brucellosis')!.deliveredBy, 'official');
+    });
+  });
+
+  test('a farm that predates the field runs the defaults, not nothing', async () => {
+    await withServer(testApp(), async (url) => {
+      const { session, farmId } = await signInWithFarm(url, '+970591000014');
+      const client = api(url, session.accessToken);
+
+      // Exactly what an existing farm looks like: the field was never written. A lean read does
+      // not apply schema defaults, so this silently meant "no vaccinations at all".
+      await Farm.updateOne({ _id: farmId }, { $unset: { protocolIds: '' } });
+
+      const res = await client.get<ProtocolSettings>(`/v1/farms/${farmId}/health/protocols`);
+      assert.ok(res.body.protocols.some((p) => p.id === 'clostridial' && p.enabled));
+    });
+  });
+
+  test('switching everything off is a choice, and is kept', async () => {
+    await withServer(testApp(), async (url) => {
+      const { session, farmId } = await signInWithFarm(url, '+970591000015');
+      const client = api(url, session.accessToken);
+
+      await client.put(`/v1/farms/${farmId}/health/protocols`, { protocolIds: [] });
+
+      const res = await client.get<ProtocolSettings>(`/v1/farms/${farmId}/health/protocols`);
+      assert.ok(!res.body.protocols.some((p) => p.enabled));
     });
   });
 

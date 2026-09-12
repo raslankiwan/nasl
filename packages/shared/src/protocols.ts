@@ -74,8 +74,14 @@ export interface Protocol {
   deliveredBy: ProtocolDelivery;
   /** Enabled for a new Palestinian farm without anyone choosing it. */
   defaultOn: boolean;
-  /** Published guidance this schedule is drawn from. Shown in the admin console. */
-  source: string;
+  /**
+   * The published guidance this schedule is drawn from, in both languages.
+   *
+   * Arabic too, and not only the English citation: this is the farm's answer to "why is the app
+   * telling me this", and an Arabic-first product that hands a Palestinian herder an English
+   * paragraph has not actually answered them.
+   */
+  source: { en: string; ar: string };
   steps: ProtocolStep[];
 }
 
@@ -95,8 +101,10 @@ export const PROTOCOL_LIBRARY: readonly Protocol[] = [
     diseaseId: 'enterotoxaemia',
     deliveredBy: 'farm',
     defaultOn: true,
-    source:
-      'NADIS clostridial & pasteurella vaccination; Michigan State University and South Dakota State University extension guidance on enterotoxaemia timing.',
+    source: {
+      en: 'NADIS clostridial & pasteurella vaccination; Michigan State University and South Dakota State University extension guidance on enterotoxaemia timing.',
+      ar: 'إرشادات NADIS للتحصين ضد الكلوستريديا والباستوريلا، وإرشادات جامعتي ميشيغان ستيت وساوث داكوتا ستيت بشأن توقيت التسمم المعوي.',
+    },
     steps: [
       {
         id: 'clostridial-ewe-primary-1',
@@ -166,8 +174,10 @@ export const PROTOCOL_LIBRARY: readonly Protocol[] = [
     diseaseId: 'ppr',
     deliveredBy: 'official',
     defaultOn: true,
-    source:
-      'WOAH Terrestrial Manual ch. 3.7.9 (PPR) and the WOAH/FAO Global Strategy for the Control and Eradication of PPR; Nigeria 75/1 live attenuated strain.',
+    source: {
+      en: 'WOAH Terrestrial Manual ch. 3.7.9 (PPR) and the WOAH/FAO Global Strategy for the Control and Eradication of PPR; Nigeria 75/1 live attenuated strain.',
+      ar: 'دليل المنظمة العالمية لصحة الحيوان (WOAH) الفصل ٣.٧.٩، والاستراتيجية العالمية لمكافحة طاعون المجترات الصغيرة واستئصاله (WOAH/FAO)؛ العترة الحية الموهنة نيجيريا ٧٥/١.',
+    },
     steps: [
       {
         id: 'ppr-first',
@@ -201,8 +211,10 @@ export const PROTOCOL_LIBRARY: readonly Protocol[] = [
     diseaseId: 'sheep-pox',
     deliveredBy: 'official',
     defaultOn: true,
-    source:
-      'WOAH Terrestrial Manual, sheep pox and goat pox; combined PPR/sheep pox vaccine studies showing 12-month protection from a single dose.',
+    source: {
+      en: 'WOAH Terrestrial Manual, sheep pox and goat pox; combined PPR/sheep pox vaccine studies showing 12-month protection from a single dose.',
+      ar: 'دليل المنظمة العالمية لصحة الحيوان، جدري الأغنام والماعز؛ ودراسات اللقاح المشترك مع طاعون المجترات التي تُظهر حماية اثني عشر شهراً من جرعة واحدة.',
+    },
     steps: [
       {
         id: 'pox-first',
@@ -232,8 +244,10 @@ export const PROTOCOL_LIBRARY: readonly Protocol[] = [
     diseaseId: 'brucellosis',
     deliveredBy: 'official',
     defaultOn: true,
-    source:
-      'B. melitensis Rev-1 conjunctival vaccination of replacement females, the mainstay of small-ruminant brucellosis control; West Bank seroprevalence work and the Jordanian national programme.',
+    source: {
+      en: 'B. melitensis Rev-1 conjunctival vaccination of replacement females, the mainstay of small-ruminant brucellosis control; West Bank seroprevalence work and the Jordanian national programme.',
+      ar: 'التحصين الملتحمي بلقاح ريف-١ للإناث البديلة، وهو أساس مكافحة البروسيلا في المجترات الصغيرة؛ استناداً إلى دراسات الانتشار المصلي في الضفة الغربية والبرنامج الوطني الأردني.',
+    },
     steps: [
       {
         id: 'brucellosis-rev1',
@@ -257,8 +271,10 @@ export const PROTOCOL_LIBRARY: readonly Protocol[] = [
     diseaseId: 'fmd',
     deliveredBy: 'official',
     defaultOn: true,
-    source:
-      'Regional practice for endemic settings; Jordanian field work showing twice-yearly vaccination of small ruminants gives materially better titres and fewer clinical cases than annual.',
+    source: {
+      en: 'Regional practice for endemic settings; Jordanian field work showing twice-yearly vaccination of small ruminants gives materially better titres and fewer clinical cases than annual.',
+      ar: 'الممارسة المتبعة إقليمياً في المناطق الموبوءة؛ ودراسات ميدانية أردنية تُظهر أن التحصين مرتين سنوياً للمجترات الصغيرة يعطي مناعة أعلى وحالات مرضية أقل من مرة واحدة.',
+    },
     steps: [
       {
         id: 'fmd-round',
@@ -283,8 +299,10 @@ export const PROTOCOL_LIBRARY: readonly Protocol[] = [
     // Off unless a farm turns it on: dosing the whole flock on a calendar is how resistant worms
     // are bred. The guidance is to dose on faecal egg counts and condition, not on a date.
     defaultOn: false,
-    source:
-      'Standard small-ruminant parasite guidance: treat on faecal egg counts and body condition rather than on a fixed calendar, to slow anthelmintic resistance.',
+    source: {
+      en: 'Standard small-ruminant parasite guidance: treat on faecal egg counts and body condition rather than on a fixed calendar, to slow anthelmintic resistance.',
+      ar: 'الإرشاد المعتاد لطفيليات المجترات الصغيرة: العلاج بناءً على فحص بيوض الديدان في الروث وحالة الجسم لا على جدول ثابت، للحد من مقاومة الأدوية.',
+    },
     steps: [
       {
         id: 'parasites-prelambing',

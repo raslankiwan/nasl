@@ -1,4 +1,5 @@
 import {
+  defaultProtocolIds,
   dueProtocolTasks,
   PROTOCOL_DISCLAIMER,
   PROTOCOL_LIBRARY,
@@ -28,11 +29,23 @@ export class ProtocolService {
   private readonly animals = new AnimalRepository();
   private readonly events = new TenantRepository<HealthEventDoc>(HealthEvent);
 
-  /** The library, with each protocol marked on or off for this farm. */
-  async settings(farmId: string) {
+  /**
+   * What this farm runs.
+   *
+   * A farm that predates the field has no `protocolIds` at all, and a lean read does not apply
+   * schema defaults — so "never chose" would silently mean "no vaccinations scheduled" for every
+   * farm that existed before this shipped. No choice recorded means the defaults. An empty array
+   * is a choice, and is respected.
+   */
+  private async enabledFor(farmId: string): Promise<string[]> {
     const farm = await Farm.findById(farmId).select('protocolIds').lean().exec();
     if (!farm) throw AppError.notFound('That farm does not exist.');
-    const enabled = new Set(farm.protocolIds ?? []);
+    return farm.protocolIds ?? defaultProtocolIds();
+  }
+
+  /** The library, with each protocol marked on or off for this farm. */
+  async settings(farmId: string) {
+    const enabled = new Set(await this.enabledFor(farmId));
 
     return {
       disclaimer: PROTOCOL_DISCLAIMER,
@@ -84,9 +97,7 @@ export class ProtocolService {
    * pre-lambing booster" is a list nobody reads, while "24 ewes, booster due this week" is a job.
    */
   async tasks(farmId: string, today: Date, horizonDays = 30) {
-    const farm = await Farm.findById(farmId).select('protocolIds').lean().exec();
-    if (!farm) throw AppError.notFound('That farm does not exist.');
-    const enabled = farm.protocolIds ?? [];
+    const enabled = await this.enabledFor(farmId);
     if (enabled.length === 0) {
       return { disclaimer: PROTOCOL_DISCLAIMER, groups: [], total: 0 };
     }

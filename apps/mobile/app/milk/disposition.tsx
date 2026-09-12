@@ -89,7 +89,8 @@ export default function Disposition() {
             min={1}
             max={2000}
             step={1}
-            initial={expected ?? 10}
+            // A round number to step from. The exact expectation is in the hint below.
+            initial={expected === null ? 10 : Math.max(1, Math.round(expected))}
             suffix="kg"
             optional
           />
