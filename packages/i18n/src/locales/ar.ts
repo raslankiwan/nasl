@@ -224,6 +224,7 @@ export const ar: Translated<Catalogue> = {
     lowStock: 'شارف على النفاد',
     emptyCabinet: 'الخزانة فارغة',
     discard: 'إتلاف',
+    whichProtocols: 'أي التحصينات',
     schedule: 'جدول التحصين',
     scheduleEmpty: 'لا يوجد ما هو مستحق',
     givenBy: { farm: 'تعطيها بنفسك', official: 'الخدمات البيطرية' },

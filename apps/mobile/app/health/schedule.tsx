@@ -1,5 +1,13 @@
 import { useCallback, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -7,7 +15,7 @@ import { formatDate, type Locale } from '@nasl/i18n';
 import { api, ApiError } from '../../src/api/client';
 import { useAuth } from '../../src/auth/AuthProvider';
 import { Body, Button, Notice, Pill, Screen, Title } from '../../src/components/ui';
-import { colors, radius, spacing, type } from '../../src/theme';
+import { colors, MIN_TOUCH, radius, spacing, type } from '../../src/theme';
 
 interface Group {
   protocolId: string;
@@ -27,6 +35,14 @@ interface Schedule {
   total: number;
   disclaimer: { en: string; ar: string };
   groups: Group[];
+}
+interface Protocol {
+  id: string;
+  nameEn: string;
+  nameAr: string;
+  deliveredBy: 'farm' | 'official';
+  source: string;
+  enabled: boolean;
 }
 
 /**
@@ -49,6 +65,8 @@ export default function ScheduleScreen() {
   const arabic = locale === 'ar';
 
   const [schedule, setSchedule] = useState<Schedule | null>(null);
+  const [protocols, setProtocols] = useState<Protocol[]>([]);
+  const [showSettings, setShowSettings] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState<string | null>(null);
@@ -56,7 +74,12 @@ export default function ScheduleScreen() {
   const load = useCallback(async () => {
     if (!farmId) return setLoading(false);
     try {
-      setSchedule(await api.get<Schedule>(`/v1/farms/${farmId}/health/protocol-tasks`));
+      const [tasks, library] = await Promise.all([
+        api.get<Schedule>(`/v1/farms/${farmId}/health/protocol-tasks`),
+        api.get<{ protocols: Protocol[] }>(`/v1/farms/${farmId}/health/protocols`),
+      ]);
+      setSchedule(tasks);
+      setProtocols(library.protocols);
       setError(null);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t('common:errorRetry'));
@@ -94,6 +117,28 @@ export default function ScheduleScreen() {
     }
   };
 
+  /**
+   * A farm outside a campaign area has no use for an FMD reminder, and a farm that dung-samples
+   * wants the worm one. Toggling is optimistic and reloads: the schedule changes underneath, so
+   * showing it stale would be worse than a moment's wait.
+   */
+  const toggle = async (protocolId: string, on: boolean) => {
+    const next = on
+      ? [...protocols.filter((p) => p.enabled).map((p) => p.id), protocolId]
+      : protocols.filter((p) => p.enabled && p.id !== protocolId).map((p) => p.id);
+
+    setProtocols((current) =>
+      current.map((p) => (p.id === protocolId ? { ...p, enabled: on } : p)),
+    );
+    try {
+      await api.put(`/v1/farms/${farmId}/health/protocols`, { protocolIds: next });
+      await load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : t('common:errorRetry'));
+      await load();
+    }
+  };
+
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <ScrollView
@@ -110,6 +155,33 @@ export default function ScheduleScreen() {
           {schedule ? (
             <Notice>{arabic ? schedule.disclaimer.ar : schedule.disclaimer.en}</Notice>
           ) : null}
+
+          <Button
+            label={showSettings ? t('common:done') : t('health:whichProtocols')}
+            variant="secondary"
+            onPress={() => setShowSettings((v) => !v)}
+          />
+          <View style={styles.gap} />
+
+          {showSettings
+            ? protocols.map((protocol) => (
+                <Pressable
+                  key={protocol.id}
+                  style={styles.toggleRow}
+                  onPress={() => void toggle(protocol.id, !protocol.enabled)}
+                >
+                  <View style={styles.toggleText}>
+                    <Text style={styles.name}>{arabic ? protocol.nameAr : protocol.nameEn}</Text>
+                    <Text style={styles.source}>{protocol.source}</Text>
+                  </View>
+                  <Switch
+                    value={protocol.enabled}
+                    onValueChange={(on) => void toggle(protocol.id, on)}
+                    trackColor={{ true: colors.sage, false: colors.line }}
+                  />
+                </Pressable>
+              ))
+            : null}
 
           {schedule && schedule.groups.length === 0 && !loading ? (
             <Body muted>{t('health:scheduleEmpty')}</Body>
@@ -176,5 +248,18 @@ const styles = StyleSheet.create({
   pills: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
   counts: { fontSize: type.label, color: colors.inkSoft },
   note: { fontSize: type.label, color: colors.muted, lineHeight: 20 },
+  toggleRow: {
+    minHeight: MIN_TOUCH,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.sm,
+  },
+  toggleText: { flex: 1, gap: spacing.xs },
+  // The source is here so a farm can see why the app thinks a dose is due, and take it to a vet.
+  source: { fontSize: type.caption, color: colors.muted, lineHeight: 17 },
   tags: { fontSize: type.caption, color: colors.muted },
 });

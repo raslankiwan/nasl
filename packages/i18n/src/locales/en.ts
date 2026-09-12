@@ -220,6 +220,7 @@ export const en = {
     lowStock: 'Running low',
     emptyCabinet: 'The cabinet is empty',
     discard: 'Discard',
+    whichProtocols: 'Which vaccinations',
     schedule: 'Vaccination schedule',
     scheduleEmpty: 'Nothing is due',
     givenBy: { farm: 'You give this', official: 'Veterinary service' },
