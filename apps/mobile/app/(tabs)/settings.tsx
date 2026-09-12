@@ -64,9 +64,25 @@ export default function Settings() {
           <View style={styles.gap} />
 
           <Button
+            label={t('milk:disposition')}
+            variant="secondary"
+            onPress={() => router.push('/milk/disposition')}
+          />
+
+          <View style={styles.gap} />
+
+          <Button
             label={t('health:cabinet')}
             variant="secondary"
             onPress={() => router.push('/health/cabinet')}
+          />
+
+          <View style={styles.gap} />
+
+          <Button
+            label={t('health:schedule')}
+            variant="secondary"
+            onPress={() => router.push('/health/schedule')}
           />
 
           <View style={styles.gap} />

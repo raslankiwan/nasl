@@ -1,0 +1,180 @@
+import { useCallback, useState } from 'react';
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+import { formatDate, type Locale } from '@nasl/i18n';
+import { api, ApiError } from '../../src/api/client';
+import { useAuth } from '../../src/auth/AuthProvider';
+import { Body, Button, Notice, Pill, Screen, Title } from '../../src/components/ui';
+import { colors, radius, spacing, type } from '../../src/theme';
+
+interface Group {
+  protocolId: string;
+  stepId: string;
+  nameEn: string;
+  nameAr: string;
+  noteEn: string | null;
+  noteAr: string | null;
+  deliveredBy: 'farm' | 'official';
+  dueOn: string;
+  overdue: number;
+  due: number;
+  upcoming: number;
+  animals: Array<{ animalId: string; tagNumber: string; name: string | null; dueOn: string }>;
+}
+interface Schedule {
+  total: number;
+  disclaimer: { en: string; ar: string };
+  groups: Group[];
+}
+
+/**
+ * What the flock is owed (FR-HLT-07).
+ *
+ * One card per dose, not one per animal: eighty rows reading "pre-lambing booster" is a list
+ * nobody works through, while "24 ewes, due Thursday" is a morning's job.
+ *
+ * Campaign vaccines are marked as the veterinary service's to give and carry no record button —
+ * Rev-1 is a live zoonotic vaccine and this screen must never read as an instruction to inject
+ * one. The disclaimer comes from the server in both languages, so there is one wording to keep
+ * right rather than two.
+ */
+export default function ScheduleScreen() {
+  const { t, i18n } = useTranslation(['health', 'common']);
+  const { farmId } = useAuth();
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const locale = (i18n.resolvedLanguage ?? 'ar') as Locale;
+  const arabic = locale === 'ar';
+
+  const [schedule, setSchedule] = useState<Schedule | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    if (!farmId) return setLoading(false);
+    try {
+      setSchedule(await api.get<Schedule>(`/v1/farms/${farmId}/health/protocol-tasks`));
+      setError(null);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : t('common:errorRetry'));
+    } finally {
+      setLoading(false);
+    }
+  }, [farmId, t]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
+
+  /**
+   * Records the dose for everyone the step is due for, against the step, so the task closes and
+   * the one that follows it is measured from today rather than from a date on a calendar.
+   */
+  const recordGiven = async (group: Group) => {
+    setSaving(group.stepId);
+    setError(null);
+    try {
+      await api.post(`/v1/farms/${farmId}/health/treatments`, {
+        animalIds: group.animals.map((a) => a.animalId),
+        date: new Date().toISOString().slice(0, 10),
+        type: 'vaccination',
+        protocolStepId: group.stepId,
+        administeredBy: arabic ? group.nameAr : group.nameEn,
+      });
+      await load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : t('common:errorRetry'));
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  return (
+    <View style={[styles.root, { paddingTop: insets.top }]}>
+      <ScrollView
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void load()} />}
+      >
+        <Screen>
+          <Button label={t('common:back')} variant="secondary" onPress={() => router.back()} />
+          <View style={styles.gap} />
+
+          <Title>{t('health:schedule')}</Title>
+
+          {error ? <Notice tone="danger">{error}</Notice> : null}
+
+          {schedule ? (
+            <Notice>{arabic ? schedule.disclaimer.ar : schedule.disclaimer.en}</Notice>
+          ) : null}
+
+          {schedule && schedule.groups.length === 0 && !loading ? (
+            <Body muted>{t('health:scheduleEmpty')}</Body>
+          ) : null}
+
+          {schedule?.groups.map((group) => (
+            <View key={group.stepId} style={[styles.card, group.overdue > 0 && styles.cardOverdue]}>
+              <Text style={styles.name}>{arabic ? group.nameAr : group.nameEn}</Text>
+
+              <View style={styles.pills}>
+                <Pill tone={group.deliveredBy === 'official' ? 'neutral' : 'accent'}>
+                  {t(`health:givenBy.${group.deliveredBy}` as 'health:givenBy.farm')}
+                </Pill>
+                {/* Separate nodes, so an Arabic count and a Latin date do not share a bidi run. */}
+                <Pill tone="neutral">{formatDate(new Date(group.dueOn), locale)}</Pill>
+              </View>
+
+              <Text style={styles.counts}>
+                {[
+                  group.overdue > 0 && t('health:animalsOverdue', { count: group.overdue }),
+                  group.due > 0 && t('health:animalsDue', { count: group.due }),
+                  group.upcoming > 0 && t('health:animalsUpcoming', { count: group.upcoming }),
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </Text>
+
+              {(arabic ? group.noteAr : group.noteEn) ? (
+                <Text style={styles.note}>{arabic ? group.noteAr : group.noteEn}</Text>
+              ) : null}
+
+              <Text style={styles.tags} numberOfLines={2}>
+                {group.animals.map((a) => a.tagNumber).join('، ')}
+              </Text>
+
+              {group.deliveredBy === 'farm' ? (
+                <Button
+                  label={t('health:markGiven')}
+                  variant="secondary"
+                  disabled={saving !== null}
+                  onPress={() => void recordGiven(group)}
+                />
+              ) : null}
+            </View>
+          ))}
+        </Screen>
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.paper },
+  gap: { height: spacing.md },
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+    gap: spacing.sm,
+  },
+  cardOverdue: { borderStartWidth: 4, borderStartColor: colors.rust },
+  name: { fontSize: type.heading, color: colors.ink, fontWeight: '600' },
+  pills: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
+  counts: { fontSize: type.label, color: colors.inkSoft },
+  note: { fontSize: type.label, color: colors.muted, lineHeight: 20 },
+  tags: { fontSize: type.caption, color: colors.muted },
+});

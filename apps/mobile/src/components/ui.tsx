@@ -80,16 +80,33 @@ export function Field({
   );
 }
 
+/**
+ * `warning` is a question — "is that really ten kilos of cheese?" — and is deliberately not
+ * coloured like `danger`. Something the herder may well answer "yes, it is" to must not look like
+ * something that went wrong, or they learn to dismiss both without reading.
+ */
 export function Notice({
   children,
   tone = 'info',
 }: {
   children: ReactNode;
-  tone?: 'info' | 'danger';
+  tone?: 'info' | 'warning' | 'danger';
 }) {
   return (
-    <View style={[styles.notice, tone === 'danger' && styles.noticeDanger]}>
-      <Text style={[styles.noticeText, tone === 'danger' && styles.noticeTextDanger]}>
+    <View
+      style={[
+        styles.notice,
+        tone === 'warning' && styles.noticeWarning,
+        tone === 'danger' && styles.noticeDanger,
+      ]}
+    >
+      <Text
+        style={[
+          styles.noticeText,
+          tone === 'warning' && styles.noticeTextWarning,
+          tone === 'danger' && styles.noticeTextDanger,
+        ]}
+      >
         {children}
       </Text>
     </View>
@@ -179,8 +196,10 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: spacing.lg,
   },
+  noticeWarning: { backgroundColor: colors.accentSoft, borderStartColor: colors.accent },
   noticeDanger: { backgroundColor: colors.rustSoft, borderStartColor: colors.rust },
   noticeText: { color: colors.ink, fontSize: type.label },
+  noticeTextWarning: { color: colors.accent },
   noticeTextDanger: { color: colors.rust },
   pill: {
     backgroundColor: colors.surfaceAlt,
