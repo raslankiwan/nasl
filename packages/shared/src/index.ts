@@ -10,3 +10,5 @@ export * from './alerts.ts';
 export * from './growth.ts';
 export * from './csv.ts';
 export * from './lactation.ts';
+export * from './dairy.ts';
+export * from './protocols.ts';
