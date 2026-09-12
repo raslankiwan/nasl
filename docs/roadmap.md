@@ -183,15 +183,15 @@ The server side is built and tested; the device side — WatermelonDB and the qu
       reading one ewe means parsing the whole flock out of a JSON blob.
 
       Postgres and MongoDB are not alternatives here. Both are servers — a separate process
-              listening on a port — and there is no such process inside an iOS or Android app. SQLite is
-              the only one of the three that is a _file_ and a library linked into the app, which is why
-              every offline mobile app on both platforms uses it and why `expo-sqlite` exists.
+                      listening on a port — and there is no such process inside an iOS or Android app. SQLite is
+                      the only one of the three that is a _file_ and a library linked into the app, which is why
+                      every offline mobile app on both platforms uses it and why `expo-sqlite` exists.
 
-              AsyncStorage is honest for the flocks this launches with — Palestinian holdings run to tens
-              or low hundreds of head — and wrong for the commercial tier at 2,000 animals and 50,000
-              events (NFR-02), where the parse cost per read stops being free. With the dependency
-              injected, the swap is a new `KeyValueStore` in `storage.native.ts` rather than a rewrite.
-              Treatment history is still network-only.
+                      AsyncStorage is honest for the flocks this launches with — Palestinian holdings run to tens
+                      or low hundreds of head — and wrong for the commercial tier at 2,000 animals and 50,000
+                      events (NFR-02), where the parse cost per read stops being free. With the dependency
+                      injected, the swap is a new `KeyValueStore` in `storage.native.ts` rather than a rewrite.
+                      Treatment history is still network-only.
 
 **193 tests.** Verified by taking the API down: a mating recorded on the phone queued, showed in
 the banner, and flushed on its own once the server returned — leaving the ewe `mated` with the
