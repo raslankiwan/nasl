@@ -8,7 +8,7 @@ import { LanguageToggle } from '../../src/components/LanguageToggle';
 import { colors, spacing } from '../../src/theme';
 
 export default function Settings() {
-  const { t, i18n } = useTranslation(['common', 'auth', 'roles', 'pens', 'health']);
+  const { t, i18n } = useTranslation(['common', 'auth', 'roles', 'pens', 'health', 'milk']);
   const router = useRouter();
   const { me, farmId, signOut } = useAuth();
   const locale = (i18n.resolvedLanguage ?? 'ar') as Locale;
@@ -43,6 +43,22 @@ export default function Settings() {
             label={t('pens:title')}
             variant="secondary"
             onPress={() => router.push('/pens')}
+          />
+
+          <View style={styles.gap} />
+
+          <Button
+            label={t('milk:testDay')}
+            variant="secondary"
+            onPress={() => router.push('/milk/test-day')}
+          />
+
+          <View style={styles.gap} />
+
+          <Button
+            label={t('milk:collection')}
+            variant="secondary"
+            onPress={() => router.push('/milk/collection')}
           />
 
           <View style={styles.gap} />

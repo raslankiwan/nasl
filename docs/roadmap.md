@@ -262,7 +262,12 @@ are kept for milk: **both lambs and milk**, with per-ewe yield from **test days*
 - [x] Tank collections as the flock's milk income line
 - [x] **Milk in the ewe scorecard**, and in its ranking. A ewe who rears one lamb but milks well is
       not the one to cull, and ranking on lambs alone would say she is.
-- [ ] Mobile: test-day entry at the parlour, tank collection, milk on the animal screen
+- [x] **Mobile test-day entry at the parlour**: every milking ewe on one screen with a stepper
+      each, because the parlour is a production line and the ewe is in front of you for seconds.
+      Nothing is sent until the session is finished, so a wrong entry can be corrected before it
+      commits, and a ewe under a milk withdrawal is named back on screen rather than navigated
+      past — whose milk stays out of the tank is the one thing that has to reach the parlour.
+- [x] Tank collection capture, and her lactation on the animal screen beside her breeding record
 
 ## Increment 7 — Health and withdrawal ✅ (medicine cabinet carried)
 

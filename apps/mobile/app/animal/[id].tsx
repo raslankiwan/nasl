@@ -12,6 +12,17 @@ import { ACTION_LABELS, ACTION_ROUTES } from '../../src/breeding';
 import { actionsFor, type ReproState } from '@nasl/shared';
 import { colors, spacing, type } from '../../src/theme';
 
+interface LactationRow {
+  lactationId: string;
+  startDate: string;
+  status: string;
+  daysInMilk: number;
+  testDays: number;
+  totalKg: number;
+  standardised150Kg: number;
+  peakKg: number | null;
+}
+
 interface WeightHistory {
   current: number | null;
   lifetimeGainPerDay: number | null;
@@ -37,7 +48,7 @@ function Row({ label, value }: { label: string; value: string }) {
 
 export default function AnimalScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { t, i18n } = useTranslation(['animals', 'breeding', 'health', 'pens', 'common']);
+  const { t, i18n } = useTranslation(['animals', 'breeding', 'health', 'pens', 'milk', 'common']);
   const { farmId } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -47,6 +58,7 @@ export default function AnimalScreen() {
   const { animal, loading, stale } = useAnimal(id);
   const [treatments, setTreatments] = useState<TreatmentRow[]>([]);
   const [weights, setWeights] = useState<WeightHistory | null>(null);
+  const [lactations, setLactations] = useState<LactationRow[]>([]);
 
   useEffect(() => {
     if (!farmId || !id) return;
@@ -60,6 +72,11 @@ export default function AnimalScreen() {
       .get<WeightHistory>(`/v1/farms/${farmId}/weights/${id}`)
       .then(setWeights)
       .catch(() => setWeights(null));
+
+    api
+      .get<{ lactations: LactationRow[] }>(`/v1/farms/${farmId}/milk/animals/${id}`)
+      .then((res) => setLactations(res.lactations))
+      .catch(() => setLactations([]));
   }, [farmId, id]);
 
   const dash = '—';
@@ -182,6 +199,29 @@ export default function AnimalScreen() {
                 </>
               ) : null}
 
+              {/* Her litres sit beside her lambs: Awassi is kept for both. */}
+              {lactations.length > 0 ? (
+                <>
+                  <View style={styles.gap} />
+                  <Card>
+                    <View style={styles.milkHead}>
+                      <Body>{t('milk:lactation')}</Body>
+                      <Pill tone={lactations[0]!.status === 'milking' ? 'good' : 'neutral'}>
+                        {lactations[0]!.status === 'milking' ? t('milk:milking') : t('milk:dried')}
+                      </Pill>
+                    </View>
+                    <Row label={t('milk:daysInMilk')} value={String(lactations[0]!.daysInMilk)} />
+                    <Row
+                      label={t('milk:standardised')}
+                      value={`${lactations[0]!.standardised150Kg} kg`}
+                    />
+                    {lactations[0]!.peakKg !== null ? (
+                      <Row label={t('milk:peak')} value={`${lactations[0]!.peakKg} kg`} />
+                    ) : null}
+                  </Card>
+                </>
+              ) : null}
+
               <View style={styles.gap} />
               <Button
                 label={t('pens:moveTo')}
@@ -292,6 +332,7 @@ const styles = StyleSheet.create({
   tag: { fontSize: type.heading, color: colors.muted, fontWeight: '600', writingDirection: 'ltr' },
   gap: { height: spacing.md },
   actionSpacing: { marginBottom: spacing.sm },
+  milkHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
