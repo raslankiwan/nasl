@@ -22,6 +22,8 @@ export interface HealthEventDoc extends TenantDocument {
   route?: string | null;
   batchNo?: string | null;
   diagnosisId?: string | null;
+  /** The protocol step this dose satisfies, when it was given against the schedule. */
+  protocolStepId?: string | null;
   administeredBy: string;
   cost?: number | null;
   withholdMeatUntil?: Date | null;
@@ -43,6 +45,7 @@ const schema = tenantSchema<HealthEventDoc>({
   route: { type: String, enum: [...ROUTES, null], default: null },
   batchNo: { type: String, default: null },
   diagnosisId: { type: String, default: null },
+  protocolStepId: { type: String, default: null },
   administeredBy: { type: String, required: true },
   cost: { type: Number, default: null, min: 0 },
   withholdMeatUntil: { type: Date, default: null },
@@ -54,5 +57,7 @@ const schema = tenantSchema<HealthEventDoc>({
 schema.index({ farmId: 1, animalId: 1, date: -1 });
 schema.index({ farmId: 1, groupBatchId: 1 });
 schema.index({ farmId: 1, date: -1 });
+// Closing a scheduled dose reads every event for a step across the flock.
+schema.index({ farmId: 1, protocolStepId: 1, date: -1 }, { sparse: true });
 
 export const HealthEvent = model<HealthEventDoc>('HealthEvent', schema);

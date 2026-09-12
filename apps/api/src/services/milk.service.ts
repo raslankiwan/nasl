@@ -3,8 +3,11 @@ import {
   daysInMilk,
   isUnderMilkWithdrawal,
   lactationYield,
+  outputPlausibility,
   peakYield,
   standardisedYield,
+  summariseDispositions,
+  type MilkRoute,
   type TestDay,
 } from '@nasl/shared';
 import { AppError } from '../errors.ts';
@@ -13,11 +16,14 @@ import { TenantRepository } from '../repositories/tenantRepository.ts';
 import {
   Lactation,
   MilkCollection,
+  MilkDisposition,
   MilkTestDay,
   type LactationDoc,
   type MilkCollectionDoc,
+  type MilkDispositionDoc,
   type MilkTestDayDoc,
 } from '../models/milk.model.ts';
+import { Farm } from '../models/farm.model.ts';
 
 export interface LactationSummary {
   lactationId: string;
@@ -47,6 +53,7 @@ export class MilkService {
   private readonly lactations = new TenantRepository<LactationDoc>(Lactation);
   private readonly testDays = new TenantRepository<MilkTestDayDoc>(MilkTestDay);
   private readonly collections = new TenantRepository<MilkCollectionDoc>(MilkCollection);
+  private readonly dispositions = new TenantRepository<MilkDispositionDoc>(MilkDisposition);
 
   /** Opened by the birth flow. A ewe that has lambed is in milk whether or not she is weighed. */
   async openLactation(
@@ -268,6 +275,94 @@ export class MilkService {
         date: r.date.toISOString().slice(0, 10),
         session: r.session,
         qtyKg: r.qtyKg,
+      })),
+    };
+  }
+
+  /**
+   * What a batch of milk became — sold raw, set for cheese, soured for laban, or kept.
+   *
+   * A cheese batch whose output is implausible for the milk that went in is flagged back to the
+   * caller and still saved. The entry is the farm's to make; the point is to ask the question
+   * while someone is standing there, because a slipped decimal is untraceable a month later.
+   */
+  async recordDisposition(
+    farmId: string,
+    input: {
+      id?: string;
+      date: Date;
+      collectionId?: string;
+      route: MilkRoute;
+      milkKg: number;
+      outputKg?: number;
+      revenue?: number;
+      paid?: boolean;
+      buyer?: string;
+      note?: string;
+    },
+    recordedBy: string,
+  ) {
+    const farm = await Farm.findById(farmId).select('currency').lean().exec();
+
+    const saved = await this.dispositions.create(farmId, {
+      ...(input.id ? { _id: input.id } : {}),
+      date: input.date,
+      collectionId: input.collectionId ?? null,
+      route: input.route,
+      milkKg: input.milkKg,
+      outputKg: input.outputKg ?? null,
+      revenue: input.revenue ?? null,
+      currency: farm?.currency ?? 'ILS',
+      paid: input.paid ?? true,
+      buyer: input.buyer ?? null,
+      note: input.note ?? null,
+      recordedBy,
+    } as Partial<MilkDispositionDoc>);
+
+    return {
+      disposition: saved,
+      plausibility: outputPlausibility(input.route, input.milkKg, input.outputKg),
+    };
+  }
+
+  /**
+   * Which route paid best over a period (FR-MLK-06).
+   *
+   * The tank total for the same period is read alongside so milk that was collected and never
+   * accounted for shows as a gap. A farm losing thirty kilos a week wants to be told.
+   */
+  async dispositionSummary(farmId: string, from: Date, to: Date) {
+    const range = { date: { $gte: from, $lte: to } };
+    const [rows, collected] = await Promise.all([
+      this.dispositions.find(farmId, range as never, { sort: { date: -1 }, limit: 2000 }),
+      this.collections.find(farmId, range as never, { limit: 2000 }),
+    ]);
+
+    const collectedKg = collected.reduce((total, c) => total + c.qtyKg, 0);
+    const summary = summariseDispositions(
+      rows.map((r) => ({
+        route: r.route as MilkRoute,
+        milkKg: r.milkKg,
+        outputKg: r.outputKg,
+        revenue: r.revenue,
+      })),
+      collected.length > 0 ? collectedKg : null,
+    );
+
+    return {
+      from: from.toISOString().slice(0, 10),
+      to: to.toISOString().slice(0, 10),
+      collectedKg: Number(collectedKg.toFixed(1)),
+      ...summary,
+      batches: rows.map((r) => ({
+        id: r._id,
+        date: r.date.toISOString().slice(0, 10),
+        route: r.route,
+        milkKg: r.milkKg,
+        outputKg: r.outputKg,
+        revenue: r.revenue,
+        paid: r.paid,
+        buyer: r.buyer,
       })),
     };
   }

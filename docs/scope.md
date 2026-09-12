@@ -286,18 +286,32 @@ and adds bulk operations (§8).
 
 ### M5 · Health, medicines & treatments الصحة والعلاج
 
-| ID        | Requirement                                                                                                                                                                                                                  | Phase |
-| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
-| FR-HLT-01 | Record a health event against one animal or a whole group: vaccination, treatment, deworming, examination, injury, diagnosis.                                                                                                | MVP   |
-| FR-HLT-02 | Per event: product, dose and unit, route (IM / SC / oral / topical), batch number, administered by, cost, notes, photos.                                                                                                     | MVP   |
-| FR-HLT-03 | **Withdrawal enforcement** — the product's meat and milk withholding days set a withhold-until date on the animal. The app blocks recording a sale or slaughter inside that window with a hard warning.                      | MVP   |
-| FR-HLT-04 | A flock-wide "under withdrawal" view, so the herder can see at a glance which animals cannot be sold this week.                                                                                                              | MVP   |
-| FR-HLT-05 | **Medicine cabinet** (خزانة الأدوية) — stock on hand per product with batch, expiry and unit cost; recording a treatment decrements stock; expiry and low-stock alerts.                                                      | P2    |
-| FR-HLT-06 | Curated regional disease and vaccine library — PPR (طاعون المجترات الصغيرة), sheep pox (جدري الأغنام), FMD (الحمى القلاعية), enterotoxaemia (التسمم المعوي), brucellosis, pasteurellosis, mange (الجرب), internal parasites. | MVP   |
-| FR-HLT-07 | **Protocol engine** — reusable vaccination and drench programmes triggered by age, days pre-lambing, days post-partum, or calendar date, which generate tasks automatically for every eligible animal.                       | P2    |
-| FR-HLT-08 | FAMACHA score (1–5) recorded at handling, with a trend per animal and a flock anaemia view.                                                                                                                                  | P3    |
-| FR-HLT-09 | Record mortality with cause and post-mortem notes; feed it into a mortality-rate report.                                                                                                                                     | MVP   |
-| FR-HLT-10 | Full treatment history for one animal on a single screen, newest first, in under one second.                                                                                                                                 | MVP   |
+| ID        | Requirement                                                                                                                                                                                                                                                                                                                                                                                   | Phase |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| FR-HLT-01 | Record a health event against one animal or a whole group: vaccination, treatment, deworming, examination, injury, diagnosis.                                                                                                                                                                                                                                                                 | MVP   |
+| FR-HLT-02 | Per event: product, dose and unit, route (IM / SC / oral / topical), batch number, administered by, cost, notes, photos.                                                                                                                                                                                                                                                                      | MVP   |
+| FR-HLT-03 | **Withdrawal enforcement** — the product's meat and milk withholding days set a withhold-until date on the animal. The app blocks recording a sale or slaughter inside that window with a hard warning.                                                                                                                                                                                       | MVP   |
+| FR-HLT-04 | A flock-wide "under withdrawal" view, so the herder can see at a glance which animals cannot be sold this week.                                                                                                                                                                                                                                                                               | MVP   |
+| FR-HLT-05 | **Medicine cabinet** (خزانة الأدوية) — stock on hand per product with batch, expiry and unit cost; recording a treatment decrements stock; expiry and low-stock alerts.                                                                                                                                                                                                                       | P2    |
+| FR-HLT-06 | Curated regional disease and vaccine library — PPR (طاعون المجترات الصغيرة), sheep pox (جدري الأغنام), FMD (الحمى القلاعية), enterotoxaemia (التسمم المعوي), brucellosis, pasteurellosis, mange (الجرب), internal parasites.                                                                                                                                                                  | MVP   |
+| FR-HLT-07 | **Protocol engine** — a curated library of vaccination and drench programmes triggered by age, days pre-lambing, days post-partum, the dose that preceded them, or a yearly cycle, generating tasks for every eligible animal. Each protocol cites its source and is marked as farm-given or ministry-delivered; a disclaimer travels with it. Grouped by dose rather than listed per animal. | MVP   |
+| FR-HLT-08 | FAMACHA score (1–5) recorded at handling, with a trend per animal and a flock anaemia view.                                                                                                                                                                                                                                                                                                   | P3    |
+| FR-HLT-09 | Record mortality with cause and post-mortem notes; feed it into a mortality-rate report.                                                                                                                                                                                                                                                                                                      | MVP   |
+| FR-HLT-10 | Full treatment history for one animal on a single screen, newest first, in under one second.                                                                                                                                                                                                                                                                                                  | MVP   |
+
+### M7 · Milk & lactation الحليب والإدرار
+
+| ID        | Requirement                                                                                                                                                                                                                          | Phase |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----- |
+| FR-MLK-01 | A lactation opens automatically when a birth is recorded, and closes on drying off or on the next lambing.                                                                                                                           | MVP   |
+| FR-MLK-02 | **Test-day recording** — a whole-day yield per ewe on periodic test days, with the lactation estimated by the Fleischmann (test-interval) method. Re-entering a test day corrects it rather than adding a second.                    | MVP   |
+| FR-MLK-03 | A ewe under a **milk** withdrawal is named back at the parlour. Her measurement is still recorded; her milk must not reach the tank.                                                                                                 | MVP   |
+| FR-MLK-04 | Tank collections per session, as the flock's volume line independent of per-ewe testing.                                                                                                                                             | MVP   |
+| FR-MLK-05 | Standardised 150-day yield, peak and days in milk per lactation; the milking flock ranked best first. Never extrapolates a lactation that has not run its course.                                                                    | MVP   |
+| FR-MLK-06 | **Disposition** — what a batch of milk became: sold raw, set for cheese, soured for yogurt, or kept for the house. Reports what each route earned per kilogram of raw milk. Milk collected and never allocated is reported as a gap. | MVP   |
+| FR-MLK-07 | Cheese and yogurt yields sanity-checked against sheep-milk ratios at the point of entry. The flag is a question, never a refusal.                                                                                                    | MVP   |
+| FR-MLK-08 | Milk revenue appears in the profit and loss as its own line, read from the batch records.                                                                                                                                            | MVP   |
+| FR-MLK-09 | Somatic cell count and mastitis history per ewe, feeding the culling signals.                                                                                                                                                        | P3    |
 
 ### M6 · Weights & growth الأوزان والنمو
 
@@ -636,7 +650,23 @@ If the product is for a dairy flock, three things above are weighted wrongly:
    recording becomes a module rather than a field.
 3. **The Eid planner (FR-LOC-04) drops in priority**, and a milk-collection record rises.
 
-Worth settling before Increment 7 rather than after.
+### What happens to the milk
+
+**Answered 2026-09-12: sold as it is, turned into cheese, or turned into yogurt.**
+
+Which makes the volume record insufficient on its own. Those are three different prices for the
+same litre, and a farm choosing between them weekly has no way to check the choice. FR-MLK-06
+records the split and reports **revenue per kilogram of raw milk** by route — the comparison the
+decision actually turns on, since a kilogram of cheese selling for four times the price of a
+kilogram of milk is not four times better when it took four and a half kilos of milk to make.
+
+A fourth route, **kept for the house**, carries no price. It exists because without it the family's
+milk looks like a recording error, and a household flock puts most of its milk there.
+
+Sheep milk curds far harder than cow — roughly 18–19% total solids against 12% — so the
+conversion ratios are sheep ratios and would be badly wrong borrowed from a dairy-cow product.
+They are used only to query an implausible entry while the person who made it is still standing
+there; what is stored is always what the farm actually made.
 
 ## 15. Sources
 
@@ -656,6 +686,15 @@ Worth settling before Increment 7 rather than after.
 - [FarmKeep](https://www.farmkeep.com/farm-type/sheep-management-software)
 - [نما Naama — MEWA e-services](https://naama.sa/)
 - [MEWA — أنعام بلس breeder record](https://www.mewa.gov.sa/en/MediaCenter/News/Pages/News2112020.aspx)
+- [WOAH Terrestrial Manual ch. 3.7.9 — Peste des petits ruminants](https://www.woah.org/fileadmin/Home/eng/Health_standards/tahm/3.07.09_PPR.pdf)
+- [NADIS — clostridial and pasteurella vaccination in sheep](https://www.nadis.org.uk/disease-a-z/sheep/clostridia-and-pasteurella-vaccination/)
+- [Michigan State University Extension — overeating disease and vaccination schedules](https://www.canr.msu.edu/sheep_goats/health/overeating-disease-in-sheep-making-sense-of-vaccination-schedules)
+- [South Dakota State University Extension — clostridial disease and vaccines for sheep and goats](https://extension.sdstate.edu/clostridial-disease-management-and-vaccines-sheep-and-goats)
+- [New Mexico State University B-127 — sheep and goat vaccine and health management schedule](https://pubs.nmsu.edu/_b/B127/index.html)
+- [Duration of protective immunity from a combined PPR and sheep pox vaccine](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8402523/)
+- [Brucellosis in the West Bank, Palestine](https://www.researchgate.net/publication/8154766_Brucellosis_in_the_West_Bank_Palestine)
+- [Incidence and control of brucellosis in the Near East region](https://pubmed.ncbi.nlm.nih.gov/12414137/)
+- [FMD cross-immunity in small ruminants following commercial vaccination in Jordan](https://pmc.ncbi.nlm.nih.gov/articles/PMC13454497/)
 - [Shearwell — Bluetooth EID readers](https://www.shearwell.co.uk/Solutions/EID-Readers)
 - [iLivestock eTagReader](https://www.ilivestock.com/etagreader)
 - [Nitaj — Omani feed brand (name conflict)](https://nitaj.om/mobile/)

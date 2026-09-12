@@ -1,5 +1,5 @@
 import { model } from 'mongoose';
-import { SPECIES } from '@nasl/shared';
+import { defaultProtocolIds, SPECIES } from '@nasl/shared';
 import { globalSchema } from './base.ts';
 
 /** A farm is the tenant root. It is not itself tenant-scoped. */
@@ -14,6 +14,8 @@ export interface FarmDoc {
   calendarPreference: 'hijri' | 'gregorian';
   /** Per-species gestation overrides. Defaults come from @nasl/shared. */
   gestationDays?: Record<string, number>;
+  /** Health protocols this farm runs. Ids from the curated library in @nasl/shared. */
+  protocolIds: string[];
   plan: 'free' | 'standard' | 'commercial';
   createdAt: Date;
   updatedAt: Date;
@@ -30,6 +32,9 @@ const schema = globalSchema<FarmDoc>({
   species: { type: [String], enum: SPECIES, default: ['sheep'] },
   calendarPreference: { type: String, enum: ['hijri', 'gregorian'], default: 'gregorian' },
   gestationDays: { type: Object },
+  // The endemic-region defaults. A farm can switch any of them off; routine worm dosing is not
+  // among them, and has to be turned on deliberately.
+  protocolIds: { type: [String], default: defaultProtocolIds },
   plan: { type: String, enum: ['free', 'standard', 'commercial'], default: 'free' },
 });
 

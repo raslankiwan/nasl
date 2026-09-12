@@ -353,3 +353,121 @@ describe('milk in the ewe scorecard', () => {
     });
   });
 });
+
+interface DispositionSummary {
+  collectedKg: number;
+  milkKg: number;
+  revenue: number;
+  unallocatedKg: number;
+  bestRoute: string | null;
+  routes: Array<{
+    route: string;
+    milkKg: number;
+    outputKg: number | null;
+    revenuePerMilkKg: number | null;
+  }>;
+  batches: Array<{ route: string; milkKg: number }>;
+}
+
+describe('what the milk became', () => {
+  test('a week split between the gate, the cheese vat and the house says which paid best', async () => {
+    await withServer(testApp(), async (url) => {
+      const { client, farmId } = await milkingEwe(url);
+      const base = `/v1/farms/${farmId}/milk/dispositions`;
+
+      await client.post(base, { date: daysAgo(3), route: 'raw-sale', milkKg: 60, revenue: 300 });
+      await client.post(base, {
+        date: daysAgo(2),
+        route: 'cheese',
+        milkKg: 90,
+        outputKg: 20,
+        revenue: 700,
+      });
+      await client.post(base, { date: daysAgo(1), route: 'home', milkKg: 20 });
+
+      const res = await client.get<DispositionSummary>(
+        `${base}?from=${daysAgo(7)}&to=${daysAgo(0)}`,
+      );
+      assert.equal(res.body.bestRoute, 'cheese');
+      assert.equal(res.body.milkKg, 170);
+      assert.equal(res.body.revenue, 1000);
+
+      const raw = res.body.routes.find((r) => r.route === 'raw-sale')!;
+      const cheese = res.body.routes.find((r) => r.route === 'cheese')!;
+      assert.equal(raw.revenuePerMilkKg, 5);
+      assert.equal(cheese.revenuePerMilkKg, 7.78);
+    });
+  });
+
+  test('an implausible cheese yield is flagged back, and still saved', async () => {
+    await withServer(testApp(), async (url) => {
+      const { client, farmId } = await milkingEwe(url);
+
+      const res = await client.post<{ plausibility: string }>(
+        `/v1/farms/${farmId}/milk/dispositions`,
+        { date: daysAgo(1), route: 'cheese', milkKg: 12, outputKg: 10 },
+      );
+      assert.equal(res.status, 201);
+      assert.equal(res.body.plausibility, 'high');
+
+      const summary = await client.get<DispositionSummary>(`/v1/farms/${farmId}/milk/dispositions`);
+      assert.equal(summary.body.batches.length, 1, 'the farm’s entry is the farm’s to make');
+    });
+  });
+
+  test('milk collected but never accounted for shows as a gap', async () => {
+    await withServer(testApp(), async (url) => {
+      const { client, farmId } = await milkingEwe(url);
+
+      await client.post(`/v1/farms/${farmId}/milk/collections`, {
+        date: daysAgo(1),
+        qtyKg: 100,
+      });
+      await client.post(`/v1/farms/${farmId}/milk/dispositions`, {
+        date: daysAgo(1),
+        route: 'raw-sale',
+        milkKg: 70,
+        revenue: 350,
+      });
+
+      const res = await client.get<DispositionSummary>(`/v1/farms/${farmId}/milk/dispositions`);
+      assert.equal(res.body.collectedKg, 100);
+      assert.equal(res.body.unallocatedKg, 30);
+    });
+  });
+
+  test('milk kept for the house cannot carry a price', async () => {
+    await withServer(testApp(), async (url) => {
+      const { client, farmId } = await milkingEwe(url);
+
+      const res = await client.post(`/v1/farms/${farmId}/milk/dispositions`, {
+        date: daysAgo(1),
+        route: 'home',
+        milkKg: 20,
+        revenue: 100,
+      });
+      assert.equal(res.status, 400);
+    });
+  });
+
+  test('milk income reaches the profit and loss', async () => {
+    await withServer(testApp(), async (url) => {
+      const { client, farmId } = await milkingEwe(url);
+
+      await client.post(`/v1/farms/${farmId}/milk/dispositions`, {
+        date: daysAgo(2),
+        route: 'cheese',
+        milkKg: 90,
+        outputKg: 20,
+        revenue: 700,
+      });
+
+      const res = await client.get<{ income: number; milkIncome: number; animalIncome: number }>(
+        `/v1/farms/${farmId}/finance/summary?from=${daysAgo(30)}&to=${daysAgo(0)}`,
+      );
+      assert.equal(res.body.milkIncome, 700);
+      assert.equal(res.body.animalIncome, 0);
+      assert.equal(res.body.income, 700);
+    });
+  });
+});

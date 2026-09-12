@@ -19,6 +19,8 @@ export interface TreatmentInput {
   doseUnit?: string;
   route?: string;
   batchNo?: string;
+  /** Set when this dose was given against a scheduled protocol step, so the task closes. */
+  protocolStepId?: string;
   administeredBy: string;
   cost?: number;
   notes?: string;
@@ -72,6 +74,7 @@ export class HealthService {
         doseUnit: input.doseUnit ?? null,
         route: input.route ?? null,
         batchNo: input.batchNo ?? null,
+        protocolStepId: input.protocolStepId ?? null,
         administeredBy: input.administeredBy,
         cost: input.cost ?? null,
         withholdMeatUntil: window.meatUntil ? new Date(window.meatUntil) : null,

@@ -5,6 +5,7 @@ import { requireAuth } from '../middleware/requireAuth.ts';
 import { requireFarmAccess } from '../middleware/requireFarmAccess.ts';
 import { farmIdOf, parse, pathParam, userIdOf } from '../http/validate.ts';
 import { MilkService } from '../services/milk.service.ts';
+import { MILK_ROUTES } from '@nasl/shared';
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD');
 const today = () => new Date(new Date().toISOString().slice(0, 10));
@@ -24,6 +25,24 @@ const collectionInput = z.object({
   qtyKg: z.number().min(0).max(100_000),
   note: z.string().trim().max(200).optional(),
 });
+
+const dispositionInput = z
+  .object({
+    id: z.string().uuid().optional(),
+    date: isoDate,
+    collectionId: z.string().uuid().optional(),
+    route: z.enum(MILK_ROUTES),
+    milkKg: z.number().min(0).max(100_000),
+    outputKg: z.number().min(0).max(100_000).optional(),
+    revenue: z.number().min(0).optional(),
+    paid: z.boolean().optional(),
+    buyer: z.string().trim().max(120).optional(),
+    note: z.string().trim().max(200).optional(),
+  })
+  .refine((v) => v.route !== 'home' || v.revenue == null, {
+    message: 'Milk kept for the house has no sale price.',
+    path: ['revenue'],
+  });
 
 export function milkRoutes(config: Config): Router {
   const router = Router({ mergeParams: true });
@@ -84,6 +103,38 @@ export function milkRoutes(config: Config): Router {
     const end = to ? new Date(to) : today();
     const start = from ? new Date(from) : new Date(end.getTime() - 30 * 86_400_000);
     res.json(await milk.collectionSummary(farmIdOf(req), start, end));
+  });
+
+  /**
+   * What a batch of milk became. The response carries a plausibility verdict on the output weight
+   * so the phone can query an entry before the person who made it walks away.
+   */
+  router.post('/dispositions', requireFarmAccess('animals:write'), async (req, res) => {
+    const { date, ...rest } = parse(dispositionInput, req.body);
+    const { disposition, plausibility } = await milk.recordDisposition(
+      farmIdOf(req),
+      { ...rest, date: new Date(date) },
+      userIdOf(req),
+    );
+    res.status(201).json({
+      id: disposition._id,
+      date: disposition.date.toISOString().slice(0, 10),
+      route: disposition.route,
+      milkKg: disposition.milkKg,
+      outputKg: disposition.outputKg,
+      plausibility,
+    });
+  });
+
+  /** Which route paid best over a period, and what the tank cannot account for. */
+  router.get('/dispositions', requireFarmAccess('animals:read'), async (req, res) => {
+    const { from, to } = parse(
+      z.object({ from: isoDate.optional(), to: isoDate.optional() }),
+      req.query,
+    );
+    const end = to ? new Date(to) : today();
+    const start = from ? new Date(from) : new Date(end.getTime() - 30 * 86_400_000);
+    res.json(await milk.dispositionSummary(farmIdOf(req), start, end));
   });
 
   router.get('/animals/:animalId', requireFarmAccess('animals:read'), async (req, res) => {

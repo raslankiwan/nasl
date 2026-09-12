@@ -13,6 +13,9 @@ export const PERMISSIONS = [
   'finance:write',
   'reports:read',
   'members:manage',
+  // Flock-wide settings: gestation overrides, and which health protocols the flock is scheduled
+  // for. A hired worker or a visiting vet must not be able to switch off a booster reminder.
+  'farm:manage',
   'billing:manage',
   'farm:delete',
 ] as const;

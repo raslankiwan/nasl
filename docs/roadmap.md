@@ -356,9 +356,57 @@ but real withdrawal figures are the one thing that cannot be invented.
 - [x] **Full data export** (FR-RPT-07) — every collection this farm owns as JSON, including the
       empty ones so the shape is predictable. The customer must be able to leave: a product that
       holds a herder's records hostage has stopped being a tool.
-- [ ] Performance pass against NFR-02 on a mid-range Android
 - [ ] Device DB encryption, refresh rotation, backup and restore drill
+
+## Where the milk goes ✅
+
+- [x] **Raw, cheese, yogurt or the house** (FR-MLK-06). A day's milk rarely has one destination,
+      and those are four different prices for the same litre. `summariseDispositions` reports what
+      each route earned **per kilogram of raw milk** — the only comparison that settles whether the
+      vat was worth the work — and names the winner. Milk kept for the house earns nothing and can
+      never win it; the route exists so that milk does not look like a recording error.
+- [x] **Cheese yields are sheep yields.** ~4.5kg of milk per kilogram of pressed white cheese
+      against ~1:1 for laban, because sheep milk runs ~18–19% total solids against cow's ~12%. The
+      ratios only ever flag an implausible entry; the output weight stored is always what the farm
+      actually made, and a flagged batch still saves. Asking the question while someone is standing
+      at the vat is the point — a slipped decimal is untraceable a month later.
+- [x] **Milk collected and never allocated shows as a gap**, not spread across the routes. A farm
+      losing thirty kilos a week wants to be told.
+- [x] Milk revenue reaches the profit and loss as its own line, read from the batch records rather
+      than posted as a second transaction, so editing a sale cannot leave two numbers disagreeing.
+      Plain `income` transactions were being dropped from the P&L entirely; they are counted now.
+
+## Herd health protocols ✅
+
+- [x] **The routine dose schedule** (FR-HLT-07), derived per animal from `@nasl/shared` — the same
+      derivation on the server and on a phone with no signal, so the two cannot disagree about
+      whether a ewe is owed a booster. Six protocols drawn from WOAH/FAO and regional guidance and
+      narrowed to what is endemic here: clostridial and pasteurella cover, PPR, sheep and goat pox,
+      Rev-1 brucellosis, FMD, and worm control. Every protocol carries its source.
+- [x] **A second dose is measured from when the first was actually given**, never from a date on a
+      calendar. A primary course started three weeks late is still a valid course, and telling a
+      farm otherwise would have them start it again.
+- [x] **Routine worm dosing is off by default.** Treating the whole flock on a calendar is how a
+      flock breeds resistant worms; the guidance is to dose on faecal egg counts and condition.
+      Switching it on is a deliberate act.
+- [x] **Four of the six are ministry campaigns**, marked `deliveredBy: 'official'`. Rev-1 in
+      particular is a live zoonotic vaccine restricted to young females and given once in a
+      lifetime by the veterinary service. The app says a dose is due and unrecorded. It does not
+      tell anyone to inject anything, and the disclaimer travels with every response in both
+      languages.
+- [x] Tasks are grouped by dose, not listed per animal. Eighty lines saying "pre-lambing booster"
+      is a list nobody reads; "24 ewes, booster due this week" is a job.
+- [x] A worker or a visiting vet can see the schedule and cannot change it — new `farm:manage`
+      permission. Switching off a brucellosis reminder is a management act.
+
+## Last — ship
+
+Deliberately after the feature work. Both of these are about a build going to real phones, and
+neither tells us anything about whether the product is right.
+
+- [ ] Performance pass against NFR-02 on a mid-range Android
 - [ ] EAS build pipeline, staged rollout
+- [ ] Store listings, Arabic-first screenshots
 
 ---
 

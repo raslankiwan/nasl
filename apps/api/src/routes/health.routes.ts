@@ -6,6 +6,7 @@ import { requireAuth } from '../middleware/requireAuth.ts';
 import { requireFarmAccess } from '../middleware/requireFarmAccess.ts';
 import { farmIdOf, parse, pathParam, userIdOf } from '../http/validate.ts';
 import { HealthService } from '../services/health.service.ts';
+import { ProtocolService } from '../services/protocol.service.ts';
 import { VetProduct } from '../models/vetProduct.model.ts';
 import type { HealthEventDoc } from '../models/health.model.ts';
 
@@ -24,6 +25,7 @@ const treatmentInput = z.object({
   batchNo: z.string().trim().max(40).optional(),
   administeredBy: z.string().trim().min(1).max(80),
   cost: z.number().min(0).max(100_000).optional(),
+  protocolStepId: z.string().trim().max(60).optional(),
   notes: z.string().trim().max(300).optional(),
 });
 
@@ -50,6 +52,7 @@ function present(event: HealthEventDoc) {
 export function healthRoutes(config: Config): Router {
   const router = Router({ mergeParams: true });
   const health = new HealthService();
+  const protocols = new ProtocolService();
 
   router.use(requireAuth(config.JWT_SECRET));
 
@@ -101,6 +104,31 @@ export function healthRoutes(config: Config): Router {
   /** Who cannot be milked, and who cannot be sold (FR-HLT-04). */
   router.get('/withdrawal', requireFarmAccess('health:read'), async (req, res) => {
     res.json(await health.underWithdrawal(farmIdOf(req), today()));
+  });
+
+  /**
+   * The protocol library with this farm's choices, and the disclaimer that travels with it.
+   * Reading it needs only read access; changing what the flock is scheduled for does not.
+   */
+  router.get('/protocols', requireFarmAccess('health:read'), async (req, res) => {
+    res.json(await protocols.settings(farmIdOf(req)));
+  });
+
+  router.put('/protocols', requireFarmAccess('farm:manage'), async (req, res) => {
+    const { protocolIds } = parse(
+      z.object({ protocolIds: z.array(z.string().trim().max(60)).max(50) }),
+      req.body,
+    );
+    res.json(await protocols.setEnabled(farmIdOf(req), protocolIds));
+  });
+
+  /** What the flock is owed, grouped by dose rather than listed per animal. */
+  router.get('/protocol-tasks', requireFarmAccess('health:read'), async (req, res) => {
+    const { horizonDays } = parse(
+      z.object({ horizonDays: z.coerce.number().int().min(0).max(365).default(30) }),
+      req.query,
+    );
+    res.json(await protocols.tasks(farmIdOf(req), today(), horizonDays));
   });
 
   return router;

@@ -9,6 +9,7 @@ import {
   type TransactionDoc,
 } from '../models/finance.model.ts';
 import { Farm } from '../models/farm.model.ts';
+import { MilkDisposition, type MilkDispositionDoc } from '../models/milk.model.ts';
 
 /**
  * Money in and out (M8).
@@ -20,6 +21,7 @@ export class FinanceService {
   private readonly animals = new AnimalRepository();
   private readonly transactions = new TenantRepository<TransactionDoc>(Transaction);
   private readonly feed = new TenantRepository<FeedLogDoc>(FeedLog);
+  private readonly milk = new TenantRepository<MilkDispositionDoc>(MilkDisposition);
 
   private async currencyFor(farmId: string): Promise<string> {
     const farm = await Farm.findById(farmId).select('currency').lean().exec();
@@ -175,9 +177,11 @@ export class FinanceService {
    * herder recorded a feed delivery as a feed log or as an expense.
    */
   async profitAndLoss(farmId: string, from: Date, to: Date) {
-    const [transactions, feed, headCount] = await Promise.all([
-      this.transactions.find(farmId, { date: { $gte: from, $lte: to } } as never, { limit: 1000 }),
-      this.feed.find(farmId, { date: { $gte: from, $lte: to } } as never, { limit: 1000 }),
+    const range = { date: { $gte: from, $lte: to } };
+    const [transactions, feed, milkBatches, headCount] = await Promise.all([
+      this.transactions.find(farmId, range as never, { limit: 1000 }),
+      this.feed.find(farmId, range as never, { limit: 1000 }),
+      this.milk.find(farmId, range as never, { limit: 2000 }),
       this.animals.count(farmId, { status: 'active' } as never),
     ]);
 
@@ -186,7 +190,14 @@ export class FinanceService {
     const sales = transactions.filter((t) => t.type === 'sale');
     const purchases = transactions.filter((t) => t.type === 'purchase');
     const expenses = transactions.filter((t) => t.type === 'expense');
+    // Anything recorded as plain income — a fleece sale, a stud fee — counted rather than dropped.
+    const other = transactions.filter((t) => t.type === 'income');
     const feedCost = feed.reduce((total, f) => total + (f.cost ?? 0), 0);
+
+    // Milk is its own income line and is not posted as a transaction: the batch record is the one
+    // place a price lives, so editing a sale cannot leave two numbers disagreeing.
+    const milkIncome = milkBatches.reduce((total, b) => total + (b.revenue ?? 0), 0);
+    const milkKg = milkBatches.reduce((total, b) => total + b.milkKg, 0);
 
     const byCategory: Record<string, number> = {};
     for (const expense of expenses) {
@@ -195,7 +206,8 @@ export class FinanceService {
     }
     if (feedCost > 0) byCategory.feed = (byCategory.feed ?? 0) + feedCost;
 
-    const income = sum(sales);
+    const animalIncome = sum(sales);
+    const income = animalIncome + sum(other) + milkIncome;
     const outgoings = sum(purchases) + sum(expenses) + feedCost;
 
     return {
@@ -203,6 +215,10 @@ export class FinanceService {
       to: to.toISOString().slice(0, 10),
       currency: await this.currencyFor(farmId),
       income,
+      animalIncome,
+      milkIncome: Number(milkIncome.toFixed(2)),
+      milkKg: Number(milkKg.toFixed(1)),
+      otherIncome: sum(other),
       salesCount: sales.length,
       animalsSold: sales.reduce((n, s) => n + s.animalIds.length, 0),
       outgoings,
