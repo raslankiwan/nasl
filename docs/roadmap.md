@@ -301,7 +301,8 @@ are kept for milk: **both lambs and milk**, with per-ewe yield from **test days*
       expiring-soon and low-stock warnings. Recording a treatment takes the dose off the shelf —
       off the named batch, or off the bottle expiring soonest, which is the one a herder reaches
       for. Unlike the product library, the cabinet is the farm's own data, so it is usable today.
-- [ ] **Carried:** the protocol engine (FR-HLT-07), which wants real vaccination schedules.
+- [x] **Carried, then done:** the protocol engine (FR-HLT-07) — it wanted real vaccination
+      schedules, which arrived with the research below.
 
 **165 tests.** The library itself is still empty: the schema and the cited-source rule are built,
 but real withdrawal figures are the one thing that cannot be invented.
