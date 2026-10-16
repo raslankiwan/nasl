@@ -30,10 +30,13 @@ npm run check                 # typecheck + eslint + prettier --check. Must pass
 npm test                      # every workspace
 ```
 
-Register with email, username and a password (12-128 characters). Every registration is pending
-until approved in Admin > Users. Bootstrap the first administrator with
-`apps/api/scripts/grant-platform-admin.mjs <email-or-username>` after that person registers.
-Tests seed approved fixtures and exercise real password login; no public development bypass exists.
+Farm users register with email, username and a password (12-128 characters); accounts remain
+pending until approved in Admin > Users. The admin console has no self-registration.
+Administrators join only through an existing administrator's email invitation. The first admin
+is created with `apps/api/scripts/seed-first-admin.ts`, which writes a private one-use setup link
+instead of inventing a password. Existing first-operator accounts may be adopted explicitly by
+the database operator, with an audit record, never through public signup or automatic email matching.
+Tests seed approved fixtures and exercise real login; no public development bypass exists.
 
 ## Non-negotiables
 

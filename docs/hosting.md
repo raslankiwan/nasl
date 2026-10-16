@@ -26,7 +26,8 @@ this web pilot. Use the included vercel.app domains. Do not enable trials or aut
 - Ownership changes use database transactions in production; standalone local MongoDB retains
   the existing compensating-write implementation.
 - No scheduled keep-alive pings, cron jobs, paid analytics, or always-running workers.
-- Password login and manual account approval need no SMS, email delivery service or paid auth provider.
+- Password login and farm-account approval need no SMS or paid auth provider. Administrator
+  invitations use a configured transactional email sender; use its free tier for this pilot.
 
 Atlas M0 allows 512 MB including indexes, up to 500 connections, and 100 operations per second.
 It can pause after 30 days without connections. Free-tier quotas may change: check the linked
@@ -66,26 +67,54 @@ export data before keeping anything irreplaceable in this pilot.
 The configs include SPA rewrites for deep links. Farm/account API responses use private,
 no-store caching. Only explicitly configured frontend origins receive CORS permission.
 
-## Register and approve accounts
+## User registration and administrator invitations
 
-1. Register on the app or admin website with name, email, username and a password of 12-128
-   characters. No tokens are issued. The account stays pending until approved.
-2. Bootstrap the first administrator only after the intended person has registered. From
-   apps/api with production environment variables loaded securely, run:
-   `node --env-file-if-exists=.env scripts/grant-platform-admin.mjs <email-or-username>`.
-   Verify the registered account belongs to the intended operator before granting access.
-   This approves that existing account and grants staff access, with an audit record.
-3. Sign in to Admin > Users, filter for pending accounts, open the user, and choose Approve or
-   Reject. Approved users can sign in with either their email or username and password.
-4. To revoke staff access use the same CLI with `--revoke`. This does not remove farm membership.
+Farm users register only in the user app. Accounts stay pending until an administrator approves
+them in Admin > Users. Public registration cannot set approval, seed markers or staff privileges.
+The admin website offers sign-in and invitation acceptance, with no self-registration form.
 
-Passwords use salted scrypt (N=32768, r=8, p=3), never plaintext. New registrations cannot set
-approval or staff privileges. Login failures are limited by account and IP across API instances.
-Account status is checked for protected API requests and token renewal. Existing sessions renew
-for 30 days. No email is sent; operators review the pending queue manually. Self-service password
-recovery is not implemented in this pilot. Phone/OTP endpoints and SMS provider configuration
-have been removed. Legacy phone-only records are preserved but cannot authenticate: transfer
-farms to the person's new approved account using the admin ownership controls when needed.
+For a fresh database, create the first administrator from apps/api with the database environment
+loaded securely and ADMIN_APP_URL set to the exact HTTPS admin origin:
+
+```bash
+node --env-file-if-exists=.env --experimental-strip-types scripts/seed-first-admin.ts \
+  --email operator@example.com --username operator --name 'Platform Operator' \
+  --output /private/local/path/admin-setup.json
+```
+
+The seed creates an approved administrator without a default password. The private file (0600)
+contains a one-use, 24-hour password-setup URL. Have the operator open it and choose a password.
+The script is idempotent, never resets an active password, and refuses to overwrite an existing
+ordinary account. Use --reissue with a new output path to replace a lost or expired unused link.
+When the intended first operator already has an account, a database operator may explicitly
+adopt that exact account and audit the role change. No automatic email-based promotion exists.
+
+Subsequent administrators must receive and accept an email invitation from Admin > Users >
+Administrator invitations. Configure these API production variables to enable delivery:
+
+- ADMIN_APP_URL=https://nasl-admin.vercel.app
+- RESEND_API_KEY: a restricted sending key, saved privately as a Vercel secret
+- ADMIN_INVITE_FROM: an address on your verified sending domain
+
+Resend's free transactional tier is sufficient for the pilot. Do not enable paid upgrades.
+Its resend.dev testing sender cannot deliver to arbitrary recipients; verify your own domain
+before inviting other administrators. Without sender configuration, the UI disables sending
+and the API returns email_not_configured. It never pretends an email was sent. Sender failures
+leave no usable invitation. There is no SMS dependency or paid authentication provider.
+
+Invitation URLs keep their random token in the fragment, not a query parameter. Only its hash
+is stored; tokens expire in 24 hours, are revocable and redeem once. Recipient email is fixed.
+Existing accounts must provide their current password to accept an admin invitation, which
+prevents an unverified pre-registration from retaining a password after someone else accepts.
+Creating, accepting and revoking invitations is audited; production acceptance and audit writes
+are transactional. Revoking an invitation does not revoke an already accepted administrator.
+Use scripts/grant-platform-admin.mjs <email-or-username> --revoke to revoke existing staff access;
+the script no longer grants access. Ordinary farm permissions are unchanged by staff revocation.
+
+Passwords use salted scrypt (N=32768, r=8, p=3). Account status is checked on API requests and
+renewals; sessions renew for 30 days. Self-service password recovery is not implemented.
+Legacy phone-only records are preserved but cannot authenticate; transfer farms to the person's
+new approved account using the admin ownership controls when needed.
 
 ## Validation
 
@@ -102,3 +131,6 @@ sites in a browser; Metro development mode alone does not verify production beha
 - [Atlas free limits](https://www.mongodb.com/docs/atlas/reference/free-shared-limitations/)
 - [Atlas and Vercel](https://www.mongodb.com/docs/atlas/reference/partner-integrations/vercel/)
 - [OWASP password storage](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html)
+
+- [Resend free pricing](https://resend.com/pricing)
+- [Resend test-domain restrictions](https://resend.com/docs/knowledge-base/403-error-resend-dev-domain)

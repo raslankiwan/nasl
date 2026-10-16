@@ -22,16 +22,18 @@ import { exportRoutes } from './routes/export.routes.ts';
 import { financeRoutes } from './routes/finance.routes.ts';
 import { inventoryRoutes } from './routes/inventory.routes.ts';
 import { milkRoutes } from './routes/milk.routes.ts';
+import type { InvitationMailer } from './auth/invitationEmail.ts';
 
 export interface AppDeps {
   config: Config;
   logger: Logger;
+  invitationMailer?: InvitationMailer;
 }
 
 /**
  * Build the Express app without binding a port, so tests can drive it directly.
  */
-export function createApp({ config, logger }: AppDeps): Express {
+export function createApp({ config, logger, invitationMailer }: AppDeps): Express {
   const app = express();
 
   app.disable('x-powered-by');
@@ -62,7 +64,7 @@ export function createApp({ config, logger }: AppDeps): Express {
 
   app.use('/v1/auth', authRoutes(config));
   app.use('/v1/reference', referenceRoutes(config));
-  app.use('/v1/admin', adminRoutes(config));
+  app.use('/v1/admin', adminRoutes(config, invitationMailer));
   app.use('/v1/farms', farmRoutes(config));
   app.use('/v1/farms/:farmId/animals', animalRoutes(config));
   app.use('/v1/farms/:farmId/animals', movementRoutes(config));

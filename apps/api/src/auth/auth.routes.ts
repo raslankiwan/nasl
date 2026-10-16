@@ -5,7 +5,9 @@ import type { Config } from '../config.ts';
 import { AppError } from '../errors.ts';
 import { User } from '../models/user.model.ts';
 import { Membership } from '../models/membership.model.ts';
-import { PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH } from '@nasl/shared';
+import { PASSWORD_MAX_LENGTH } from '@nasl/shared';
+import { registrationSchema } from './credentials.ts';
+import { invitationAuthRoutes } from './invitation.routes.ts';
 import { hashPassword, verifyPassword } from './passwords.ts';
 import {
   hashRefreshToken,
@@ -19,19 +21,6 @@ import { mongoRateLimitStore } from './rateLimitStore.ts';
 import { requireAuth } from '../middleware/requireAuth.ts';
 import { parse } from '../http/validate.ts';
 
-const registerSchema = z
-  .object({
-    name: z.string().trim().min(1).max(80),
-    email: z.string().trim().toLowerCase().email().max(254),
-    username: z
-      .string()
-      .trim()
-      .toLowerCase()
-      .regex(/^[a-z0-9][a-z0-9._-]{2,31}$/),
-    password: z.string().min(PASSWORD_MIN_LENGTH).max(PASSWORD_MAX_LENGTH),
-    locale: z.enum(['ar', 'en']).default('ar'),
-  })
-  .strict();
 const loginSchema = z
   .object({
     identifier: z.string().trim().toLowerCase().min(1).max(254),
@@ -50,6 +39,7 @@ export function authRoutes(config: Config): Router {
     res.set('Cache-Control', 'no-store');
     next();
   });
+  router.use('/admin-invitations', invitationAuthRoutes(config));
 
   const limitOptions: Partial<Options> = {
     windowMs: 15 * 60_000,
@@ -82,7 +72,7 @@ export function authRoutes(config: Config): Router {
   });
 
   router.post('/register', registerLimiter, async (req, res) => {
-    const { password, ...profile } = parse(registerSchema, req.body);
+    const { password, ...profile } = parse(registrationSchema, req.body);
     const conflict = () =>
       new AppError('registration_conflict', 'That email or username is already in use.');
     if (await User.exists({ $or: [{ email: profile.email }, { username: profile.username }] })) {

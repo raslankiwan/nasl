@@ -1,5 +1,6 @@
 import { User } from '../models/user.model.ts';
 import { hashPassword } from '../auth/passwords.ts';
+import type { InvitationMailer } from '../auth/invitationEmail.ts';
 import type { Express } from 'express';
 import { createApp } from '../app.ts';
 import { loadConfig, type Config } from '../config.ts';
@@ -16,9 +17,12 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
   return { ...loadConfig({ ...TEST_CONFIG_ENV } as NodeJS.ProcessEnv), ...overrides };
 }
 
-export function testApp(overrides: Partial<Config> = {}): Express {
+export function testApp(
+  overrides: Partial<Config> = {},
+  invitationMailer?: InvitationMailer,
+): Express {
   const config = testConfig(overrides);
-  return createApp({ config, logger: createLogger('silent', false) });
+  return createApp({ config, logger: createLogger('silent', false), invitationMailer });
 }
 
 export interface ApiResponse<T = unknown> {

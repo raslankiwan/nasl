@@ -9,7 +9,8 @@
     "start": "node --env-file-if-exists=.env dist/server.js",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.vercel.json --noEmit",
     "test": "node --test --experimental-strip-types --test-concurrency=1 'src/**/*.test.ts'",
-    "db:prepare": "node --env-file-if-exists=.env --experimental-strip-types scripts/prepare-database.ts"
+    "db:prepare": "node --env-file-if-exists=.env --experimental-strip-types scripts/prepare-database.ts",
+    "admin:seed": "node --env-file-if-exists=.env --experimental-strip-types scripts/seed-first-admin.ts"
   },
   "dependencies": {
     "@nasl/shared": "*",

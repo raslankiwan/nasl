@@ -18,6 +18,7 @@ import { Products } from './routes/Products';
 import { Audit } from './routes/Audit';
 import { Users } from './routes/Users';
 import { UserDetail } from './routes/UserDetail';
+import { AcceptInvitation } from './routes/AcceptInvitation';
 
 interface RouterContext {
   user: StaffUser;
@@ -69,16 +70,18 @@ function Console({ user, onSignOut }: { user: StaffUser; onSignOut: () => void }
 
 export function App() {
   const { t } = useTranslation(['common', 'auth']);
-  const { state, register, signIn, signOut, reload } = useAuth();
+  const { state, signIn, signOut, reload } = useAuth();
 
   // Stable across renders, so nothing downstream treats it as a changed dependency.
   const handleSignOut = useCallback(() => void signOut(), [signOut]);
+
+  if (window.location.pathname === '/accept-invite') return <AcceptInvitation />;
 
   switch (state.status) {
     case 'loading':
       return <div className="loading">{t('loading')}</div>;
     case 'signedOut':
-      return <SignIn register={register} signIn={signIn} />;
+      return <SignIn signIn={signIn} />;
     case 'unavailable':
       return (
         <div className="signin">

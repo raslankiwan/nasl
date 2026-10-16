@@ -1,4 +1,4 @@
-/** Grant/revoke staff access for an existing password registration, never create an account.
+/** Revoke staff access. New administrators must accept an email invitation.
  * node --env-file-if-exists=.env scripts/grant-platform-admin.mjs <email-or-username> [--revoke]
  * Verify the intended operator owns the registration before using this database-only tool.
  */
@@ -8,8 +8,10 @@ import mongoose from 'mongoose';
 const [, , suppliedIdentifier, ...flags] = process.argv;
 const identifier = suppliedIdentifier?.trim().toLowerCase();
 const revoke = flags.includes('--revoke');
-if (!identifier || flags.some((flag) => flag !== '--revoke')) {
-  console.error('Usage: grant-platform-admin.mjs <email-or-username> [--revoke]');
+if (!identifier || !revoke || flags.some((flag) => flag !== '--revoke')) {
+  console.error(
+    'Only revocation is supported: grant-platform-admin.mjs <email-or-username> --revoke. Use email invitations for new administrators, or seed-first-admin.ts for the first account.',
+  );
   process.exit(1);
 }
 if (!process.env.MONGODB_URI) {

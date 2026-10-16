@@ -12,6 +12,10 @@ export const ERROR_CODES = [
   'account_pending',
   'account_rejected',
   'registration_conflict',
+  'invitation_invalid',
+  'invitation_existing_password',
+  'email_not_configured',
+  'email_delivery_failed',
   'internal',
 ] as const;
 export type ErrorCode = (typeof ERROR_CODES)[number];
@@ -26,6 +30,10 @@ const STATUS: Record<ErrorCode, number> = {
   account_pending: 403,
   account_rejected: 403,
   registration_conflict: 409,
+  invitation_invalid: 400,
+  invitation_existing_password: 400,
+  email_not_configured: 503,
+  email_delivery_failed: 503,
   internal: 500,
 };
 

@@ -15,6 +15,8 @@ import { parse, pathParam, userIdOf } from '../http/validate.ts';
 import { createFarmSchema } from '../http/farmInput.ts';
 import { reviewAccount } from '../services/accountApproval.service.ts';
 import { changeFarmOwner } from '../services/farmOwnership.service.ts';
+import { adminInvitationsRoutes } from './adminInvitations.routes.ts';
+import type { InvitationMailer } from '../auth/invitationEmail.ts';
 
 const directoryQuery = z.object({
   q: z.string().trim().max(80).optional(),
@@ -67,9 +69,10 @@ const adminFarmInput = createFarmSchema
   })
   .strict();
 
-export function adminRoutes(config: Config): Router {
+export function adminRoutes(config: Config, mailer?: InvitationMailer): Router {
   const router = Router();
   router.use(requireAuth(config.JWT_SECRET), requirePlatformAdmin());
+  router.use('/invitations', adminInvitationsRoutes(config, mailer));
 
   // -------------------------------------------------------------------------
   // Dashboard

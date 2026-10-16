@@ -1,4 +1,3 @@
-import type { RegistrationInput } from '@nasl/shared';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiClient, ApiError, deviceId, tokens } from '../api/client';
 
@@ -63,11 +62,6 @@ export function useAuth() {
     return () => window.removeEventListener('online', retry);
   }, [state.status, loadMe]);
 
-  const register = useCallback(
-    (input: RegistrationInput) =>
-      apiClient.post<{ id: string; status: 'pending' }>('/v1/auth/register', input),
-    [],
-  );
   const signIn = useCallback(
     async (identifier: string, password: string) => {
       const session = await apiClient.post<Session>('/v1/auth/login', {
@@ -92,5 +86,5 @@ export function useAuth() {
     }
   }, []);
 
-  return { state, register, signIn, signOut, reload: loadMe };
+  return { state, signIn, signOut, reload: loadMe };
 }

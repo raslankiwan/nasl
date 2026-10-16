@@ -391,6 +391,11 @@ and adds bulk operations (§8).
 
 ## 8. Web admin panel
 
+Administrator accounts are invitation-only. Existing staff email a recipient-bound, single-use
+invitation valid for 24 hours. The first operator is provisioned through a seed script or an
+explicit database operation. There is no public admin registration. Ordinary farm registrations
+remain pending until reviewed.
+
 > ⚠️ **Scope decision — needs your confirmation.** "Management tool / admin panel" reads two ways.
 > This document specs the **internal operator console** as the v1 web build, and a separate
 > **farm-owner web console** as Phase 2. If the intent was the owner-facing console first, the two

@@ -8,7 +8,8 @@ export interface UserDoc {
   _id: string;
   email: string;
   username: string;
-  passwordHash: string;
+  passwordHash?: string;
+  adminProvisionedBy?: 'seed' | 'invitation';
   status: AccountStatus;
   reviewedAt?: Date;
   reviewedBy?: string;
@@ -25,7 +26,9 @@ export interface UserDoc {
 const schema = globalSchema<UserDoc>({
   email: { type: String, required: true, trim: true, lowercase: true },
   username: { type: String, required: true, trim: true, lowercase: true },
-  passwordHash: { type: String, required: true, select: false },
+  // A seeded administrator has no password until their one-use setup link is redeemed.
+  passwordHash: { type: String, select: false },
+  adminProvisionedBy: { type: String, enum: ['seed', 'invitation'] },
   status: { type: String, enum: ACCOUNT_STATUSES, default: 'pending' },
   reviewedAt: { type: Date },
   reviewedBy: { type: String },

@@ -13,12 +13,28 @@ const schema = z
     ACCESS_TOKEN_TTL_MINUTES: z.coerce.number().int().positive().default(15),
     REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),
     CORS_ORIGINS: z.string().default(''),
+    ADMIN_APP_URL: z.string().url().optional(),
+    RESEND_API_KEY: z.string().min(1).optional(),
+    ADMIN_INVITE_FROM: z.string().email().optional(),
     MONGO_MAX_POOL_SIZE: z.coerce.number().int().min(1).max(20).default(5),
     LOG_LEVEL: z
       .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
       .default('info'),
   })
   .superRefine((config, ctx) => {
+    if (config.ADMIN_APP_URL) {
+      const url = new URL(config.ADMIN_APP_URL);
+      if (
+        url.origin !== config.ADMIN_APP_URL ||
+        (config.NODE_ENV === 'production' && url.protocol !== 'https:')
+      ) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['ADMIN_APP_URL'],
+          message: 'Use an exact admin origin, with HTTPS in production',
+        });
+      }
+    }
     for (const origin of config.CORS_ORIGINS.split(',')
       .map((value) => value.trim())
       .filter(Boolean)) {

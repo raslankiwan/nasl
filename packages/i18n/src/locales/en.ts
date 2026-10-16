@@ -67,6 +67,12 @@ export const en = {
     signInOnlineHint: 'An internet connection is required to sign in or register.',
     signOut: 'Sign out',
     errors: {
+      invitation_invalid:
+        'This invitation is invalid, expired, revoked or already used. Ask an administrator for a new email invitation.',
+      invitation_existing_password:
+        'This email already has an account. Enter its current password to accept the invitation.',
+      email_not_configured: 'The invitation email sender has not been configured yet.',
+      email_delivery_failed: 'The invitation could not be emailed. Please try again later.',
       unauthorized: 'Incorrect email, username or password.',
       bad_request:
         'Check your details. Use a valid email, a username of 3–32 characters, and a password of 12–128 characters.',
@@ -300,6 +306,39 @@ export const en = {
     },
   },
   admin: {
+    inviteOnly:
+      'Administrator access is by email invitation only. Contact an existing administrator for access.',
+    adminInvitations: 'Administrator invitations',
+    adminInviteHint:
+      'Invite someone to administer Nasl. Access is granted only after they accept the email invitation. Links expire in 24 hours.',
+    sendAdminInvite: 'Send email invitation',
+    inviteSent: 'Invitation email sent.',
+    inviteConflict:
+      'This email is already an administrator or has an active invitation. Revoke the current invitation before sending another.',
+    emailSenderMissing:
+      'Email invitations are not available until a sending address is configured. Contact the platform operator.',
+    revokeInvite: 'Revoke invitation',
+    inviteExpires: 'Expires',
+    inviteAction: 'Action',
+    inviteStates: {
+      pending: 'Sending',
+      sent: 'Sent',
+      accepted: 'Accepted',
+      revoked: 'Revoked',
+      failed: 'Delivery failed',
+      expired: 'Expired',
+    },
+    acceptInvite: 'Accept administrator invitation',
+    acceptInviteHint:
+      'Your email is fixed by the invitation. Choose your name, username and password to activate administrator access.',
+    inviteExistingHint:
+      'An account already exists for this email. Enter its current password to accept administrator access.',
+    setupAdmin: 'Set up your administrator password',
+    setupAdminHint:
+      'Your administrator account has already been created. Choose a password to finish setting it up.',
+    savePassword: 'Save password',
+    inviteComplete: 'Administrator account ready',
+    inviteCompleteHint: 'You can now sign in using your email or username and password.',
     searchUsers: 'Search by name, email or username',
     accountStatus: 'Account status',
     accountStates: { pending: 'Pending approval', approved: 'Approved', rejected: 'Rejected' },

@@ -7,6 +7,7 @@ import { apiClient } from '../api/client';
 import { PageHead } from '../components/Layout';
 import { UserLink, type UserSummary } from '../components/UserLink';
 import { Pagination, PAGE_SIZE } from '../components/Pagination';
+import { AdminInvitations } from '../components/AdminInvitations';
 
 interface UserRow extends UserSummary {
   status: AccountStatus;
@@ -107,6 +108,7 @@ export function Users() {
         )}
       </div>
       <Pagination skip={skip} total={data?.total ?? 0} onChange={setSkip} />
+      <AdminInvitations />
     </>
   );
 }
