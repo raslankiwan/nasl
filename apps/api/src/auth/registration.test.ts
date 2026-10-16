@@ -10,6 +10,8 @@ import {
   TEST_PASSWORD,
   withServer,
 } from '../testing/harness.ts';
+import { Farm } from '../models/farm.model.ts';
+import { Membership } from '../models/membership.model.ts';
 import { User } from '../models/user.model.ts';
 import { RefreshToken } from '../models/refreshToken.model.ts';
 import { AuditLog } from '../models/auditLog.model.ts';
@@ -234,4 +236,55 @@ test('password guessing limits are shared by independent application instances',
       assert.equal((await api(second).post('/v1/auth/login', login)).status, 429);
     }),
   );
+});
+
+test('approval can provision the farm and the user can access it on their first login', async () => {
+  await withServer(testApp(), async (url) => {
+    const created = await api(url).post<Registered>('/v1/auth/register', registration);
+    const staff = await signIn(url, 'staff');
+    await makePlatformAdmin(staff.user.id);
+    const admin = api(url, staff.accessToken);
+    const path = `/v1/admin/users/${created.body.id}/approval`;
+    const approval = {
+      status: 'approved',
+      expectedStatus: 'pending',
+      farm: { name: '  First farm  ', species: ['goat'] },
+    };
+    assert.equal((await api(url).patch(path, approval)).status, 401);
+    const regular = await signIn(url, 'regular');
+    assert.equal((await api(url, regular.accessToken).patch(path, approval)).status, 404);
+    for (const invalid of [
+      { ...approval, status: 'rejected' },
+      { ...approval, farm: { name: '' } },
+      { ...approval, farm: { name: 'Farm', species: [] } },
+      { ...approval, farm: { name: 'Farm', ownerUserId: staff.user.id } },
+      { ...approval, farm: { name: 'Farm', plan: 'commercial' } },
+    ])
+      assert.equal((await admin.patch(path, invalid)).status, 400);
+    assert.equal(await Farm.countDocuments(), 0);
+    assert.equal((await User.findById(created.body.id).lean())?.status, 'pending');
+    const approved = await admin.patch<{ farm: { id: string; name: string } }>(path, approval);
+    assert.equal(approved.status, 200);
+    assert.equal(approved.body.farm.name, 'First farm');
+    assert.equal((await admin.patch(path, approval)).status, 409);
+    const session = await api(url).post<{ accessToken: string }>('/v1/auth/login', login);
+    assert.equal(session.status, 200);
+    const me = await api(url, session.body.accessToken).get<{
+      defaultFarmId: string;
+      farms: Array<{ farmId: string; role: string }>;
+    }>('/v1/auth/me');
+    assert.equal(
+      (await User.findById(created.body.id).lean())?.defaultFarmId,
+      approved.body.farm.id,
+    );
+    assert.equal(me.body.farms[0]?.farmId, approved.body.farm.id);
+    assert.equal(me.body.farms[0]?.role, 'owner');
+    assert.equal(
+      (await api(url, session.body.accessToken).get(`/v1/farms/${approved.body.farm.id}/animals`))
+        .status,
+      200,
+    );
+    assert.equal(await Farm.countDocuments(), 1);
+    assert.equal(await Membership.countDocuments({ userId: created.body.id }), 1);
+  });
 });

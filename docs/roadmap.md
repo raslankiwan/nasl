@@ -1,5 +1,20 @@
 # Delivery plan
 
+## Mobile admin and farm provisioning on approval (October 2026)
+
+- [x] Compact mobile navigation, labeled directory cards, stacked forms, larger touch targets
+      and safe-area padding. Existing PWA installation/offline shell retained, with Users/Farms
+      manifest shortcuts. Arabic and English checked at 320px and 390px; desktop tables retained.
+- [x] Account approval offers a preselected farm-creation option with an editable name and
+      species. Approval creates the free farm, links its active owner membership and sets the
+      user's default farm. Existing farm access is preserved; staff can approve without a farm.
+- [x] Production transactions make approval/provisioning/audit atomic. Concurrent and repeated
+      requests cannot create duplicate farms; membership/audit failures roll everything back.
+      The same failure paths have compensating-cleanup tests for standalone development MongoDB.
+- [x] Browser validation exercised approval, the related farm/owner links and first-login farm
+      access against a temporary replica set. Exported admin reopened with its static server
+      unavailable. Actual iOS/Android home-screen installation remains a device check.
+
 ## Installable web apps and saved appearance (October 2026)
 
 - [x] Both frontends have installation manifests, distinct home-screen icons and generated,

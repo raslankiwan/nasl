@@ -36,8 +36,13 @@ const approvalInput = z
     status: z.enum(['approved', 'rejected']),
     expectedStatus: z.enum(['pending', 'rejected']),
     reason: z.string().trim().max(300).optional(),
+    farm: createFarmSchema.pick({ name: true, species: true }).strict().optional(),
   })
-  .strict();
+  .strict()
+  .refine((input) => !input.farm || input.status === 'approved', {
+    message: 'A farm can only be created when approving an account.',
+    path: ['farm'],
+  });
 const searchPattern = (q: string) => ({
   $regex: q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
   $options: 'i',

@@ -101,7 +101,7 @@ export function AdminInvitations() {
                 </div>
               ) : null}
               <div className="table-wrap">
-                <table>
+                <table className="responsive-table" role="table">
                   <thead>
                     <tr>
                       <th>{t('auth:email')}</th>
@@ -113,15 +113,19 @@ export function AdminInvitations() {
                   <tbody>
                     {list.data.invitations.map((invite) => (
                       <tr key={invite.id}>
-                        <td dir="ltr">{invite.email}</td>
-                        <td>{t(`admin:inviteStates.${invite.state}`)}</td>
-                        <td>
+                        <td data-label={t('auth:email')} dir="ltr">
+                          {invite.email}
+                        </td>
+                        <td data-label={t('admin:accountStatus')}>
+                          {t(`admin:inviteStates.${invite.state}`)}
+                        </td>
+                        <td data-label={t('admin:inviteExpires')}>
                           {formatDate(
                             new Date(invite.expiresAt),
                             (i18n.resolvedLanguage ?? 'ar') as Locale,
                           )}
                         </td>
-                        <td>
+                        <td data-label={t('admin:inviteAction')}>
                           {['pending', 'sent'].includes(invite.state) ? (
                             <button
                               type="button"

@@ -34,7 +34,7 @@ export function Audit() {
         {isLoading ? (
           <div className="loading">{t('common:loading')}</div>
         ) : data && data.entries.length > 0 ? (
-          <table>
+          <table className="responsive-table" role="table">
             <thead>
               <tr>
                 <th>{t('admin:when')}</th>
@@ -47,19 +47,19 @@ export function Audit() {
             <tbody>
               {data.entries.map((entry) => (
                 <tr key={entry.id}>
-                  <td style={{ whiteSpace: 'nowrap' }}>
+                  <td data-label={t('admin:when')} style={{ whiteSpace: 'nowrap' }}>
                     {formatDate(new Date(entry.createdAt), locale, {
                       dateStyle: 'medium',
                       timeStyle: 'short',
                     })}
                   </td>
-                  <td>
+                  <td data-label={t('admin:actor')}>
                     <UserLink user={entry.actor} />
                   </td>
-                  <td>
+                  <td data-label={t('admin:action')}>
                     <span className="mono">{entry.action}</span>
                   </td>
-                  <td>
+                  <td data-label={t('admin:target')}>
                     {entry.targetType === 'farm' ? (
                       <Link to="/farms/$farmId" params={{ farmId: entry.targetId }}>
                         {entry.targetName || entry.targetId}
@@ -70,7 +70,7 @@ export function Audit() {
                       <span className="mono">{entry.targetId}</span>
                     )}
                   </td>
-                  <td>{entry.reason ?? '—'}</td>
+                  <td data-label={t('admin:reason')}>{entry.reason ?? '—'}</td>
                 </tr>
               ))}
             </tbody>

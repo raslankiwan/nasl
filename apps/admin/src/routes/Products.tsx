@@ -179,7 +179,7 @@ export function Products() {
         {isLoading ? (
           <div className="loading">{t('common:loading')}</div>
         ) : data && data.products.length > 0 ? (
-          <table>
+          <table className="responsive-table" role="table">
             <thead>
               <tr>
                 <th>{t('admin:productNameAr')}</th>
@@ -192,18 +192,27 @@ export function Products() {
             <tbody>
               {data.products.map((p) => (
                 <tr key={p._id}>
-                  <td>
+                  <td data-label={t('admin:productNameAr')}>
                     {p.nameAr}
                     <div className="mono" style={{ color: 'var(--muted)' }}>
                       {p.nameEn}
                     </div>
                   </td>
-                  <td>
+                  <td data-label={t('admin:kind')}>
                     <span className="pill">{p.kind}</span>
                   </td>
-                  <td className="num">{formatNumber(p.withdrawalMeatDays, locale)}</td>
-                  <td className="num">{formatNumber(p.withdrawalMilkDays, locale)}</td>
-                  <td style={{ color: 'var(--muted)', fontSize: '0.84rem' }}>{p.source ?? '—'}</td>
+                  <td data-label={t('admin:withdrawalMeat')} className="num">
+                    {formatNumber(p.withdrawalMeatDays, locale)}
+                  </td>
+                  <td data-label={t('admin:withdrawalMilk')} className="num">
+                    {formatNumber(p.withdrawalMilkDays, locale)}
+                  </td>
+                  <td
+                    data-label={t('admin:source')}
+                    style={{ color: 'var(--muted)', fontSize: '0.84rem' }}
+                  >
+                    {p.source ?? '—'}
+                  </td>
                 </tr>
               ))}
             </tbody>

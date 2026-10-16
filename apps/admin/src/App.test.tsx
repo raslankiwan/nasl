@@ -117,3 +117,22 @@ describe('the console shell', () => {
     );
   });
 });
+
+test('the mobile navigation opens, closes with Escape, and closes after choosing a page', async () => {
+  mockApi(ME_STAFF);
+  render(<App />);
+  const user = userEvent.setup();
+  const menu = await screen.findByRole('button', { name: 'القائمة' });
+  expect(menu).toHaveAttribute('aria-expanded', 'false');
+  await user.click(menu);
+  expect(screen.getByRole('button', { name: 'إغلاق القائمة' })).toHaveAttribute(
+    'aria-expanded',
+    'true',
+  );
+  await user.keyboard('{Escape}');
+  expect(menu).toHaveAttribute('aria-expanded', 'false');
+  expect(menu).toHaveFocus();
+  await user.click(menu);
+  await user.click(screen.getByRole('link', { name: 'لوحة المعلومات' }));
+  expect(menu).toHaveAttribute('aria-expanded', 'false');
+});

@@ -64,7 +64,19 @@ export function UserDetail() {
           {t('admin:ownerSaved')}
         </div>
       ) : null}
-      <AccountReview userId={userId} status={data.status} isPlatformAdmin={data.isPlatformAdmin} />
+      <AccountReview
+        key={userId}
+        userId={userId}
+        status={data.status}
+        isPlatformAdmin={data.isPlatformAdmin}
+        userName={data.name || data.username}
+        hasFarm={data.farms.some(
+          (farm) =>
+            farm.ownerUserId === userId ||
+            (farm.status === 'active' &&
+              (!farm.expiresAt || new Date(farm.expiresAt).getTime() > Date.now())),
+        )}
+      />
       <dl className="card detail-grid section">
         <div>
           <dt>{t('auth:username')}</dt>
@@ -121,7 +133,7 @@ export function UserDetail() {
         {data.farms.length === 0 ? (
           <div className="empty">{t('admin:noRelatedFarms')}</div>
         ) : (
-          <table>
+          <table className="responsive-table" role="table">
             <thead>
               <tr>
                 <th>{t('admin:farms')}</th>
@@ -133,14 +145,18 @@ export function UserDetail() {
             <tbody>
               {data.farms.map((farm) => (
                 <tr key={farm.id}>
-                  <td>
+                  <td data-label={t('admin:farms')}>
                     <Link to="/farms/$farmId" params={{ farmId: farm.id }}>
                       {farm.name}
                     </Link>
                   </td>
-                  <td>{farm.owner ? <UserLink user={farm.owner} /> : t('common:unknown')}</td>
-                  <td>{farm.role ? t(`roles:${farm.role}` as 'roles:owner') : t('common:none')}</td>
-                  <td>
+                  <td data-label={t('admin:owner')}>
+                    {farm.owner ? <UserLink user={farm.owner} /> : t('common:unknown')}
+                  </td>
+                  <td data-label={t('admin:role')}>
+                    {farm.role ? t(`roles:${farm.role}` as 'roles:owner') : t('common:none')}
+                  </td>
+                  <td data-label={t('admin:memberStatus')}>
                     {farm.status
                       ? t(
                           `admin:membershipStates.${farm.expiresAt && new Date(farm.expiresAt).getTime() < Date.now() && farm.status === 'active' ? 'expired' : farm.status}` as 'admin:membershipStates.active',

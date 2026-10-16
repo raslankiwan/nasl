@@ -83,6 +83,17 @@ Farm users register only in the user app. Accounts stay pending until an adminis
 them in Admin > Users. Public registration cannot set approval, seed markers or staff privileges.
 The admin website offers sign-in and invitation acceptance, with no self-registration form.
 
+On the user details page, **Create a farm for this user** is selected for accounts without an
+existing farm. Staff can edit the suggested farm name, choose sheep/goats/both, or uncheck the
+option to approve without a farm. **Approve and create farm** creates a free Palestine/ILS farm,
+sets the user as its owner and default farm, and adds an active owner membership. The farm then
+appears under Related farms and is available on the user's first login. Existing owners and
+active members retain their farm access instead of receiving a duplicate automatic farm.
+
+In production, approval, farm creation, membership and the audit entry commit in one MongoDB
+transaction. Concurrent or repeated reviews cannot create another farm. Standalone local MongoDB
+uses compensating cleanup on failure. No database migration or new paid resource is required.
+
 For a fresh database, create the first administrator from apps/api with the database environment
 loaded securely and ADMIN_APP_URL set to the exact HTTPS admin origin:
 
@@ -132,6 +143,10 @@ Both sites include a web manifest, home-screen icons and a service worker. No pa
 app-store account is needed. Open the canonical HTTPS site and choose **Install app**. Supported
 browsers show their installation prompt; on iPhone/iPad use Safari > Share > Add to Home Screen.
 The admin app has a distinct icon/name so the two installations are easy to distinguish.
+Its compact phone header opens the navigation, appearance and installation controls. Directory
+tables become labeled cards on narrow screens, forms stack vertically, and touch targets and
+safe-area padding support installed use. The manifest also includes Users and Farms shortcuts
+for browsers that support them. Desktop retains the sidebar and tables.
 
 Each production build generates a versioned cache containing only that site's static assets.
 After the first successful online load, the user app can reopen offline and use its existing

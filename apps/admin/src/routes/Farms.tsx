@@ -84,7 +84,7 @@ export function Farms() {
             {t('common:errorRetry')}
           </div>
         ) : data && data.farms.length > 0 ? (
-          <table>
+          <table className="responsive-table" role="table">
             <thead>
               <tr>
                 <th>{t('admin:farms')}</th>
@@ -97,19 +97,25 @@ export function Farms() {
             <tbody>
               {data.farms.map((farm) => (
                 <tr key={farm.id}>
-                  <td>
+                  <td data-label={t('admin:farms')}>
                     <Link to="/farms/$farmId" params={{ farmId: farm.id }}>
                       {farm.name}
                     </Link>
                   </td>
-                  <td>{farm.owner ? <UserLink user={farm.owner} /> : t('common:unknown')}</td>
-                  <td className="num">{formatNumber(farm.headCount, locale)}</td>
-                  <td>
+                  <td data-label={t('admin:owner')}>
+                    {farm.owner ? <UserLink user={farm.owner} /> : t('common:unknown')}
+                  </td>
+                  <td data-label={t('admin:headCount')} className="num">
+                    {formatNumber(farm.headCount, locale)}
+                  </td>
+                  <td data-label={t('admin:plan')}>
                     <span className={`pill${farm.plan === 'free' ? '' : ' accent'}`}>
                       {farm.plan}
                     </span>
                   </td>
-                  <td>{formatDate(new Date(farm.createdAt), locale)}</td>
+                  <td data-label={t('admin:created')}>
+                    {formatDate(new Date(farm.createdAt), locale)}
+                  </td>
                 </tr>
               ))}
             </tbody>

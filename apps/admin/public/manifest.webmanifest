@@ -24,5 +24,17 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "المستخدمون",
+      "short_name": "المستخدمون",
+      "url": "/users"
+    },
+    {
+      "name": "المزارع",
+      "short_name": "المزارع",
+      "url": "/farms"
+    }
   ]
 }

@@ -177,7 +177,7 @@ export function FarmDetail() {
       </div>
 
       <div className="table-wrap">
-        <table>
+        <table className="responsive-table" role="table">
           <thead>
             <tr>
               <th>{t('admin:members')}</th>
@@ -188,13 +188,13 @@ export function FarmDetail() {
           <tbody>
             {data.members.map((m) => (
               <tr key={m.userId}>
-                <td>
+                <td data-label={t('admin:members')}>
                   <UserLink
                     user={{ id: m.userId, name: m.name, email: m.email, username: m.username }}
                   />
                 </td>
-                <td>{t(`roles:${m.role}` as 'roles:owner')}</td>
-                <td>
+                <td data-label={t('admin:role')}>{t(`roles:${m.role}` as 'roles:owner')}</td>
+                <td data-label={t('admin:memberStatus')}>
                   <span className={`pill${m.status === 'active' ? ' good' : ''}`}>
                     {t(
                       `admin:membershipStates.${m.expiresAt && new Date(m.expiresAt).getTime() < Date.now() && m.status === 'active' ? 'expired' : m.status}` as 'admin:membershipStates.active',

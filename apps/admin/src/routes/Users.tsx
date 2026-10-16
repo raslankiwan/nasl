@@ -71,7 +71,7 @@ export function Users() {
         ) : data.users.length === 0 ? (
           <div className="empty">{t('admin:noUsers')}</div>
         ) : (
-          <table>
+          <table className="responsive-table" role="table">
             <thead>
               <tr>
                 <th>{t('admin:users')}</th>
@@ -85,18 +85,22 @@ export function Users() {
             <tbody>
               {data.users.map((user) => (
                 <tr key={user.id}>
-                  <td>
+                  <td data-label={t('admin:users')}>
                     <UserLink user={user} />
                   </td>
-                  <td>
+                  <td data-label={t('auth:username')}>
                     <UserLink user={{ ...user, name: null }} />
                   </td>
-                  <td>
+                  <td data-label={t('admin:accountStatus')}>
                     <span className="pill">{t(`admin:accountStates.${user.status}`)}</span>
                   </td>
-                  <td>{t(user.isPlatformAdmin ? 'admin:platformStaff' : 'admin:regularUser')}</td>
-                  <td>{formatNumber(user.ownedFarmCount, locale)}</td>
-                  <td>
+                  <td data-label={t('admin:accountType')}>
+                    {t(user.isPlatformAdmin ? 'admin:platformStaff' : 'admin:regularUser')}
+                  </td>
+                  <td data-label={t('admin:ownedFarms')}>
+                    {formatNumber(user.ownedFarmCount, locale)}
+                  </td>
+                  <td data-label={t('admin:lastSignIn')}>
                     {user.lastSeenAt
                       ? formatDate(new Date(user.lastSeenAt), locale)
                       : t('admin:neverSignedIn')}
