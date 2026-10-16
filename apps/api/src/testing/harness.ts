@@ -1,3 +1,5 @@
+import { User } from '../models/user.model.ts';
+import { hashPassword } from '../auth/passwords.ts';
 import type { Express } from 'express';
 import { createApp } from '../app.ts';
 import { loadConfig, type Config } from '../config.ts';
@@ -7,7 +9,6 @@ export const TEST_CONFIG_ENV = {
   NODE_ENV: 'test',
   MONGODB_URI: 'mongodb://unused-in-tests',
   JWT_SECRET: 'test-secret-that-is-definitely-long-enough-32',
-  SMS_PROVIDER: 'log',
   LOG_LEVEL: 'silent',
 } as const;
 
@@ -80,24 +81,36 @@ export interface TestSession {
 
 export const TEST_DEVICE = 'device-0123456789';
 
-/** Request a code and redeem it, returning the session a client would hold. */
-export async function signIn(baseUrl: string, phone: string, name?: string): Promise<TestSession> {
-  const client = api(baseUrl);
-  const challenge = await client.post<{ challengeId: string; devCode: string }>(
-    '/v1/auth/otp/request',
-    { phone },
-  );
-  if (challenge.status !== 201) {
-    throw new Error(`OTP request failed: ${challenge.status} ${JSON.stringify(challenge.body)}`);
+export const TEST_PASSWORD = 'test-only-passphrase-123';
+let fixturePasswordHash: Promise<string> | undefined;
+export function fixtureUsername(identity: string): string {
+  return `user${identity.replace(/[^a-z0-9]/gi, '').toLowerCase()}`;
+}
+
+/** Seed an approved test identity, then exercise the real password login endpoint. */
+export async function signIn(
+  baseUrl: string,
+  identity: string,
+  name?: string,
+): Promise<TestSession> {
+  const username = fixtureUsername(identity);
+  if (!(await User.exists({ username }))) {
+    fixturePasswordHash ??= hashPassword(TEST_PASSWORD);
+    await User.create({
+      username,
+      email: `${username}@example.test`,
+      name: name ?? username,
+      passwordHash: await fixturePasswordHash,
+      status: 'approved',
+    });
   }
-  const session = await client.post<TestSession>('/v1/auth/otp/verify', {
-    challengeId: challenge.body.challengeId,
-    code: challenge.body.devCode,
+  const session = await api(baseUrl).post<TestSession>('/v1/auth/login', {
+    identifier: username,
+    password: TEST_PASSWORD,
     deviceId: TEST_DEVICE,
-    ...(name ? { name } : {}),
   });
   if (session.status !== 200) {
-    throw new Error(`OTP verify failed: ${session.status} ${JSON.stringify(session.body)}`);
+    throw new Error(`Login failed: ${session.status} ${JSON.stringify(session.body)}`);
   }
   return session.body;
 }

@@ -1,15 +1,19 @@
+import type { AccountStatus } from '@nasl/shared';
 import { useState } from 'react';
 import { Link, useParams } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { formatDate, type Locale } from '@nasl/i18n';
 import { apiClient, ApiError } from '../api/client';
+import { AccountReview } from '../components/AccountReview';
 import { PageHead } from '../components/Layout';
 import { UserLink, type UserSummary } from '../components/UserLink';
 import { AssignOwnerForm, type OwnershipFarm } from '../components/AssignOwnerForm';
 
 interface UserDetails extends UserSummary {
-  phone: string;
+  email: string;
+  username: string;
+  status: AccountStatus;
   locale: string;
   isPlatformAdmin: boolean;
   createdAt: string;
@@ -41,7 +45,7 @@ export function UserDetail() {
   return (
     <>
       <Link to="/users">{t('admin:users')}</Link>
-      <PageHead title={data.name || data.phone}>
+      <PageHead title={data.name || data.username}>
         <button
           className="primary"
           type="button"
@@ -50,6 +54,7 @@ export function UserDetail() {
             setSaved(false);
           }}
           aria-expanded={linking}
+          disabled={data.status !== 'approved'}
         >
           {t('admin:linkFarm')}
         </button>
@@ -59,12 +64,23 @@ export function UserDetail() {
           {t('admin:ownerSaved')}
         </div>
       ) : null}
+      <AccountReview userId={userId} status={data.status} isPlatformAdmin={data.isPlatformAdmin} />
       <dl className="card detail-grid section">
         <div>
-          <dt>{t('auth:phoneNumber')}</dt>
+          <dt>{t('auth:username')}</dt>
           <dd>
-            <a href={`tel:${data.phone}`}>
-              <bdi>{data.phone}</bdi>
+            <bdi>{data.username}</bdi>
+          </dd>
+        </div>
+        <div>
+          <dt>{t('admin:accountStatus')}</dt>
+          <dd>{t(`admin:accountStates.${data.status}`)}</dd>
+        </div>
+        <div>
+          <dt>{t('auth:email')}</dt>
+          <dd>
+            <a href={`mailto:${data.email}`}>
+              <bdi>{data.email}</bdi>
             </a>
           </dd>
         </div>

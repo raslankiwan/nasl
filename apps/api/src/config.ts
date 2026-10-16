@@ -12,12 +12,6 @@ const schema = z
     JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
     ACCESS_TOKEN_TTL_MINUTES: z.coerce.number().int().positive().default(15),
     REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),
-    OTP_TTL_MINUTES: z.coerce.number().int().positive().default(5),
-    OTP_MAX_ATTEMPTS: z.coerce.number().int().positive().default(5),
-    SMS_PROVIDER: z.enum(['disabled', 'log', 'twilio']).default('disabled'),
-    TWILIO_ACCOUNT_SID: z.string().optional(),
-    TWILIO_AUTH_TOKEN: z.string().optional(),
-    TWILIO_FROM_NUMBER: z.string().optional(),
     CORS_ORIGINS: z.string().default(''),
     MONGO_MAX_POOL_SIZE: z.coerce.number().int().min(1).max(20).default(5),
     LOG_LEVEL: z
@@ -25,27 +19,6 @@ const schema = z
       .default('info'),
   })
   .superRefine((config, ctx) => {
-    if (config.NODE_ENV === 'production' && config.SMS_PROVIDER === 'log') {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['SMS_PROVIDER'],
-        message: 'Development codes cannot be exposed in production',
-      });
-    }
-    if (config.SMS_PROVIDER === 'twilio') {
-      for (const key of [
-        'TWILIO_ACCOUNT_SID',
-        'TWILIO_AUTH_TOKEN',
-        'TWILIO_FROM_NUMBER',
-      ] as const) {
-        if (!config[key])
-          ctx.addIssue({
-            code: 'custom',
-            path: [key],
-            message: 'Required for Twilio SMS delivery',
-          });
-      }
-    }
     for (const origin of config.CORS_ORIGINS.split(',')
       .map((value) => value.trim())
       .filter(Boolean)) {

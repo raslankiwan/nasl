@@ -1,5 +1,14 @@
 # Delivery plan
 
+## Authentication update (October 2026)
+
+Email/username and password replace every phone/OTP login and registration route. New accounts
+remain pending until platform staff approve them in the user directory. Approval and rejection
+are audited; pending/rejected accounts cannot use access or refresh tokens. Farm owners must be
+approved registered accounts. The first administrator is granted through the database CLI after
+registration, never automatically by claiming an email address. Historical OTP items below
+record earlier increments and no longer describe the current authentication flow.
+
 Incremental. Each increment leaves the repo green — `npm run check && npm test` passes — and is
 independently reviewable. Scope references point at [`scope.md`](scope.md).
 

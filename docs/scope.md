@@ -381,9 +381,9 @@ and adds bulk operations (§8).
 
 | ID        | Requirement                                                                                                                                                                                                                          | Phase |
 | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----- |
-| FR-ACC-01 | Sign in by phone number and OTP. No password, no email required.                                                                                                                                                                     | MVP   |
+| FR-ACC-01 | Register with name, email, username and password. Accounts remain pending until an administrator approves them; approved users sign in by email or username plus password.                                                           | MVP   |
 | FR-ACC-02 | Roles per farm: **Owner** (everything, including billing), **Manager** (everything except billing and deletion), **Worker** (record events; cannot see finance), **Vet** (health module only, time-limited), **Viewer** (read-only). | MVP   |
-| FR-ACC-03 | Invite a member by phone number; they join on first sign-in.                                                                                                                                                                         | MVP   |
+| FR-ACC-03 | Invite an approved registered account by email or username. Membership never bypasses account approval.                                                                                                                              | MVP   |
 | FR-ACC-04 | Every event records who captured it and on which device.                                                                                                                                                                             | MVP   |
 | FR-ACC-05 | Free tier capped by head count; paid subscription unlocks unlimited animals, staff seats and exports. Store billing via RevenueCat, plus a local payment path for markets where card-on-file is uncommon.                            | P2    |
 
@@ -430,7 +430,7 @@ carries `farmId`**, and **events are immutable** — animal state is derived, ne
 farms          { _id, name, ownerUserId, country, currency, timezone,
                  species[], calendarPreference: 'hijri'|'gregorian',
                  gestationDays: { sheep: 147, goat: 150 }, plan, createdAt }
-users          { _id, phone, name, locale, defaultFarmId, createdAt }
+users          { _id, email, username, passwordHash, status, reviewedAt, reviewedBy, name, locale, defaultFarmId, createdAt }
 memberships    { _id, farmId, userId, role, invitedBy, expiresAt, status }
 
 // ——— the flock ———
@@ -532,7 +532,7 @@ POST /v1/sync/push
 
 ### Everything else
 
-- **Auth** — phone OTP, short-lived JWT access token plus rotating refresh token bound to the device. Long offline windows mean the refresh window must be generous (30 days) and expiry must never destroy unsynced local data.
+- **Auth** — email/username and password with admin approval, short-lived JWT access token plus rotating refresh token bound to the device. Long offline windows mean the refresh window must be generous (30 days) and expiry must never destroy unsynced local data.
 - **Media** — presigned uploads to S3 or R2. Photos compress to ≤400 KB on device, queue locally, and upload on Wi-Fi by default.
 - **Push** — Expo Notifications, with a nightly job that computes each farm's morning digest.
 - **Jobs** — BullMQ on Redis for digests, protocol task generation, exports and report pre-computation.

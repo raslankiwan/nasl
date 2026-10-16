@@ -30,8 +30,10 @@ npm run check                 # typecheck + eslint + prettier --check. Must pass
 npm test                      # every workspace
 ```
 
-With `SMS_PROVIDER=log`, `POST /v1/auth/otp/request` returns a `devCode` in its response. That is
-how every test and every manual sign-in works — never add a back door beyond it.
+Register with email, username and a password (12-128 characters). Every registration is pending
+until approved in Admin > Users. Bootstrap the first administrator with
+`apps/api/scripts/grant-platform-admin.mjs <email-or-username>` after that person registers.
+Tests seed approved fixtures and exercise real password login; no public development bypass exists.
 
 ## Non-negotiables
 
@@ -102,7 +104,7 @@ Never weakened to make a change land.
 - Milk is sold raw, made into cheese, or made into yogurt; a fourth route, kept for the house,
   carries no price.
 - **EAS builds and the device performance pass come last**, after feature work.
-- Auth stays as built (phone + OTP). Do not plan around MongoDB Atlas Device Sync — EOL Sept 2025.
+- Auth uses email/username and password, with mandatory admin approval before login. Do not plan around MongoDB Atlas Device Sync — EOL Sept 2025.
 
 Credentials live in `apps/api/.env` and EAS secrets. They are never pasted into a chat; an
 assistant only needs to know which provider, never the values.

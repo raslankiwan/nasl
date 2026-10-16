@@ -30,7 +30,7 @@ describe('farm provisioning form', () => {
     const post = vi.spyOn(apiClient, 'post').mockResolvedValue({ id: 'farm-1' });
     const { user, onCreated } = mount();
     await user.type(screen.getByLabelText('اسم المزرعة'), 'مزرعة الشمال');
-    await user.type(screen.getByLabelText('رقم جوال المالك'), '+970592320210');
+    await user.type(screen.getByLabelText('بريد المالك الإلكتروني أو اسم المستخدم'), 'owner.one');
     await user.selectOptions(screen.getByLabelText('النوع'), 'both');
     expect(screen.getByRole('button', { name: 'حفظ' })).toBeEnabled();
     await user.type(screen.getByLabelText('السبب (اختياري)'), 'طلب المالك');
@@ -38,23 +38,26 @@ describe('farm provisioning form', () => {
     await waitFor(() => expect(onCreated).toHaveBeenCalledWith('farm-1'));
     expect(post).toHaveBeenCalledExactlyOnceWith('/v1/admin/farms', {
       name: 'مزرعة الشمال',
-      ownerPhone: '+970592320210',
+      ownerIdentifier: 'owner.one',
       species: ['sheep', 'goat'],
       reason: 'طلب المالك',
     });
   });
 
-  test('creates a farm without asking the owner to sign in or requiring a reason', async () => {
+  test('creates a farm for an approved account without requiring a reason', async () => {
     const post = vi.spyOn(apiClient, 'post').mockResolvedValue({ id: 'farm-new-owner' });
     const { user, onCreated } = mount();
     await user.type(screen.getByLabelText('اسم المزرعة'), 'مزرعة جديدة');
-    await user.type(screen.getByLabelText('رقم جوال المالك'), '+970592320299');
+    await user.type(
+      screen.getByLabelText('بريد المالك الإلكتروني أو اسم المستخدم'),
+      'owner@example.test',
+    );
     expect(screen.getByLabelText('السبب (اختياري)')).not.toBeRequired();
     await user.click(screen.getByRole('button', { name: 'حفظ' }));
     await waitFor(() => expect(onCreated).toHaveBeenCalledWith('farm-new-owner'));
     expect(post).toHaveBeenCalledExactlyOnceWith('/v1/admin/farms', {
       name: 'مزرعة جديدة',
-      ownerPhone: '+970592320299',
+      ownerIdentifier: 'owner@example.test',
       species: ['sheep'],
     });
   });
@@ -62,18 +65,16 @@ describe('farm provisioning form', () => {
   test('explains invalid details in Arabic and retains the form for correction', async () => {
     vi.spyOn(apiClient, 'post').mockRejectedValue(
       new ApiError(400, {
-        error: { code: 'bad_request', message: 'Invalid phone number' },
+        error: { code: 'bad_request', message: 'Approved account not found' },
       }),
     );
     const { user, onCreated } = mount();
     await user.type(screen.getByLabelText('اسم المزرعة'), 'مزرعة الشمال');
-    await user.type(screen.getByLabelText('رقم جوال المالك'), '592320299');
+    await user.type(screen.getByLabelText('بريد المالك الإلكتروني أو اسم المستخدم'), 'unknown');
     await user.click(screen.getByRole('button', { name: 'حفظ' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'أدخل رقم جوال المالك مع رمز الدولة',
-    );
+    expect(await screen.findByRole('alert')).toHaveTextContent('اختر مالكاً معتمداً');
     expect(screen.getByLabelText('اسم المزرعة')).toHaveValue('مزرعة الشمال');
-    expect(screen.getByLabelText('رقم جوال المالك')).toHaveValue('592320299');
+    expect(screen.getByLabelText('بريد المالك الإلكتروني أو اسم المستخدم')).toHaveValue('unknown');
     expect(onCreated).not.toHaveBeenCalled();
   });
 });

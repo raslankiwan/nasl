@@ -13,8 +13,8 @@ vi.mock('@tanstack/react-router', () => ({
   ),
 }));
 
-const original = { id: 'original', name: 'Original owner', phone: '+970590000001' };
-const next = { id: 'next', name: 'New owner', phone: '+970590000002' };
+const original = { id: 'original', name: 'Original owner', username: 'original' };
+const next = { id: 'next', name: 'New owner', username: 'next' };
 const farm = { id: 'farm-1', name: 'North farm', ownerUserId: original.id, owner: original };
 
 beforeEach(async () => {
@@ -78,17 +78,10 @@ describe('ownership assignment', () => {
     });
   });
 
-  test('accepts a phone number for an account that has not signed in yet', async () => {
-    const patch = vi.spyOn(apiClient, 'patch').mockResolvedValue({ id: farm.id });
-    const { user, onDone } = mount();
-    await user.selectOptions(screen.getByLabelText('اختر المالك الجديد'), 'phone');
-    await user.type(screen.getByLabelText('رقم جوال المالك'), '+970590000009');
-    await user.click(screen.getByRole('button', { name: 'حفظ الملكية' }));
-    await waitFor(() => expect(onDone).toHaveBeenCalledOnce());
-    expect(patch).toHaveBeenCalledExactlyOnceWith('/v1/admin/farms/farm-1/owner', {
-      expectedOwnerUserId: 'original',
-      ownerPhone: '+970590000009',
-    });
+  test('only requests approved accounts as ownership candidates', async () => {
+    mount();
+    await screen.findByRole('radio', { name: /New owner/ });
+    expect(apiClient.get).toHaveBeenCalledWith(expect.stringContaining('status=approved'));
   });
 
   test('a stale form blocks resubmission and leaves cancellation available', async () => {

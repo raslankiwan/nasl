@@ -62,7 +62,7 @@ describe('the console shell', () => {
     );
     render(<App />);
     expect(await screen.findByRole('alert')).toHaveTextContent('جلسة دخولك محفوظة');
-    expect(screen.queryByLabelText('رقم الجوال')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('البريد الإلكتروني أو اسم المستخدم')).not.toBeInTheDocument();
     expect(window.localStorage.getItem('nasl.admin.refreshToken')).toBe('test-refresh');
     mockApi(ME_STAFF);
     await userEvent.click(screen.getByRole('button', { name: 'إعادة المحاولة' }));
@@ -104,7 +104,7 @@ describe('the console shell', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText('رقم الجوال')).toBeInTheDocument();
+      expect(screen.getByLabelText('البريد الإلكتروني أو اسم المستخدم')).toBeInTheDocument();
     });
   });
 

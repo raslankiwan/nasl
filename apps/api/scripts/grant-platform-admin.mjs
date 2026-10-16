@@ -1,38 +1,74 @@
-/**
- * Grant or revoke platform-staff access.
- *
- * There is no way to become the first platform admin through the API, by design — the console
- * would otherwise be self-service. Bootstrapping happens here, with access to the database.
- *
- *   node --env-file-if-exists=.env scripts/grant-platform-admin.mjs +966501234567
- *   node --env-file-if-exists=.env scripts/grant-platform-admin.mjs +966501234567 --revoke
+/** Grant/revoke staff access for an existing password registration, never create an account.
+ * node --env-file-if-exists=.env scripts/grant-platform-admin.mjs <email-or-username> [--revoke]
+ * Verify the intended operator owns the registration before using this database-only tool.
  */
+import { randomUUID } from 'node:crypto';
 import mongoose from 'mongoose';
 
-const [, , phone, ...flags] = process.argv;
+const [, , suppliedIdentifier, ...flags] = process.argv;
+const identifier = suppliedIdentifier?.trim().toLowerCase();
 const revoke = flags.includes('--revoke');
-
-if (!phone?.startsWith('+')) {
-  console.error('Usage: grant-platform-admin.mjs <+E164 phone> [--revoke]');
+if (!identifier || flags.some((flag) => flag !== '--revoke')) {
+  console.error('Usage: grant-platform-admin.mjs <email-or-username> [--revoke]');
+  process.exit(1);
+}
+if (!process.env.MONGODB_URI) {
+  console.error('MONGODB_URI must be loaded securely before running this command.');
   process.exit(1);
 }
 
-const uri = process.env.MONGODB_URI;
-if (!uri) {
-  console.error('MONGODB_URI is not set. Run with --env-file-if-exists=.env from apps/api.');
-  process.exit(1);
-}
-
-await mongoose.connect(uri, { dbName: process.env.MONGODB_DB_NAME ?? 'nasl' });
-const result = await mongoose.connection
-  .collection('users')
-  .updateOne({ phone }, { $set: { isPlatformAdmin: !revoke } });
-
-if (result.matchedCount === 0) {
-  console.error(`No user with phone ${phone}. They must sign in once first.`);
+try {
+  await mongoose.connect(process.env.MONGODB_URI, {
+    dbName: process.env.MONGODB_DB_NAME ?? 'nasl',
+    maxPoolSize: 2,
+  });
+  const users = mongoose.connection.collection('users');
+  const filter = identifier.includes('@') ? { email: identifier } : { username: identifier };
+  const apply = async (session) => {
+    const user = await users.findOne(filter, { session });
+    if (!user || (!revoke && !user.passwordHash)) {
+      throw new Error('No password registration found. The intended operator must register first.');
+    }
+    const now = new Date();
+    const before = {
+      isPlatformAdmin: user.isPlatformAdmin === true,
+      status: user.status ?? 'pending',
+    };
+    const after = { isPlatformAdmin: !revoke, status: revoke ? before.status : 'approved' };
+    await users.updateOne({ _id: user._id }, { $set: { ...after, updatedAt: now } }, { session });
+    try {
+      await mongoose.connection.collection('auditlogs').insertOne(
+        {
+          _id: randomUUID(),
+          actorId: 'bootstrap-cli',
+          action: 'user.platformAdmin.change',
+          targetType: 'user',
+          targetId: user._id,
+          before,
+          after,
+          reason: revoke
+            ? 'Operator access revoked through database CLI'
+            : 'Operator verified and approved through database CLI',
+          createdAt: now,
+        },
+        { session },
+      );
+    } catch (error) {
+      if (!session) await users.updateOne({ _id: user._id, updatedAt: now }, { $set: before });
+      throw error;
+    }
+    return user._id;
+  };
+  const id =
+    process.env.NODE_ENV === 'production'
+      ? await mongoose.connection.transaction(apply)
+      : await apply();
+  console.log(
+    `${revoke ? 'Revoked' : 'Approved and granted'} platform admin for ${identifier} (${id})`,
+  );
+} catch (error) {
+  console.error(error instanceof Error ? error.message : 'Operator update failed');
   process.exitCode = 1;
-} else {
-  console.log(`${revoke ? 'Revoked' : 'Granted'} platform admin for ${phone}`);
+} finally {
+  await mongoose.disconnect();
 }
-
-await mongoose.disconnect();

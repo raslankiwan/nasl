@@ -12,9 +12,24 @@ after(stopTestMongo);
 beforeEach(clearDatabase);
 
 async function setup() {
-  const owner = await User.create({ phone: '+970590000001' });
-  const second = await User.create({ phone: '+970590000002' });
-  const third = await User.create({ phone: '+970590000003' });
+  const owner = await User.create({
+    username: 'owner',
+    email: 'owner@example.test',
+    passwordHash: 'fixture',
+    status: 'approved',
+  });
+  const second = await User.create({
+    username: 'second',
+    email: 'second@example.test',
+    passwordHash: 'fixture',
+    status: 'approved',
+  });
+  const third = await User.create({
+    username: 'third',
+    email: 'third@example.test',
+    passwordHash: 'fixture',
+    status: 'approved',
+  });
   const farm = await Farm.create({ name: 'Transaction test', ownerUserId: owner._id });
   await Membership.create({ farmId: farm._id, userId: owner._id, role: 'owner', status: 'active' });
   return {
@@ -46,16 +61,16 @@ test('concurrent ownership transactions preserve exactly one owner and audit', a
   assert.equal(await AuditLog.countDocuments(), 1);
 });
 
-test('a failed audit rolls back the owner account, membership and farm change', async (t) => {
-  const { owner, farm, input } = await setup();
+test('a failed audit rolls back the membership and farm change', async (t) => {
+  const { owner, second, farm, input } = await setup();
   t.mock.method(AuditLog, 'create', async () => {
     throw new Error('Audit failed');
   });
   await assert.rejects(
-    changeFarmOwner({ ...input, ownerPhone: '+970590000004' }, true),
+    changeFarmOwner({ ...input, ownerUserId: second._id }, true),
     /Audit failed/,
   );
   assert.equal((await Farm.findById(farm._id).lean())?.ownerUserId, owner._id);
-  assert.equal(await User.countDocuments({ phone: '+970590000004' }), 0);
+  assert.equal(await User.countDocuments(), 3);
   assert.equal(await Membership.countDocuments({ farmId: farm._id }), 1);
 });

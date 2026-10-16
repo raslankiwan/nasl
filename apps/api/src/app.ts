@@ -60,7 +60,7 @@ export function createApp({ config, logger }: AppDeps): Express {
     res.json({ status: 'ok', version: '0.1.0' });
   });
 
-  app.use('/v1/auth', authRoutes(config, logger));
+  app.use('/v1/auth', authRoutes(config));
   app.use('/v1/reference', referenceRoutes(config));
   app.use('/v1/admin', adminRoutes(config));
   app.use('/v1/farms', farmRoutes(config));

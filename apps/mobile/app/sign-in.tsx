@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import { PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH } from '@nasl/shared';
 import { ApiError } from '../src/api/client';
 import { useAuth } from '../src/auth/AuthProvider';
 import { Body, Button, Card, Field, Notice, Title } from '../src/components/ui';
@@ -9,40 +10,57 @@ import { LanguageToggle } from '../src/components/LanguageToggle';
 import { colors, spacing } from '../src/theme';
 
 export default function SignIn() {
-  const { t } = useTranslation(['auth', 'common']);
-  const { requestCode, verifyCode } = useAuth();
+  const { t, i18n } = useTranslation(['auth', 'common']);
+  const { signIn, register } = useAuth();
   const insets = useSafeAreaInsets();
-
-  const [phone, setPhone] = useState('');
-  const [challengeId, setChallengeId] = useState<string | null>(null);
-  const [devCode, setDevCode] = useState<string | null>(null);
-  const [code, setCode] = useState('');
+  const [registering, setRegistering] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [identifier, setIdentifier] = useState('');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmation, setConfirmation] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [resendAt, setResendAt] = useState(0);
-  const [resendSeconds, setResendSeconds] = useState(0);
+  const valid = registering
+    ? Boolean(
+        name.trim() &&
+        email.trim() &&
+        /^[a-z0-9][a-z0-9._-]{2,31}$/i.test(username.trim()) &&
+        password.length >= PASSWORD_MIN_LENGTH &&
+        confirmation,
+      )
+    : Boolean(identifier.trim() && password);
 
-  useEffect(() => {
-    if (!resendAt) return;
-    const update = () => setResendSeconds(Math.max(0, Math.ceil((resendAt - Date.now()) / 1000)));
-    update();
-    const timer = setInterval(update, 1000);
-    return () => clearInterval(timer);
-  }, [resendAt]);
-
-  const run = async (fn: () => Promise<void>) => {
-    setBusy(true);
+  const submit = async () => {
+    if (busy || !valid) return;
     setError(null);
+    if (registering && password !== confirmation) {
+      setError(t('auth:passwordMismatch'));
+      return;
+    }
+    setBusy(true);
     try {
-      await fn();
+      if (registering) {
+        await register({
+          name,
+          email,
+          username,
+          password,
+          locale: i18n.resolvedLanguage === 'en' ? 'en' : 'ar',
+        });
+        setIdentifier(email.trim());
+        setPassword('');
+        setConfirmation('');
+        setSubmitted(true);
+      } else {
+        await signIn(identifier.trim(), password);
+      }
     } catch (err) {
       setError(
         err instanceof ApiError
-          ? err.code === 'sign_in_unavailable'
-            ? t('auth:signInUnavailable')
-            : err.code === 'rate_limited'
-              ? t('auth:rateLimited')
-              : err.message
+          ? t(`auth:errors.${err.code}`, { defaultValue: t('common:errorRetry') })
           : t('common:errorRetry'),
       );
     } finally {
@@ -50,101 +68,142 @@ export default function SignIn() {
     }
   };
 
-  const sendCode = () =>
-    run(async () => {
-      const challenge = await requestCode(phone.trim());
-      setChallengeId(challenge.challengeId);
-      setDevCode(challenge.devCode ?? null);
-      setCode('');
-      setResendAt(Date.now() + 30_000);
-    });
+  const changeMode = (next: boolean) => {
+    setRegistering(next);
+    setSubmitted(false);
+    setError(null);
+    setPassword('');
+    setConfirmation('');
+  };
 
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={[styles.root, { paddingTop: insets.top + spacing.lg }]}
+      style={[styles.root, { paddingTop: insets.top, paddingBottom: insets.bottom }]}
     >
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <View style={styles.header}>
-          <Title>{t('auth:signIn')}</Title>
-          <LanguageToggle compact />
-        </View>
-
-        {error ? <Notice tone="danger">{error}</Notice> : null}
-
-        <Card>
-          {challengeId === null ? (
-            <>
-              <Field
-                label={t('auth:phoneNumber')}
-                hint={t('auth:phoneHint')}
-                value={phone}
-                onChangeText={setPhone}
-                keyboardType="phone-pad"
-                autoComplete="tel"
-                placeholder="+970590000000"
-                // A phone number reads left-to-right even inside an Arabic interface.
-                style={{ textAlign: 'left', writingDirection: 'ltr' }}
-              />
-              <Button
-                label={t('auth:sendCode')}
-                busy={busy}
-                disabled={phone.trim().length < 6}
-                onPress={() => void sendCode()}
-              />
-            </>
-          ) : (
-            <>
-              <Field
-                label={t('auth:verificationCode')}
-                hint={t('auth:codeSentTo', { phone })}
-                value={code}
-                onChangeText={(value) => setCode(value.replace(/\D/g, '').slice(0, 6))}
-                keyboardType="number-pad"
-                autoComplete="one-time-code"
-                maxLength={6}
-                autoFocus
-                style={{ textAlign: 'center', letterSpacing: 8, fontSize: 24 }}
-              />
-
-              {/* Development only: the API returns the code when SMS delivery is stubbed. */}
-              {devCode ? <Notice>{devCode}</Notice> : null}
-
-              <Button
-                label={t('auth:signIn')}
-                busy={busy}
-                disabled={code.length !== 6}
-                onPress={() => void run(() => verifyCode(challengeId, code))}
-              />
-              <View style={styles.recovery}>
-                <Button
-                  label={
-                    resendSeconds > 0
-                      ? t('auth:resendIn', { seconds: resendSeconds })
-                      : t('auth:resendCode')
-                  }
-                  variant="text"
-                  disabled={busy || resendSeconds > 0}
-                  onPress={() => void sendCode()}
-                />
-                <Button
-                  label={t('auth:changePhone')}
-                  variant="text"
-                  disabled={busy}
-                  onPress={() => {
-                    setChallengeId(null);
-                    setDevCode(null);
-                    setCode('');
-                    setError(null);
+      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <View style={styles.content}>
+          <View style={styles.header}>
+            <Title>
+              {t(
+                submitted
+                  ? 'auth:registrationSubmitted'
+                  : registering
+                    ? 'auth:register'
+                    : 'auth:signIn',
+              )}
+            </Title>
+            <LanguageToggle compact />
+          </View>
+          {error ? <Notice tone="danger">{error}</Notice> : null}
+          <Card>
+            {submitted ? (
+              <>
+                <Notice>{t('auth:pendingApproval')}</Notice>
+                <Button label={t('auth:backToSignIn')} onPress={() => changeMode(false)} />
+              </>
+            ) : (
+              <>
+                {registering ? (
+                  <>
+                    <View style={styles.intro}>
+                      <Body muted>{t('auth:registrationHint')}</Body>
+                    </View>
+                    <Field
+                      label={t('auth:fullName')}
+                      value={name}
+                      onChangeText={setName}
+                      autoComplete="name"
+                      maxLength={80}
+                      editable={!busy}
+                    />
+                    <Field
+                      label={t('auth:email')}
+                      value={email}
+                      onChangeText={setEmail}
+                      keyboardType="email-address"
+                      autoComplete="email"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      maxLength={254}
+                      editable={!busy}
+                      style={styles.latin}
+                    />
+                    <Field
+                      label={t('auth:username')}
+                      hint={t('auth:usernameHint')}
+                      value={username}
+                      onChangeText={setUsername}
+                      autoComplete="username"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      maxLength={32}
+                      editable={!busy}
+                      style={styles.latin}
+                    />
+                  </>
+                ) : (
+                  <Field
+                    label={t('auth:identifier')}
+                    value={identifier}
+                    onChangeText={setIdentifier}
+                    autoComplete="username"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    maxLength={254}
+                    editable={!busy}
+                    style={styles.latin}
+                  />
+                )}
+                <Field
+                  label={t('auth:password')}
+                  hint={registering ? t('auth:passwordHint') : undefined}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry
+                  autoComplete={registering ? 'new-password' : 'current-password'}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  maxLength={PASSWORD_MAX_LENGTH}
+                  editable={!busy}
+                  style={styles.latin}
+                  onSubmitEditing={() => {
+                    if (!registering) void submit();
                   }}
                 />
-              </View>
-            </>
-          )}
-        </Card>
-
-        <View style={styles.footer}>
-          <Body muted>{t('auth:signInOnlineHint')}</Body>
+                {registering ? (
+                  <Field
+                    label={t('auth:confirmPassword')}
+                    value={confirmation}
+                    onChangeText={setConfirmation}
+                    secureTextEntry
+                    autoComplete="new-password"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    maxLength={PASSWORD_MAX_LENGTH}
+                    editable={!busy}
+                    style={styles.latin}
+                    onSubmitEditing={() => void submit()}
+                  />
+                ) : null}
+                <Button
+                  label={t(registering ? 'auth:register' : 'auth:signIn')}
+                  busy={busy}
+                  disabled={!valid}
+                  onPress={() => void submit()}
+                />
+                <Button
+                  label={t(registering ? 'auth:haveAccount' : 'auth:needAccount')}
+                  variant="text"
+                  disabled={busy}
+                  onPress={() => changeMode(!registering)}
+                />
+              </>
+            )}
+          </Card>
+          <View style={styles.footer}>
+            <Body muted>{t('auth:signInOnlineHint')}</Body>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -153,13 +212,17 @@ export default function SignIn() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.paper },
-  content: { padding: spacing.lg, flexGrow: 1, justifyContent: 'center' },
+  scroll: { padding: spacing.lg, flexGrow: 1, justifyContent: 'center', alignItems: 'center' },
+  content: { width: '100%', maxWidth: 480 },
   header: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: spacing.sm,
     marginBottom: spacing.lg,
   },
-  footer: { marginTop: spacing.xl, alignItems: 'center' },
-  recovery: { marginTop: spacing.md, gap: spacing.sm },
+  intro: { marginBottom: spacing.md },
+  footer: { marginTop: spacing.lg, alignItems: 'center' },
+  latin: { textAlign: 'left', writingDirection: 'ltr' },
 });

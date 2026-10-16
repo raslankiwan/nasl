@@ -25,7 +25,8 @@ interface FarmDetailBody {
   members: Array<{
     userId: string;
     name: string | null;
-    phone: string | null;
+    email: string | null;
+    username: string | null;
     role: string;
     status: string;
     expiresAt: string | null;
@@ -188,7 +189,9 @@ export function FarmDetail() {
             {data.members.map((m) => (
               <tr key={m.userId}>
                 <td>
-                  <UserLink user={{ id: m.userId, name: m.name, phone: m.phone }} />
+                  <UserLink
+                    user={{ id: m.userId, name: m.name, email: m.email, username: m.username }}
+                  />
                 </td>
                 <td>{t(`roles:${m.role}` as 'roles:owner')}</td>
                 <td>

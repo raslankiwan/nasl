@@ -1,3 +1,4 @@
+import type { RegistrationInput } from '@nasl/shared';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -19,8 +20,8 @@ interface AuthValue {
   me: Me | null;
   /** The farm currently being worked on. Most herders have exactly one. */
   farmId: string | null;
-  requestCode: (phone: string) => Promise<{ challengeId: string; devCode?: string }>;
-  verifyCode: (challengeId: string, code: string, name?: string) => Promise<void>;
+  register: (input: RegistrationInput) => Promise<{ id: string; status: 'pending' }>;
+  signIn: (identifier: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   selectFarm: (farmId: string) => void;
   refresh: () => Promise<void>;
@@ -35,7 +36,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const adopt = useCallback((profile: Me) => {
     setMe(profile);
-    setFarmId((current) => current ?? profile.farms[0]?.farmId ?? null);
+    setFarmId((current) =>
+      profile.farms.some((farm) => farm.farmId === current)
+        ? current
+        : (profile.farms[0]?.farmId ?? null),
+    );
     setStatus('signedIn');
   }, []);
 
@@ -49,6 +54,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    */
   const refresh = useCallback(async () => {
     if (!(await loadTokens())) {
+      setMe(null);
+      setFarmId(null);
       setStatus('signedOut');
       return;
     }
@@ -63,6 +70,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (err instanceof ApiError && err.status === 401) {
         await clearTokens();
         await AsyncStorage.removeItem(ME_CACHE_KEY);
+        setMe(null);
+        setFarmId(null);
         setStatus('signedOut');
         return;
       }
@@ -87,22 +96,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void refresh();
   }, [refresh]);
 
-  const requestCode = useCallback(
-    (phone: string) =>
-      api.post<{ challengeId: string; devCode?: string }>('/v1/auth/otp/request', { phone }),
+  const register = useCallback(
+    (input: RegistrationInput) =>
+      api.post<{ id: string; status: 'pending' }>('/v1/auth/register', input),
     [],
   );
-
-  const verifyCode = useCallback(
-    async (challengeId: string, code: string, name?: string) => {
+  const signIn = useCallback(
+    async (identifier: string, password: string) => {
       const session = await api.post<{ accessToken: string; refreshToken: string }>(
-        '/v1/auth/otp/verify',
-        { challengeId, code, deviceId: await deviceId(), ...(name ? { name } : {}) },
+        '/v1/auth/login',
+        { identifier, password, deviceId: await deviceId() },
       );
+      await AsyncStorage.removeItem(ME_CACHE_KEY);
+      setMe(null);
+      setFarmId(null);
       await saveTokens(session.accessToken, session.refreshToken);
-      await refresh();
+      const profile = await api.get<Me>('/v1/auth/me');
+      await AsyncStorage.setItem(ME_CACHE_KEY, JSON.stringify(profile));
+      adopt(profile);
     },
-    [refresh],
+    [adopt],
   );
 
   const signOut = useCallback(async () => {
@@ -120,13 +133,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       status,
       me,
       farmId,
-      requestCode,
-      verifyCode,
+      register,
+      signIn,
       signOut,
       selectFarm: setFarmId,
       refresh,
     }),
-    [status, me, farmId, requestCode, verifyCode, signOut, refresh],
+    [status, me, farmId, register, signIn, signOut, refresh],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

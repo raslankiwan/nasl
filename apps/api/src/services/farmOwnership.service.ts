@@ -12,8 +12,7 @@ const changing = new Set<string>();
 interface OwnerChange {
   farmId: string;
   expectedOwnerUserId: string;
-  ownerUserId?: string;
-  ownerPhone?: string;
+  ownerUserId: string;
   actorId: string;
   reason?: string;
 }
@@ -43,22 +42,19 @@ async function transfer(input: OwnerChange, session?: ClientSession) {
   if (farm.ownerUserId !== expectedOwnerUserId) {
     throw AppError.conflict('The farm owner has changed. Reload before trying again.');
   }
-  const owner = input.ownerUserId
-    ? await User.findById(input.ownerUserId)
-        .session(session ?? null)
-        .lean()
-        .exec()
-    : await User.findOneAndUpdate(
-        { phone: input.ownerPhone },
-        { $setOnInsert: { phone: input.ownerPhone } },
-        { upsert: true, new: true, setDefaultsOnInsert: true, session },
-      )
-        .lean()
-        .exec();
-  if (!owner) throw AppError.notFound('User not found');
+  const owner = await User.findOne({ _id: input.ownerUserId, status: 'approved' })
+    .session(session ?? null)
+    .lean()
+    .exec();
+  if (!owner) throw AppError.notFound('Approved user not found');
   const result = {
     id: farmId,
-    owner: { id: owner._id, name: owner.name ?? null, phone: owner.phone },
+    owner: {
+      id: owner._id,
+      name: owner.name ?? null,
+      email: owner.email,
+      username: owner.username,
+    },
   };
   if (owner._id === farm.ownerUserId) return result;
 

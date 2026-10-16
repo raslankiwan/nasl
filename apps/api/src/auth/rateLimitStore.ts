@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import type { Store } from 'express-rate-limit';
 import { RateLimit } from '../models/rateLimit.model.ts';
 
-/** Share OTP limits across functions using the existing database, without another service. */
+/** Share authentication limits across functions using the existing database, without another service. */
 export function mongoRateLimitStore(prefix: string): Store {
   let windowMs = 15 * 60_000;
   const id = (key: string) => `${prefix}:${createHash('sha256').update(key).digest('hex')}`;

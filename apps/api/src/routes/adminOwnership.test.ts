@@ -46,7 +46,8 @@ describe('operator ownership changes', () => {
       const otherFarm = await api(url, original.accessToken).post<{ id: string }>('/v1/farms', {
         name: 'Other farm',
       });
-      const worker = await User.create({ phone: '+970590000004' });
+      const workerSession = await signIn(url, '+970590000004');
+      const worker = { _id: workerSession.user.id };
       await Membership.create({ farmId, userId: worker._id, role: 'worker', status: 'active' });
       const result = await client.patch<{ owner: { id: string } }>(
         `/v1/admin/farms/${farmId}/owner`,
@@ -113,22 +114,13 @@ describe('operator ownership changes', () => {
     });
   });
 
-  test('a phone can provision a normal owner account without a reason or prior sign-in', async () => {
+  test('pending owners cannot be linked to farms', async () => {
     await withServer(testApp(), async (url) => {
-      const { original, farmId, client } = await setup(url);
-      const res = await client.patch<{ owner: { id: string } }>(`/v1/admin/farms/${farmId}/owner`, {
-        expectedOwnerUserId: original.user.id,
-        ownerPhone: '+970 590-000-009',
-        isPlatformAdmin: true,
-      });
-      assert.equal(res.status, 200);
-      const owner = await User.findById(res.body.owner.id).lean();
-      assert.equal(owner?.phone, '+970590000009');
-      assert.equal(owner?.isPlatformAdmin, false);
-      assert.equal((await AuditLog.findOne({ targetId: farmId }).lean())?.reason, null);
-      const session = await signIn(url, '+970590000009');
-      assert.equal(session.user.id, res.body.owner.id);
-      assert.equal((await api(url, session.accessToken).get(`/v1/farms/${farmId}`)).status, 200);
+      const { next, original, farmId, client, input } = await setup(url);
+      await User.updateOne({ _id: next.user.id }, { $set: { status: 'pending' } });
+      assert.equal((await client.patch(`/v1/admin/farms/${farmId}/owner`, input)).status, 404);
+      assert.equal((await Farm.findById(farmId).lean())?.ownerUserId, original.user.id);
+      assert.equal(await AuditLog.countDocuments(), 0);
     });
   });
 
@@ -187,7 +179,8 @@ describe('operator ownership changes', () => {
   test('simultaneous transfers have one winner and one audit entry', async () => {
     await withServer(testApp(), async (url) => {
       const { original, next, farmId, client, input } = await setup(url);
-      const third = await User.create({ phone: '+970590000004' });
+      const thirdSession = await signIn(url, '+970590000004');
+      const third = { _id: thirdSession.user.id };
       const results = await Promise.all([
         client.patch(`/v1/admin/farms/${farmId}/owner`, input),
         client.patch(`/v1/admin/farms/${farmId}/owner`, { ...input, ownerUserId: third._id }),
@@ -247,21 +240,21 @@ describe('operator ownership changes', () => {
 });
 
 describe('operator user directory', () => {
-  test('supports name/phone search, literal regex characters and pagination with owned counts', async () => {
+  test('supports name/username search, literal regex characters and pagination with owned counts', async () => {
     await withServer(testApp(), async (url) => {
       const { original, client } = await setup(url);
       await User.updateOne({ _id: original.user.id }, { $set: { name: 'Farmer (North)' } });
       const byName = await client.get<{
-        users: Array<{ id: string; phone: string; ownedFarmCount: number }>;
+        users: Array<{ id: string; username: string; ownedFarmCount: number }>;
         total: number;
       }>('/v1/admin/users?q=%28North%29');
       assert.equal(byName.status, 200);
       assert.equal(byName.body.total, 1);
       assert.equal(byName.body.users[0]?.id, original.user.id);
       assert.equal(byName.body.users[0]?.ownedFarmCount, 1);
-      assert.equal(byName.body.users[0]?.phone, '+970590000001');
-      const byPhone = await client.get<{ total: number }>('/v1/admin/users?q=590000001');
-      assert.equal(byPhone.body.total, 1);
+      assert.equal(byName.body.users[0]?.username, 'user970590000001');
+      const byUsername = await client.get<{ total: number }>('/v1/admin/users?q=590000001');
+      assert.equal(byUsername.body.total, 1);
       const first = await client.get<{ users: Array<{ id: string }>; total: number }>(
         '/v1/admin/users?limit=1',
       );

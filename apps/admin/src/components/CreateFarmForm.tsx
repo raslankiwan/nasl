@@ -11,7 +11,7 @@ interface Props {
 export function CreateFarmForm({ onCreated, onCancel }: Props) {
   const { t } = useTranslation(['admin', 'animals', 'common']);
   const [name, setName] = useState('');
-  const [ownerPhone, setOwnerPhone] = useState('');
+  const [ownerIdentifier, setOwnerIdentifier] = useState('');
   const [species, setSpecies] = useState('sheep');
   const [reason, setReason] = useState('');
 
@@ -19,7 +19,7 @@ export function CreateFarmForm({ onCreated, onCancel }: Props) {
     mutationFn: () =>
       apiClient.post<{ id: string }>('/v1/admin/farms', {
         name: name.trim(),
-        ownerPhone: ownerPhone.trim(),
+        ownerIdentifier: ownerIdentifier.trim(),
         species: species === 'both' ? ['sheep', 'goat'] : [species],
         ...(reason.trim() ? { reason: reason.trim() } : {}),
       }),
@@ -61,22 +61,22 @@ export function CreateFarmForm({ onCreated, onCancel }: Props) {
           />
         </div>
         <div className="field">
-          <label htmlFor="owner-phone">{t('admin:ownerPhone')}</label>
+          <label htmlFor="owner-account">{t('admin:ownerAccount')}</label>
           <input
-            id="owner-phone"
-            type="tel"
+            id="owner-account"
+            type="text"
             dir="ltr"
             autoComplete="off"
-            placeholder="+970…"
-            value={ownerPhone}
-            onChange={(event) => setOwnerPhone(event.target.value)}
-            minLength={6}
-            maxLength={20}
-            aria-describedby="owner-phone-hint"
+            autoCapitalize="none"
+            value={ownerIdentifier}
+            onChange={(event) => setOwnerIdentifier(event.target.value)}
+            minLength={3}
+            maxLength={254}
+            aria-describedby="owner-account-hint"
             required
           />
-          <span id="owner-phone-hint" className="hint">
-            {t('admin:ownerPhoneHint')}
+          <span id="owner-account-hint" className="hint">
+            {t('admin:ownerAccountHint')}
           </span>
         </div>
         <div className="field">
@@ -107,7 +107,7 @@ export function CreateFarmForm({ onCreated, onCancel }: Props) {
         <button
           className="primary"
           type="submit"
-          disabled={create.isPending || !name.trim() || !ownerPhone.trim()}
+          disabled={create.isPending || !name.trim() || !ownerIdentifier.trim()}
         >
           {create.isPending ? t('common:loading') : t('common:save')}
         </button>

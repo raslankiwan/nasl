@@ -16,7 +16,6 @@ export * from './inventory.model.ts';
 export * from './membership.model.ts';
 export * from './milk.model.ts';
 export * from './movement.model.ts';
-export * from './otpChallenge.model.ts';
 export * from './refreshToken.model.ts';
 export * from './rateLimit.model.ts';
 export * from './user.model.ts';

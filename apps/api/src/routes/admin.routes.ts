@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { SPECIES } from '@nasl/shared';
+import { ACCOUNT_STATUSES, SPECIES } from '@nasl/shared';
 import type { Config } from '../config.ts';
 import { AppError } from '../errors.ts';
 import { Animal } from '../models/animal.model.ts';
@@ -13,24 +13,29 @@ import { requireAuth } from '../middleware/requireAuth.ts';
 import { requirePlatformAdmin } from '../middleware/requirePlatformAdmin.ts';
 import { parse, pathParam, userIdOf } from '../http/validate.ts';
 import { createFarmSchema } from '../http/farmInput.ts';
-import { normalisePhone } from '../auth/otp.ts';
+import { reviewAccount } from '../services/accountApproval.service.ts';
 import { changeFarmOwner } from '../services/farmOwnership.service.ts';
 
 const directoryQuery = z.object({
   q: z.string().trim().max(80).optional(),
+  status: z.enum(ACCOUNT_STATUSES).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(25),
   skip: z.coerce.number().int().min(0).default(0),
 });
 const ownerChange = z
   .object({
     expectedOwnerUserId: z.string().min(1).max(64),
-    ownerUserId: z.string().min(1).max(64).optional(),
-    ownerPhone: z.string().min(6).max(20).optional(),
+    ownerUserId: z.string().min(1).max(64),
     reason: z.string().trim().max(300).optional(),
   })
-  .refine((value) => Boolean(value.ownerUserId) !== Boolean(value.ownerPhone), {
-    message: 'Choose one owner by user ID or phone number',
-  });
+  .strict();
+const approvalInput = z
+  .object({
+    status: z.enum(['approved', 'rejected']),
+    expectedStatus: z.enum(['pending', 'rejected']),
+    reason: z.string().trim().max(300).optional(),
+  })
+  .strict();
 const searchPattern = (q: string) => ({
   $regex: q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
   $options: 'i',
@@ -55,10 +60,12 @@ const planChange = z.object({
   reason: z.string().trim().min(3).max(300),
 });
 
-const adminFarmInput = createFarmSchema.extend({
-  ownerPhone: z.string().min(6).max(20),
-  reason: z.string().trim().max(300).optional(),
-});
+const adminFarmInput = createFarmSchema
+  .extend({
+    ownerIdentifier: z.string().trim().toLowerCase().min(3).max(254),
+    reason: z.string().trim().max(300).optional(),
+  })
+  .strict();
 
 export function adminRoutes(config: Config): Router {
   const router = Router();
@@ -91,18 +98,16 @@ export function adminRoutes(config: Config): Router {
   // -------------------------------------------------------------------------
 
   router.post('/farms', async (req, res) => {
-    const { ownerPhone, reason, ...input } = parse(adminFarmInput, req.body);
-    const phone = normalisePhone(ownerPhone);
-    // Provision a normal account, or reuse the existing one without changing its profile or
-    // privileges. The unique phone index keeps concurrent farm requests on the same identity.
-    const owner = await User.findOneAndUpdate(
-      { phone },
-      { $setOnInsert: { phone } },
-      { upsert: true, new: true, setDefaultsOnInsert: true },
-    )
+    const { ownerIdentifier, reason, ...input } = parse(adminFarmInput, req.body);
+    const owner = await User.findOne({
+      ...(ownerIdentifier.includes('@')
+        ? { email: ownerIdentifier }
+        : { username: ownerIdentifier }),
+      status: 'approved',
+    })
       .select('_id')
-      .lean()
-      .orFail();
+      .lean();
+    if (!owner) throw AppError.badRequest('Choose an approved account as the owner.');
 
     const farm = await Farm.create({ ...input, ownerUserId: owner._id });
     try {
@@ -150,7 +155,7 @@ export function adminRoutes(config: Config): Router {
         { $group: { _id: '$farmId', count: { $sum: 1 } } },
       ]).exec(),
       User.find({ _id: { $in: farms.map((f) => f.ownerUserId) } })
-        .select('name phone')
+        .select('name email username')
         .lean()
         .exec(),
     ]);
@@ -169,7 +174,14 @@ export function adminRoutes(config: Config): Router {
           species: f.species,
           headCount: headCount.get(f._id) ?? 0,
           ownerUserId: f.ownerUserId,
-          owner: owner ? { id: owner._id, name: owner.name ?? null, phone: owner.phone } : null,
+          owner: owner
+            ? {
+                id: owner._id,
+                name: owner.name ?? null,
+                email: owner.email,
+                username: owner.username,
+              }
+            : null,
           createdAt: f.createdAt.toISOString(),
         };
       }),
@@ -191,7 +203,7 @@ export function adminRoutes(config: Config): Router {
     const users = await User.find({
       _id: { $in: [farm.ownerUserId, ...members.map((m) => m.userId)] },
     })
-      .select('name phone')
+      .select('name email username')
       .lean()
       .exec();
     const userById = new Map(users.map((u) => [u._id, u]));
@@ -201,7 +213,9 @@ export function adminRoutes(config: Config): Router {
       id: farm._id,
       name: farm.name,
       ownerUserId: farm.ownerUserId,
-      owner: owner ? { id: owner._id, name: owner.name ?? null, phone: owner.phone } : null,
+      owner: owner
+        ? { id: owner._id, name: owner.name ?? null, email: owner.email, username: owner.username }
+        : null,
       country: farm.country,
       currency: farm.currency,
       timezone: farm.timezone,
@@ -215,7 +229,8 @@ export function adminRoutes(config: Config): Router {
       members: members.map((m) => ({
         userId: m.userId,
         name: userById.get(m.userId)?.name ?? null,
-        phone: userById.get(m.userId)?.phone ?? null,
+        email: userById.get(m.userId)?.email ?? null,
+        username: userById.get(m.userId)?.username ?? null,
         role: m.role,
         status: m.status,
         expiresAt: m.expiresAt?.toISOString() ?? null,
@@ -228,7 +243,6 @@ export function adminRoutes(config: Config): Router {
     const result = await changeFarmOwner(
       {
         ...input,
-        ...(input.ownerPhone ? { ownerPhone: normalisePhone(input.ownerPhone) } : {}),
         farmId: pathParam(req, 'farmId'),
         actorId: userIdOf(req),
       },
@@ -238,8 +252,19 @@ export function adminRoutes(config: Config): Router {
   });
 
   router.get('/users', async (req, res) => {
-    const { q, limit, skip } = parse(directoryQuery, req.query);
-    const filter = q ? { $or: [{ name: searchPattern(q) }, { phone: searchPattern(q) }] } : {};
+    const { q, limit, skip, status } = parse(directoryQuery, req.query);
+    const filter = {
+      ...(status ? { status } : {}),
+      ...(q
+        ? {
+            $or: [
+              { name: searchPattern(q) },
+              { email: searchPattern(q) },
+              { username: searchPattern(q) },
+            ],
+          }
+        : {}),
+    };
     const [users, total] = await Promise.all([
       User.find(filter).sort({ createdAt: -1, _id: 1 }).skip(skip).limit(limit).lean().exec(),
       User.countDocuments(filter),
@@ -253,7 +278,9 @@ export function adminRoutes(config: Config): Router {
       users: users.map((user) => ({
         id: user._id,
         name: user.name ?? null,
-        phone: user.phone,
+        email: user.email,
+        username: user.username,
+        status: user.status ?? 'pending',
         locale: user.locale,
         isPlatformAdmin: user.isPlatformAdmin,
         ownedFarmCount: owned.get(user._id) ?? 0,
@@ -262,6 +289,16 @@ export function adminRoutes(config: Config): Router {
       })),
       total,
     });
+  });
+
+  router.patch('/users/:userId/approval', async (req, res) => {
+    const input = parse(approvalInput, req.body);
+    res.json(
+      await reviewAccount(
+        { ...input, userId: pathParam(req, 'userId'), actorId: userIdOf(req) },
+        config.NODE_ENV === 'production',
+      ),
+    );
   });
 
   router.get('/users/:userId', async (req, res) => {
@@ -276,7 +313,7 @@ export function adminRoutes(config: Config): Router {
       .lean()
       .exec();
     const owners = await User.find({ _id: { $in: farms.map((f) => f.ownerUserId) } })
-      .select('name phone')
+      .select('name email username')
       .lean()
       .exec();
     const ownerById = new Map(owners.map((owner) => [owner._id, owner]));
@@ -284,7 +321,9 @@ export function adminRoutes(config: Config): Router {
     res.json({
       id: user._id,
       name: user.name ?? null,
-      phone: user.phone,
+      email: user.email,
+      username: user.username,
+      status: user.status ?? 'pending',
       locale: user.locale,
       isPlatformAdmin: user.isPlatformAdmin,
       createdAt: user.createdAt.toISOString(),
@@ -297,7 +336,14 @@ export function adminRoutes(config: Config): Router {
           name: farm.name,
           plan: farm.plan,
           ownerUserId: farm.ownerUserId,
-          owner: owner ? { id: owner._id, name: owner.name ?? null, phone: owner.phone } : null,
+          owner: owner
+            ? {
+                id: owner._id,
+                name: owner.name ?? null,
+                email: owner.email,
+                username: owner.username,
+              }
+            : null,
           role: membership?.role ?? null,
           status: membership?.status ?? null,
           expiresAt: membership?.expiresAt?.toISOString() ?? null,
@@ -418,7 +464,7 @@ export function adminRoutes(config: Config): Router {
 
     const entries = await AuditLog.find(filter).sort({ createdAt: -1 }).limit(limit).lean().exec();
     const actors = await User.find({ _id: { $in: entries.map((e) => e.actorId) } })
-      .select('name phone')
+      .select('name email username')
       .lean()
       .exec();
     const actorById = new Map(actors.map((a) => [a._id, a]));
@@ -436,7 +482,8 @@ export function adminRoutes(config: Config): Router {
         actor: {
           id: e.actorId,
           name: actorById.get(e.actorId)?.name ?? null,
-          phone: actorById.get(e.actorId)?.phone ?? null,
+          email: actorById.get(e.actorId)?.email ?? null,
+          username: actorById.get(e.actorId)?.username ?? null,
         },
         action: e.action,
         targetType: e.targetType,

@@ -2,11 +2,11 @@ import { Router } from 'express';
 import rateLimit, { type Options } from 'express-rate-limit';
 import { z } from 'zod';
 import type { Config } from '../config.ts';
-import type { Logger } from '../logger.ts';
 import { AppError } from '../errors.ts';
 import { User } from '../models/user.model.ts';
 import { Membership } from '../models/membership.model.ts';
-import { createChallenge, normalisePhone, verifyChallenge } from './otp.ts';
+import { PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH } from '@nasl/shared';
+import { hashPassword, verifyPassword } from './passwords.ts';
 import {
   hashRefreshToken,
   issueRefreshToken,
@@ -16,30 +16,42 @@ import {
 } from './tokens.ts';
 import { RefreshToken } from '../models/refreshToken.model.ts';
 import { mongoRateLimitStore } from './rateLimitStore.ts';
-import { sendOtpSms } from './sms.ts';
 import { requireAuth } from '../middleware/requireAuth.ts';
 import { parse } from '../http/validate.ts';
 
-const requestSchema = z.object({ phone: z.string().min(6).max(20) });
-const verifySchema = z.object({
-  challengeId: z.string().min(1),
-  code: z.string().regex(/^\d{6}$/, 'The code is six digits'),
-  deviceId: z.string().min(8).max(128),
-  name: z.string().trim().min(1).max(80).optional(),
-});
+const registerSchema = z
+  .object({
+    name: z.string().trim().min(1).max(80),
+    email: z.string().trim().toLowerCase().email().max(254),
+    username: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .regex(/^[a-z0-9][a-z0-9._-]{2,31}$/),
+    password: z.string().min(PASSWORD_MIN_LENGTH).max(PASSWORD_MAX_LENGTH),
+    locale: z.enum(['ar', 'en']).default('ar'),
+  })
+  .strict();
+const loginSchema = z
+  .object({
+    identifier: z.string().trim().toLowerCase().min(1).max(254),
+    password: z.string().min(1).max(PASSWORD_MAX_LENGTH),
+    deviceId: z.string().min(8).max(128),
+  })
+  .strict();
 const refreshSchema = z.object({
   refreshToken: z.string().min(1),
   deviceId: z.string().min(8).max(128),
 });
 
-export function authRoutes(config: Config, logger: Logger): Router {
+export function authRoutes(config: Config): Router {
   const router = Router();
   router.use((_req, res, next) => {
     res.set('Cache-Control', 'no-store');
     next();
   });
 
-  const otpLimitOptions: Partial<Options> = {
+  const limitOptions: Partial<Options> = {
     windowMs: 15 * 60_000,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
@@ -50,66 +62,65 @@ export function authRoutes(config: Config, logger: Logger): Router {
     },
   };
 
-  // SMS limits belong to the phone. A separate network cap bounds requests across many phones
-  // without making a handful of people behind the same router exhaust each other's quota.
-  const requestIpLimiter = rateLimit({
-    ...otpLimitOptions,
-    limit: 30,
-    store: mongoRateLimitStore('otp-request-ip'),
+  const registerLimiter = rateLimit({
+    ...limitOptions,
+    limit: 10,
+    store: mongoRateLimitStore('register-ip'),
   });
-  const requestPhoneLimiter = rateLimit({
-    ...otpLimitOptions,
-    limit: 5,
-    store: mongoRateLimitStore('otp-request-phone'),
-    keyGenerator: (req) => normalisePhone(parse(requestSchema, req.body).phone),
-  });
-  // Sending a code must never consume the budget for redeeming it. Each challenge also keeps
-  // its own OTP_MAX_ATTEMPTS guard; successful sign-ins do not consume this failed-attempt cap.
-  const verifyIpLimiter = rateLimit({
-    ...otpLimitOptions,
+  const loginIpLimiter = rateLimit({
+    ...limitOptions,
     limit: 60,
-    store: mongoRateLimitStore('otp-verify-ip'),
     skipSuccessfulRequests: true,
+    store: mongoRateLimitStore('login-ip'),
+  });
+  const loginAccountLimiter = rateLimit({
+    ...limitOptions,
+    limit: 10,
+    skipSuccessfulRequests: true,
+    store: mongoRateLimitStore('login-account'),
+    keyGenerator: (req) => parse(loginSchema, req.body).identifier,
   });
 
-  router.post('/otp/request', requestIpLimiter, requestPhoneLimiter, async (req, res) => {
-    const { phone } = parse(requestSchema, req.body);
-    const normalised = normalisePhone(phone);
-    if (config.SMS_PROVIDER === 'disabled') {
-      throw new AppError('sign_in_unavailable', 'Phone sign-in is not available yet.');
+  router.post('/register', registerLimiter, async (req, res) => {
+    const { password, ...profile } = parse(registerSchema, req.body);
+    const conflict = () =>
+      new AppError('registration_conflict', 'That email or username is already in use.');
+    if (await User.exists({ $or: [{ email: profile.email }, { username: profile.username }] })) {
+      throw conflict();
     }
-    const exposeCode = config.SMS_PROVIDER === 'log';
-
-    const challenge = await createChallenge(
-      normalised,
-      config.OTP_TTL_MINUTES,
-      exposeCode,
-      exposeCode ? undefined : (code) => sendOtpSms(config, normalised, code),
-    );
-
-    if (exposeCode) {
-      // Development only. The redaction list keeps this out of production logs regardless.
-      logger.info({ challengeId: challenge.challengeId }, 'OTP issued (SMS delivery is stubbed)');
+    try {
+      const user = await User.create({
+        ...profile,
+        passwordHash: await hashPassword(password),
+        status: 'pending',
+        isPlatformAdmin: false,
+      });
+      // Registration never issues credentials, even for the first account.
+      res.status(201).json({ id: user._id, status: 'pending' });
+    } catch (error) {
+      if ((error as { code?: number }).code === 11000) throw conflict();
+      throw error;
     }
-
-    res.status(201).json({
-      challengeId: challenge.challengeId,
-      expiresAt: challenge.expiresAt.toISOString(),
-      ...(challenge.devCode ? { devCode: challenge.devCode } : {}),
-    });
   });
 
-  router.post('/otp/verify', verifyIpLimiter, async (req, res) => {
-    const { challengeId, code, deviceId, name } = parse(verifySchema, req.body);
-    const { phone } = await verifyChallenge(challengeId, code, config.OTP_MAX_ATTEMPTS);
-
-    // First sign-in creates the account. There is no separate registration step.
-    let user = await User.findOne({ phone }).exec();
-    if (!user) {
-      user = await User.create({ phone, ...(name ? { name } : {}) });
-    } else if (name && !user.name) {
-      user.name = name;
-      await user.save();
+  router.post('/login', loginIpLimiter, loginAccountLimiter, async (req, res) => {
+    const { identifier, password, deviceId } = parse(loginSchema, req.body);
+    const user = await User.findOne(
+      identifier.includes('@') ? { email: identifier } : { username: identifier },
+    )
+      .select('+passwordHash')
+      .exec();
+    if (!(await verifyPassword(password, user?.passwordHash)) || !user) {
+      throw AppError.unauthorized('Incorrect email, username or password.');
+    }
+    if (user.status === 'rejected') {
+      throw new AppError(
+        'account_rejected',
+        'Your registration was not approved. Contact the administrator.',
+      );
+    }
+    if (user.status !== 'approved') {
+      throw new AppError('account_pending', 'Your account is awaiting administrator approval.');
     }
     user.lastSeenAt = new Date();
     await user.save();
@@ -123,7 +134,13 @@ export function authRoutes(config: Config, logger: Logger): Router {
       accessToken,
       refreshToken: refresh.token,
       expiresIn: config.ACCESS_TOKEN_TTL_MINUTES * 60,
-      user: { id: user._id, name: user.name ?? null, locale: user.locale },
+      user: {
+        id: user._id,
+        name: user.name ?? null,
+        email: user.email,
+        username: user.username,
+        locale: user.locale,
+      },
     });
   });
 
@@ -169,6 +186,8 @@ export function authRoutes(config: Config, logger: Logger): Router {
       id: user._id,
       name: user.name ?? null,
       locale: user.locale,
+      email: user.email,
+      username: user.username,
       isPlatformAdmin: user.isPlatformAdmin === true,
       farms: memberships.map((m) => ({ farmId: m.farmId, role: m.role })),
     });

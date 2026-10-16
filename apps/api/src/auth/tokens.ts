@@ -2,6 +2,7 @@ import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { jwtVerify, SignJWT } from 'jose';
 import { AppError } from '../errors.ts';
 import { RefreshToken } from '../models/refreshToken.model.ts';
+import { User } from '../models/user.model.ts';
 
 export interface AccessTokenClaims {
   sub: string;
@@ -104,6 +105,11 @@ export async function rotateRefreshToken(
 
   if (existing.deviceId !== deviceId) {
     throw AppError.unauthorized('This session belongs to a different device.');
+  }
+
+  if (!(await User.exists({ _id: existing.userId, status: 'approved' }))) {
+    await revokeAllForUser(existing.userId);
+    throw AppError.unauthorized('An approved account is required.');
   }
 
   const next = await issueRefreshToken(existing.userId, deviceId, ttlDays, existing.familyId);

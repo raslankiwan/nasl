@@ -69,7 +69,7 @@ function Console({ user, onSignOut }: { user: StaffUser; onSignOut: () => void }
 
 export function App() {
   const { t } = useTranslation(['common', 'auth']);
-  const { state, requestCode, verifyCode, signOut, reload } = useAuth();
+  const { state, register, signIn, signOut, reload } = useAuth();
 
   // Stable across renders, so nothing downstream treats it as a changed dependency.
   const handleSignOut = useCallback(() => void signOut(), [signOut]);
@@ -78,7 +78,7 @@ export function App() {
     case 'loading':
       return <div className="loading">{t('loading')}</div>;
     case 'signedOut':
-      return <SignIn requestCode={requestCode} verifyCode={verifyCode} />;
+      return <SignIn register={register} signIn={signIn} />;
     case 'unavailable':
       return (
         <div className="signin">

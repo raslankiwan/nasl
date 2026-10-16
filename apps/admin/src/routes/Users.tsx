@@ -1,3 +1,4 @@
+import { ACCOUNT_STATUSES, type AccountStatus } from '@nasl/shared';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -8,6 +9,7 @@ import { UserLink, type UserSummary } from '../components/UserLink';
 import { Pagination, PAGE_SIZE } from '../components/Pagination';
 
 interface UserRow extends UserSummary {
+  status: AccountStatus;
   ownedFarmCount: number;
   isPlatformAdmin: boolean;
   createdAt: string;
@@ -18,12 +20,13 @@ export function Users() {
   const { t, i18n } = useTranslation(['admin', 'common', 'auth']);
   const locale = (i18n.resolvedLanguage ?? 'ar') as Locale;
   const [q, setQ] = useState('');
+  const [status, setStatus] = useState('');
   const [skip, setSkip] = useState(0);
   const { data, isPending, isError } = useQuery({
-    queryKey: ['admin', 'users', q, skip],
+    queryKey: ['admin', 'users', q, skip, status],
     queryFn: () =>
       apiClient.get<{ users: UserRow[]; total: number }>(
-        `/v1/admin/users?q=${encodeURIComponent(q)}&skip=${skip}&limit=${PAGE_SIZE}`,
+        `/v1/admin/users?q=${encodeURIComponent(q)}&skip=${skip}&limit=${PAGE_SIZE}${status ? `&status=${status}` : ''}`,
       ),
   });
   return (
@@ -41,6 +44,21 @@ export function Users() {
             setSkip(0);
           }}
         />
+        <select
+          aria-label={t('admin:accountStatus')}
+          value={status}
+          onChange={(e) => {
+            setStatus(e.target.value);
+            setSkip(0);
+          }}
+        >
+          <option value="">{t('common:all')}</option>
+          {ACCOUNT_STATUSES.map((value) => (
+            <option key={value} value={value}>
+              {t(`admin:accountStates.${value}`)}
+            </option>
+          ))}
+        </select>
       </PageHead>
       <div className="table-wrap">
         {isPending ? (
@@ -56,7 +74,8 @@ export function Users() {
             <thead>
               <tr>
                 <th>{t('admin:users')}</th>
-                <th>{t('auth:phoneNumber')}</th>
+                <th>{t('auth:username')}</th>
+                <th>{t('admin:accountStatus')}</th>
                 <th>{t('admin:accountType')}</th>
                 <th>{t('admin:ownedFarms')}</th>
                 <th>{t('admin:lastSignIn')}</th>
@@ -70,6 +89,9 @@ export function Users() {
                   </td>
                   <td>
                     <UserLink user={{ ...user, name: null }} />
+                  </td>
+                  <td>
+                    <span className="pill">{t(`admin:accountStates.${user.status}`)}</span>
                   </td>
                   <td>{t(user.isPlatformAdmin ? 'admin:platformStaff' : 'admin:regularUser')}</td>
                   <td>{formatNumber(user.ownedFarmCount, locale)}</td>

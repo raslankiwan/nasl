@@ -1,16 +1,19 @@
 import { pino } from 'pino';
 
-/**
- * Phone numbers identify a person and are the one piece of personal data this service handles in
- * bulk. They never reach the logs, in any environment.
- */
+/** Credentials and personal identifiers must never reach application logs. */
 const REDACTED_PATHS = [
-  'req.body.phone',
-  'req.body.code',
+  'req.body.email',
+  'req.body.username',
+  'req.body.identifier',
+  'req.body.password',
+  'req.body.passwordHash',
   'req.body.refreshToken',
   'req.headers.authorization',
-  'phone',
-  'code',
+  'email',
+  'username',
+  'identifier',
+  'password',
+  'passwordHash',
   'refreshToken',
   'accessToken',
 ];

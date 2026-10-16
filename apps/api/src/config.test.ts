@@ -8,14 +8,8 @@ const env = {
   JWT_SECRET: 'x'.repeat(40),
 };
 
-test('production defaults to no SMS spending and rejects development code exposure', () => {
-  assert.equal(loadConfig(env).SMS_PROVIDER, 'disabled');
+test('production keeps a small pool and requires exact CORS origins', () => {
   assert.equal(loadConfig(env).MONGO_MAX_POOL_SIZE, 5);
-  assert.throws(() => loadConfig({ ...env, SMS_PROVIDER: 'log' }), /Development codes/);
-});
-
-test('Twilio requires all credentials and CORS requires exact origins', () => {
-  assert.throws(() => loadConfig({ ...env, SMS_PROVIDER: 'twilio' }), /Required for Twilio/);
   assert.throws(
     () => loadConfig({ ...env, CORS_ORIGINS: 'https://admin.example/path' }),
     /URL origins/,

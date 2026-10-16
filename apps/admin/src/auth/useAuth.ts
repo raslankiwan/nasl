@@ -1,3 +1,4 @@
+import type { RegistrationInput } from '@nasl/shared';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiClient, ApiError, deviceId, tokens } from '../api/client';
 
@@ -6,12 +7,6 @@ export interface StaffUser {
   name: string | null;
   locale: string;
   isPlatformAdmin: boolean;
-}
-
-interface Challenge {
-  challengeId: string;
-  expiresAt: string;
-  devCode?: string;
 }
 
 interface Session {
@@ -68,20 +63,19 @@ export function useAuth() {
     return () => window.removeEventListener('online', retry);
   }, [state.status, loadMe]);
 
-  const requestCode = useCallback(
-    (phone: string) => apiClient.post<Challenge>('/v1/auth/otp/request', { phone }),
+  const register = useCallback(
+    (input: RegistrationInput) =>
+      apiClient.post<{ id: string; status: 'pending' }>('/v1/auth/register', input),
     [],
   );
-
-  const verifyCode = useCallback(
-    async (challengeId: string, code: string) => {
-      const session = await apiClient.post<Session>('/v1/auth/otp/verify', {
-        challengeId,
-        code,
+  const signIn = useCallback(
+    async (identifier: string, password: string) => {
+      const session = await apiClient.post<Session>('/v1/auth/login', {
+        identifier,
+        password,
         deviceId: deviceId(),
       });
       tokens.set(session.accessToken, session.refreshToken);
-      // The sign-in response does not carry staff status; /me is the authority.
       await loadMe();
     },
     [loadMe],
@@ -98,5 +92,5 @@ export function useAuth() {
     }
   }, []);
 
-  return { state, requestCode, verifyCode, signOut, reload: loadMe };
+  return { state, register, signIn, signOut, reload: loadMe };
 }

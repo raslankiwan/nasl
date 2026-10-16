@@ -30,8 +30,6 @@ export function AssignOwnerForm({
   const [skip, setSkip] = useState(0);
   const [selectedFarm, setSelectedFarm] = useState<OwnershipFarm | null>(null);
   const [selectedUser, setSelectedUser] = useState<UserSummary | null>(null);
-  const [byPhone, setByPhone] = useState(false);
-  const [phone, setPhone] = useState('');
   const [reason, setReason] = useState('');
   const farm = fixedFarm ?? selectedFarm;
   const owner = fixedUser ?? selectedUser;
@@ -41,15 +39,14 @@ export function AssignOwnerForm({
     queryKey: ['admin', 'owner-picker', path, q, skip],
     queryFn: () =>
       apiClient.get<{ farms?: OwnershipFarm[]; users?: UserSummary[]; total: number }>(
-        `/v1/admin/${path}?q=${encodeURIComponent(q)}&skip=${skip}&limit=${PAGE_SIZE}`,
+        `/v1/admin/${path}?q=${encodeURIComponent(q)}&skip=${skip}&limit=${PAGE_SIZE}${searchingFarms ? '' : '&status=approved'}`,
       ),
-    enabled: !byPhone,
   });
   const change = useMutation({
     mutationFn: () =>
       apiClient.patch(`/v1/admin/farms/${farm!.id}/owner`, {
         expectedOwnerUserId: farm!.ownerUserId,
-        ...(byPhone ? { ownerPhone: phone.trim() } : { ownerUserId: owner!.id }),
+        ownerUserId: owner!.id,
         ...(reason.trim() ? { reason: reason.trim() } : {}),
       }),
     onSuccess: async () => {
@@ -65,8 +62,7 @@ export function AssignOwnerForm({
       : change.error instanceof ApiError && change.error.status === 404
         ? t('admin:recordNotFound')
         : t('common:errorRetry');
-  const valid =
-    farm && (byPhone ? phone.trim().length >= 6 : owner && owner.id !== farm.ownerUserId);
+  const valid = farm && owner && owner.id !== farm.ownerUserId;
 
   return (
     <form
@@ -84,104 +80,69 @@ export function AssignOwnerForm({
         </div>
       ) : null}
       <fieldset disabled={change.isPending || conflict}>
-        {!fixedUser ? (
-          <div className="field">
-            <label htmlFor="owner-method">{t('admin:chooseOwner')}</label>
-            <select
-              id="owner-method"
-              value={byPhone ? 'phone' : 'user'}
-              onChange={(e) => setByPhone(e.target.value === 'phone')}
-            >
-              <option value="user">{t('admin:existingUser')}</option>
-              <option value="phone">{t('admin:byPhone')}</option>
-            </select>
-          </div>
-        ) : null}
-        {byPhone ? (
-          <div className="field">
-            <label htmlFor="assignment-phone">{t('admin:ownerPhone')}</label>
-            <input
-              id="assignment-phone"
-              type="tel"
-              dir="ltr"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              required
-              minLength={6}
-              maxLength={20}
-              placeholder="+970…"
-            />
-            <span className="hint">{t('admin:ownerPhoneHint')}</span>
-          </div>
+        <div className="field">
+          <label htmlFor="assignment-search">
+            {t(searchingFarms ? 'admin:searchFarms' : 'admin:searchUsers')}
+          </label>
+          <input
+            id="assignment-search"
+            type="search"
+            value={q}
+            maxLength={80}
+            onChange={(e) => {
+              setQ(e.target.value);
+              setSkip(0);
+            }}
+          />
+        </div>
+        {isPending ? (
+          <p>{t('common:loading')}</p>
+        ) : isError ? (
+          <div role="alert">{t('common:errorRetry')}</div>
         ) : (
           <>
-            <div className="field">
-              <label htmlFor="assignment-search">
-                {t(searchingFarms ? 'admin:searchFarms' : 'admin:searchUsers')}
-              </label>
-              <input
-                id="assignment-search"
-                type="search"
-                value={q}
-                maxLength={80}
-                onChange={(e) => {
-                  setQ(e.target.value);
-                  setSkip(0);
-                }}
-              />
+            <div className="picker-options">
+              {searchingFarms
+                ? data?.farms?.map((item) => (
+                    <label key={item.id} className="picker-option">
+                      <input
+                        type="radio"
+                        name="assignment-farm"
+                        checked={farm?.id === item.id}
+                        disabled={item.ownerUserId === fixedUser?.id}
+                        onChange={() => setSelectedFarm(item)}
+                      />
+                      <span>
+                        {item.name}
+                        {item.ownerUserId === fixedUser?.id ? ` — ${t('admin:alreadyOwner')}` : ''}
+                      </span>
+                    </label>
+                  ))
+                : data?.users?.map((item) => (
+                    <label key={item.id} className="picker-option">
+                      <input
+                        type="radio"
+                        name="assignment-user"
+                        checked={owner?.id === item.id}
+                        disabled={item.id === fixedFarm?.ownerUserId}
+                        onChange={() => setSelectedUser(item)}
+                      />
+                      <span>
+                        <bdi>{item.name || item.username}</bdi>
+                        {item.name ? (
+                          <>
+                            {' '}
+                            · <bdi>{item.username}</bdi>
+                          </>
+                        ) : null}
+                      </span>
+                    </label>
+                  ))}
+              {data?.total === 0 ? (
+                <p>{t(searchingFarms ? 'admin:noFarms' : 'admin:noUsers')}</p>
+              ) : null}
             </div>
-            {isPending ? (
-              <p>{t('common:loading')}</p>
-            ) : isError ? (
-              <div role="alert">{t('common:errorRetry')}</div>
-            ) : (
-              <>
-                <div className="picker-options">
-                  {searchingFarms
-                    ? data?.farms?.map((item) => (
-                        <label key={item.id} className="picker-option">
-                          <input
-                            type="radio"
-                            name="assignment-farm"
-                            checked={farm?.id === item.id}
-                            disabled={item.ownerUserId === fixedUser?.id}
-                            onChange={() => setSelectedFarm(item)}
-                          />
-                          <span>
-                            {item.name}
-                            {item.ownerUserId === fixedUser?.id
-                              ? ` — ${t('admin:alreadyOwner')}`
-                              : ''}
-                          </span>
-                        </label>
-                      ))
-                    : data?.users?.map((item) => (
-                        <label key={item.id} className="picker-option">
-                          <input
-                            type="radio"
-                            name="assignment-user"
-                            checked={owner?.id === item.id}
-                            disabled={item.id === fixedFarm?.ownerUserId}
-                            onChange={() => setSelectedUser(item)}
-                          />
-                          <span>
-                            <bdi>{item.name || item.phone}</bdi>
-                            {item.name ? (
-                              <>
-                                {' '}
-                                · <bdi>{item.phone}</bdi>
-                              </>
-                            ) : null}
-                          </span>
-                        </label>
-                      ))}
-                  {data?.total === 0 ? (
-                    <p>{t(searchingFarms ? 'admin:noFarms' : 'admin:noUsers')}</p>
-                  ) : null}
-                </div>
-                <Pagination skip={skip} total={data?.total ?? 0} onChange={setSkip} />
-              </>
-            )}
+            <Pagination skip={skip} total={data?.total ?? 0} onChange={setSkip} />
           </>
         )}
         {farm ? (
@@ -190,7 +151,7 @@ export function AssignOwnerForm({
             {farm.owner ? <UserLink user={farm.owner} /> : t('common:unknown')}
           </p>
         ) : null}
-        {!byPhone && owner ? (
+        {owner ? (
           <p>
             {t('admin:newOwner')}: <UserLink user={owner} />
           </p>

@@ -12,3 +12,5 @@ export * from './csv.ts';
 export * from './lactation.ts';
 export * from './dairy.ts';
 export * from './protocols.ts';
+
+export * from './auth.ts';
