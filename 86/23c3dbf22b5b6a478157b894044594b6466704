@@ -1,0 +1,291 @@
+apps/admin/src/routes/Farms.tsx
+  s_c9959826314bf9::t_c49b4c3bdf5e3f 2-3,8,24,27,29-30,32,43-46,49-50,52-65,68-74
+  s_c9959826314bf9::t_dfc6252b4328ff 51,82
+  s_c9959826314bf9::t_daea253ab16929 9-10,19,28,33,36,47-48
+  s_c9959826314bf9::t_ff9e4c5da4f2ee 75-78,83-85,90,105,121
+apps/api/.env.example
+  s_c9959826314bf9::t_d284838ea17911 4,6,14,17-24
+apps/admin/src/App.tsx
+  s_c9959826314bf9::t_daea253ab16929 19-20,38-39
+  s_c9959826314bf9::t_3366935da03b76 71-72,82-92
+apps/admin/src/routes/Dashboard.tsx
+  s_c9959826314bf9::t_daea253ab16929 6,35,38-39,42
+apps/admin/src/routes/UserDetail.tsx
+  s_c9959826314bf9::t_460960a8d9d641 1-53
+  s_c9959826314bf9::t_7e43eb4acd7dde 54-142
+apps/api/scripts/grant-platform-admin.mjs
+  s_c9959826314bf9::t_d284838ea17911 26
+apps/admin/src/components/UserLink.tsx
+  s_c9959826314bf9::t_460960a8d9d641 1-15
+apps/admin/src/auth/useAuth.test.tsx
+  s_c9959826314bf9::t_165d0d68749644 1-93
+  s_c9959826314bf9::t_eacd72efb74300 94-127
+apps/mobile/src/components/TabScreen.tsx
+  s_c9959826314bf9::t_b9e0e5a0ff4c2c 8
+  s_c9959826314bf9::t_197456778ab90b 1-7,9-13
+apps/mobile/app/animal/new.tsx
+  s_c9959826314bf9::t_46f964123f5aad 3-11,18,20,29,73,79-82,91,93,97,103,119-141,183-187
+  s_c9959826314bf9::t_c09828a9c047e6 1,188-193,205-208,221,281
+apps/api/src/services/farmOwnership.transaction.test.ts
+  s_c9959826314bf9::t_bc494ee9c684d1 1-43
+  s_c9959826314bf9::t_723884ef39d616 44-61
+apps/mobile/src/polyfills.ts
+  s_7b533637329232::t_73c80dcd09b10c 1-24
+apps/admin/src/components/CreateFarmForm.test.tsx
+  s_c9959826314bf9::t_706e0eef904488 1-8,16-19,25-28,30-34,37-39,44-46,49,51,69,71,73-75
+  s_c9959826314bf9::t_ea0bcf42b6d6af 9-15,20-24,29,35-36,40-43,47-48,50,52-68,70,72
+  s_c9959826314bf9::t_087dd0f710e137 76-79
+apps/api/src/routes/animals.routes.ts
+  s_c9959826314bf9::t_46f964123f5aad 26
+  s_c9959826314bf9::t_16f2d627c8f80e 27-32
+apps/api/index.ts
+  s_c9959826314bf9::t_d284838ea17911 17
+  s_c9959826314bf9::t_8bde36c97aa1c9 1-16,18-24
+apps/admin/src/api/client.test.ts
+  s_c9959826314bf9::t_165d0d68749644 1-105
+  s_c9959826314bf9::t_15b151cc75ee99 106-131
+apps/api/src/db.ts
+  s_c9959826314bf9::t_8bde36c97aa1c9 38-39,41-43,45-52,54-56,58-65,67-74,76
+  s_c9959826314bf9::t_d284838ea17911 44,57,66
+  s_c9959826314bf9::t_dd8e6a0af2213e 75,77-78,84
+apps/api/scripts/prepare-database.ts
+  s_c9959826314bf9::t_d284838ea17911 11
+  s_c9959826314bf9::t_8bde36c97aa1c9 1-10,12-15
+apps/admin/src/routes/FarmDetail.tsx
+  s_c9959826314bf9::t_daea253ab16929 2,8-9,14-15,28,46-47,49-53,68-74
+  s_c9959826314bf9::t_5d2aa176cfca94 75-76,80-112,190-192,195-199
+apps/admin/src/components/AssignOwnerForm.test.tsx
+  s_c9959826314bf9::t_f4b1f0b3cdc092 1-80
+  s_c9959826314bf9::t_eb25efaba5e60a 81-110
+apps/mobile/src/components/AnimalNameEditor.tsx
+  s_c9959826314bf9::t_46f964123f5aad 1-42
+  s_c9959826314bf9::t_9045e016cb41fc 43-69
+apps/mobile/src/sync/cache.test.ts
+  s_c9959826314bf9::t_f285b0e1b63866 44-57
+  s_c9959826314bf9::t_2a3d52e985d790 58-64
+apps/mobile/src/components/ScreenHeader.tsx
+  s_c9959826314bf9::t_197456778ab90b 1-29
+  s_c9959826314bf9::t_88c11c613d1c66 30-37
+apps/admin/src/routes/Users.tsx
+  s_c9959826314bf9::t_460960a8d9d641 1-42
+  s_c9959826314bf9::t_84d01d6c77c380 43-90
+apps/api/src/routes/admin.test.ts
+  s_c9959826314bf9::t_706e0eef904488 4-5,82-111,115,120-135,189-191,193-196,204-208,210-216,220,224-230,232
+  s_c9959826314bf9::t_ea0bcf42b6d6af 6,112-114,116-119,136-188,192,197-203,209,217-219,221-223
+  s_c9959826314bf9::t_cbfb61cce5fab0 231,233-234
+apps/api/src/routes/adminOwnership.test.ts
+  s_c9959826314bf9::t_10aaa4c3d8aa67 1-194
+  s_c9959826314bf9::t_fb97254a2eaf2d 195-299
+apps/api/src/errors.ts
+  s_c9959826314bf9::t_8bde36c97aa1c9 12,24
+apps/api/src/auth/sms.ts
+  s_c9959826314bf9::t_94f7e7886fad30 1-28
+  s_c9959826314bf9::t_7de2cf71321f0f 29-35
+apps/admin/src/routes/SignIn.tsx
+  s_c9959826314bf9::t_94f7e7886fad30 26-29
+  s_c9959826314bf9::t_533329b5780591 30-34
+apps/api/src/testing/mongo.ts
+  s_c9959826314bf9::t_bc494ee9c684d1 2,5,8,11-13
+.vercelignore
+  s_c9959826314bf9::t_f55727afbcc905 1-12
+apps/admin/src/auth/useAuth.ts
+  s_c9959826314bf9::t_3366935da03b76 1-2,25,32,35-36,40,43,45-53,59-61,64-70,92
+  s_c9959826314bf9::t_da3d21b062de12 93-94
+apps/api/src/services/farmOwnership.service.ts
+  s_c9959826314bf9::t_18838cffecb281 1-77
+  s_c9959826314bf9::t_478b73c158ad50 78-119
+apps/admin/src/components/CreateFarmForm.tsx
+  s_c9959826314bf9::t_c49b4c3bdf5e3f 1-23,25-29,34-46,52-54,62-77,81-83,89-94,102-106,112,116-120
+  s_c9959826314bf9::t_3df819ac7aae70 24,30-33,47-51,55-61,78-80,84-88,95-101,107-111,113-115
+apps/admin/src/styles.css
+  s_c9959826314bf9::t_dfc6252b4328ff 147
+  s_c9959826314bf9::t_c49b4c3bdf5e3f 159-174,298,304,308-309,314,317,323,333-334,339
+  s_c9959826314bf9::t_1586c0fc1422a1 278-297,299-303,305-307,310-313,315-316,318-322,324-332,335-338
+apps/api/src/server.ts
+  s_c9959826314bf9::t_d284838ea17911 13
+  s_c9959826314bf9::t_8bde36c97aa1c9 10-12,14
+apps/mobile/src/components/TabScreen.native.tsx
+  s_c9959826314bf9::t_197456778ab90b 1-17
+apps/mobile/src/components/form.tsx
+  s_c9959826314bf9::t_a6661a67038e1d 2,7-15
+  s_c9959826314bf9::t_556dc7d2f1dee8 16-20,98,169,206
+apps/api/src/auth/otp.ts
+  s_c9959826314bf9::t_94f7e7886fad30 45,61-67,88-95
+  s_c9959826314bf9::t_ee59e8e9903066 96-99,107-115
+apps/api/src/config.test.ts
+  s_c9959826314bf9::t_bc494ee9c684d1 1-17
+  s_c9959826314bf9::t_acc74cc5cdaf95 18-26
+docs/hosting.md
+  s_c9959826314bf9::t_d284838ea17911 1-87,91-97
+apps/api/src/http/farmInput.ts
+  s_c9959826314bf9::t_c49b4c3bdf5e3f 1-11
+apps/api/src/models/index.ts
+  s_c9959826314bf9::t_8bde36c97aa1c9 21
+apps/mobile/app/sign-in.tsx
+  s_c9959826314bf9::t_802acf8b12132e 1,22-31,39-40,42-47,53-61,85,93,119-123,125-129,131-139
+  s_c9959826314bf9::t_94f7e7886fad30 41,124,130
+  s_c9959826314bf9::t_dafda93a57a509 140-141,147,164
+apps/api/src/routes/admin.routes.ts
+  s_c9959826314bf9::t_3df819ac7aae70 60,95-105,121
+  s_c9959826314bf9::t_18838cffecb281 17-23,37,136,171-172,194,197-198,203-204,217-218,226-248,262-268,275,279-281,288-291,297,300-302,304,425,439
+  s_c9959826314bf9::t_c49b4c3bdf5e3f 15-16,58-59,61-62,93-94,106-120,122-133
+  s_c9959826314bf9::t_0fb7d5cdf1811a 24-36,142,191-193,249-261,269-274,276-278,282-287,292-296,298-299,303,421-423,437-438
+  s_c9959826314bf9::t_a576371b574c02 134,305-308,424,426-427,431,436,440,444
+apps/api/src/auth/auth.test.ts
+  s_c9959826314bf9::t_c8d0cc2e3e2bc9 101,104-150,152,154-196
+  s_c9959826314bf9::t_165d0d68749644 197-198,204-220,289,291-292
+  s_c9959826314bf9::t_c7e661f15bbea4 290
+apps/mobile/app/animal/[id].tsx
+  s_c9959826314bf9::t_46f964123f5aad 4,11-21,23-24,64,66,70-73,104-109,111-122,129,134-144
+  s_c9959826314bf9::t_df6492cfce45cd 1-2,145-148,270,272,279,281,320,322,332,334,369
+apps/admin/src/components/AssignOwnerForm.tsx
+  s_c9959826314bf9::t_460960a8d9d641 1-117
+  s_c9959826314bf9::t_6a5a5df51954b3 118-223
+apps/api/src/models/rateLimit.model.ts
+  s_c9959826314bf9::t_8bde36c97aa1c9 1-10
+  s_c9959826314bf9::t_8a19323d22d3b0 11-13
+apps/admin/src/routes/Audit.tsx
+  s_c9959826314bf9::t_0fb7d5cdf1811a 7,11,15,56-58,62-72
+  s_c9959826314bf9::t_daea253ab16929 6,43
+apps/api/src/routes/animals.test.ts
+  s_c9959826314bf9::t_f285b0e1b63866 55-112,114,116,121-122
+  s_c9959826314bf9::t_6639e4c4726437 113,115,117-120
+apps/api/src/auth/deployment.test.ts
+  s_c9959826314bf9::t_bc494ee9c684d1 1-78
+  s_c9959826314bf9::t_4d38fdc6d6bc50 79-109
+apps/api/src/config.ts
+  s_c9959826314bf9::t_8bde36c97aa1c9 31,45
+  s_c9959826314bf9::t_d284838ea17911 3-30,32-44,46-59
+  s_c9959826314bf9::t_4d6a4331935e94 60-62
+apps/admin/src/components/Pagination.tsx
+  s_c9959826314bf9::t_460960a8d9d641 1-21
+  s_c9959826314bf9::t_fba549d4c80c6b 22-40
+apps/api/src/app.ts
+  s_c9959826314bf9::t_8bde36c97aa1c9 40-48
+  s_c9959826314bf9::t_5b4edab627473e 49-52
+packages/i18n/src/locales/en.ts
+  s_c9959826314bf9::t_94f7e7886fad30 20,50,67
+  s_c9959826314bf9::t_c49b4c3bdf5e3f 337,342-343
+  s_c9959826314bf9::t_3df819ac7aae70 338-341,349
+  s_c9959826314bf9::t_46f964123f5aad 90-95,287-321
+  s_c9959826314bf9::t_802acf8b12132e 58-60,63-64
+apps/admin/src/App.test.tsx
+  s_c9959826314bf9::t_165d0d68749644 5,56-66,68-69
+  s_c9959826314bf9::t_6345c20d733bdd 67,70-71
+apps/mobile/src/sync/cache.ts
+  s_c9959826314bf9::t_46f964123f5aad 165-172
+packages/i18n/src/locales/ar.ts
+  s_c9959826314bf9::t_94f7e7886fad30 25,55,71
+  s_c9959826314bf9::t_3366935da03b76 68
+  s_c9959826314bf9::t_46f964123f5aad 94-99,290-319
+  s_c9959826314bf9::t_802acf8b12132e 63-65
+  s_c9959826314bf9::t_3df819ac7aae70 336-337,346
+  s_c9959826314bf9::t_c49b4c3bdf5e3f 335,338-340
+apps/admin/src/components/Layout.tsx
+  s_c9959826314bf9::t_daea253ab16929 6,34-36,44
+apps/admin/src/api/client.ts
+  s_c9959826314bf9::t_3366935da03b76 14-15,18-19,67-74,77,81-84,88,90-91,94-97,104-105,119,127
+  s_c9959826314bf9::t_dbcc17de29f80a 98-102
+  s_c9959826314bf9::t_94f7e7886fad30 63
+apps/api/src/auth/rateLimitStore.ts
+  s_c9959826314bf9::t_8bde36c97aa1c9 1-34
+  s_c9959826314bf9::t_e7ac8b345ed0f1 35-45
+apps/api/src/auth/auth.routes.ts
+  s_c9959826314bf9::t_94f7e7886fad30 18-19,55,59,67,75,78-80
+  s_c9959826314bf9::t_3366935da03b76 37-40
+  s_c9959826314bf9::t_c8d0cc2e3e2bc9 2,42,51-54,56-58,60-66,68-71
+  s_c9959826314bf9::t_7de729013a9f57 72,83-88,102
+apps/mobile/src/navigation/AppTabs.native.tsx
+  s_c9959826314bf9::t_b9e0e5a0ff4c2c 1-49
+  s_c9959826314bf9::t_39872a475d5039 50-66
+apps/mobile/src/api/client.ts
+  s_c9959826314bf9::t_94f7e7886fad30 26-27
+  s_c9959826314bf9::t_34d56041a7d665 28-30
+apps/mobile/src/navigation/AppTabs.tsx
+  s_c9959826314bf9::t_b9e0e5a0ff4c2c 1-98
+apps/mobile/app/(tabs)/flock.tsx
+  s_c9959826314bf9::t_46f964123f5aad 1-2,9,23-30,40,47,52,57-59,61,68-75,77
+  s_c9959826314bf9::t_8ac65cb36ff565 78,85,102,124,148
+apps/api/src/routes/farms.routes.ts
+  s_c9959826314bf9::t_c49b4c3bdf5e3f 8
+.gitignore
+  s_c9959826314bf9::t_1409e720ebb1bf 30-32
+apps/admin/vercel.json
+  s_c9959826314bf9::t_3dc17159c293bb 1-13
+apps/api/package.json
+  s_c9959826314bf9::t_278e0a6e02e757 10-12
+apps/api/src/models/auditLog.model.ts
+  s_c9959826314bf9::t_3f7e55318a24e0 1,39-43
+apps/api/tsconfig.vercel.json
+  s_c9959826314bf9::t_a799000adfd9ea 1-8
+apps/api/vercel.json
+  s_c9959826314bf9::t_ddb66f5ae41466 1-12
+apps/mobile/.env.example
+  s_c9959826314bf9::t_50bd3a900e8297 1
+apps/mobile/app.json
+  s_c9959826314bf9::t_024da79044014d 26
+apps/mobile/app/(tabs)/_layout.tsx
+  s_c9959826314bf9::t_a06a59fcaa4191 1
+apps/mobile/app/(tabs)/index.tsx
+  s_c9959826314bf9::t_dc50d0fa7a7913 1,53,111
+apps/mobile/app/(tabs)/reports.tsx
+  s_c9959826314bf9::t_5259280cdb3efa 1,75,154
+apps/mobile/app/(tabs)/settings.tsx
+  s_c9959826314bf9::t_e71060179414e4 6-7,9,19,23-27,38-81,84,96
+apps/mobile/app/_layout.tsx
+  s_c9959826314bf9::t_e7f08c8ab640e7 1-2,6,28-29,31-41,43-44,46-83,102-104
+apps/mobile/app/animal/pedigree.tsx
+  s_c9959826314bf9::t_9ef30c24f05dc4 1,9,105
+apps/mobile/app/health/cabinet.tsx
+  s_c9959826314bf9::t_065ac63e26b609 1,4,9,111,113,117-126
+apps/mobile/app/health/schedule.tsx
+  s_c9959826314bf9::t_6e620b447d5eef 1,12,17,141,146
+apps/mobile/app/health/withdrawal.tsx
+  s_c9959826314bf9::t_9a071a714b2459 1,8,82,87
+apps/mobile/app/milk/test-day.tsx
+  s_c9959826314bf9::t_875130b95353ce 1,8,103,107
+apps/mobile/app/pens/[id].tsx
+  s_c9959826314bf9::t_444203a8786432 1,10,68,71
+apps/mobile/app/pens/index.tsx
+  s_c9959826314bf9::t_66936f4ff352b6 1,17,53,55,59-68
+apps/mobile/package.json
+  s_c9959826314bf9::t_db2fc77440bc15 7,37-38
+apps/mobile/src/components/CaptureScreen.tsx
+  s_c9959826314bf9::t_89d668b1d95882 1,9-10,36,76-77,79-91
+apps/mobile/src/components/ui.tsx
+  s_c9959826314bf9::t_c5b85d6dc37760 1-4,7-8,19-24,28-32,52,66,74-82,93-95,98,100,103,105,171-284,286-338,340,345
+apps/mobile/src/sync/storage.native.ts
+  s_7b533637329232::t_1edd9d0463e1b8 2
+apps/mobile/src/theme.ts
+  s_c9959826314bf9::t_b9103ce0d92972 26
+apps/mobile/vercel.json
+  s_c9959826314bf9::t_f6690ca8b99331 1-13
+package-lock.json
+  s_c9959826314bf9::t_45aacdf4bd3c6b 24,130,2650-2660
+package.json
+  s_c9959826314bf9::t_266f142f375f7e 12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "8623c3dbf22b5b6a478157b894044594b6466704",
+  "prompts": {},
+  "sessions": {
+    "s_7b533637329232": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "98dd529f-6ff8-4f56-aee0-32cbbb385fe8",
+        "model": "claude-opus-5"
+      },
+      "human_author": "raslan <raslankiwan@gmail.com>"
+    },
+    "s_c9959826314bf9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ed41-6d4f-7fd1-8eef-bc4227e3e739",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "raslan <raslankiwan@gmail.com>"
+    }
+  }
+}
