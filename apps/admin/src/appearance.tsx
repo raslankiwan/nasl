@@ -23,6 +23,8 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
     const apply = () => {
       const dark = preference === 'dark' || (preference === 'system' && media?.matches);
       document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+      document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+      document.documentElement.style.backgroundColor = dark ? '#0f1624' : '#f3f4f7';
       document
         .querySelector('meta[name="theme-color"]')
         ?.setAttribute('content', dark ? '#0f1624' : '#f3f4f7');

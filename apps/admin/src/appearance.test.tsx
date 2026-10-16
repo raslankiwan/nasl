@@ -27,8 +27,10 @@ test('manual appearance overrides the system and survives remounting', async () 
     </AppearanceProvider>,
   );
   expect(document.documentElement.dataset.theme).toBe('dark');
+  expect(document.documentElement.style.colorScheme).toBe('dark');
   await user.selectOptions(screen.getByLabelText('Appearance'), 'light');
   expect(document.documentElement.dataset.theme).toBe('light');
+  expect(document.documentElement.style.colorScheme).toBe('light');
   expect(localStorage.getItem('nasl.theme')).toBe('light');
   view.unmount();
   render(
