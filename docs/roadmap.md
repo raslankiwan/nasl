@@ -14,6 +14,10 @@
 - [x] Fixed the shared radio control's accessibility state: a selected appearance now exposes
       checked=true rather than an unrelated selected attribute.
 
+Export validation caught Metro reusing old transformed source and a development API setting
+after source/environment changes. Production web exports now clear the bundler cache; deployment
+checks inspect the generated entry bundle, not only the source or a successful build exit code.
+
 ## Authentication update (October 2026)
 
 Email/username and password replace every phone/OTP login and registration route. New accounts

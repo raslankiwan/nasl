@@ -43,7 +43,7 @@ export function Choice<T extends string>({
           <Pressable
             key={option}
             accessibilityRole="radio"
-            accessibilityState={{ checked: selected }}
+            aria-checked={selected}
             onPress={() => onChange(option)}
             style={({ pressed }) => [
               styles.choice,
