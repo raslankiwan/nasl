@@ -1,0 +1,63 @@
+apps/api/src/services/accountApproval.service.ts
+  s_c9959826314bf9::t_c1a663afef4dd7 5-6,14,18-19,36-37,39-46,50-51,61-64,73-74,86,92-94,101
+  s_c9959826314bf9::t_fe74dcc14e7f35 47-49,52-60,75-85,95-100,115-119
+apps/api/src/routes/admin.routes.ts
+  s_c9959826314bf9::t_c1a663afef4dd7 39,41-45
+apps/api/src/auth/registration.test.ts
+  s_c9959826314bf9::t_39ac28b4873e4f 13-14,240-286
+  s_c9959826314bf9::t_03bb6908f14a0d 287-290
+docs/hosting.md
+  s_c9959826314bf9::t_fcf8e58f4911ff 86-96,146-149
+docs/roadmap.md
+  s_c9959826314bf9::t_fcf8e58f4911ff 3-17
+apps/admin/index.html
+  s_c9959826314bf9::t_0da8ebeb37ea6e 6
+apps/admin/public/manifest.webmanifest
+  s_c9959826314bf9::t_3ff211450afa93 27-38
+apps/admin/src/App.test.tsx
+  s_c9959826314bf9::t_e7e941b6088cb3 120-138
+apps/admin/src/components/AccountReview.test.tsx
+  s_c9959826314bf9::t_774c58df65992a 14,19-25,31,41,50,54-96
+apps/admin/src/components/AccountReview.tsx
+  s_c9959826314bf9::t_1ae8a0363924fd 1,11-12,17-18,20-26,30-44,51-53,66-73,75-121,125-126,128,140
+apps/admin/src/components/AdminInvitations.tsx
+  s_c9959826314bf9::t_67a349a19d0597 104,116-122,128
+apps/admin/src/components/Layout.tsx
+  s_c9959826314bf9::t_a5942f45c4040f 1,17-30,33-63,69-75,78-82,85-89,92-96,99-103,111-113,120
+apps/admin/src/routes/Audit.tsx
+  s_c9959826314bf9::t_37fb5ac14bac42 37,50,56,59,62,73
+apps/admin/src/routes/FarmDetail.tsx
+  s_c9959826314bf9::t_badee6f986e1fd 180,191,196-197
+apps/admin/src/routes/Farms.tsx
+  s_c9959826314bf9::t_f1c696316989af 87,100,105-111,116-118
+apps/admin/src/routes/Products.tsx
+  s_c9959826314bf9::t_c10582bd271f1a 182,195,201,204-215
+apps/admin/src/routes/UserDetail.tsx
+  s_c9959826314bf9::t_b286b12d35b655 67-79,136,148,153-159
+apps/admin/src/routes/Users.tsx
+  s_c9959826314bf9::t_cf0895ecca6b0c 74,88,91,94,97-103
+apps/admin/src/styles.css
+  s_c9959826314bf9::t_912aec836de27f 480-708
+apps/api/src/services/accountApproval.transaction.test.ts
+  s_c9959826314bf9::t_02ac9ba9f44448 4-5,51-145
+packages/i18n/src/locales/ar.ts
+  s_c9959826314bf9::t_6c42a12fd7caf2 355-364,366
+packages/i18n/src/locales/en.ts
+  s_c9959826314bf9::t_5f180632ddb855 354-364,366-367
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "2263df5db5dbc2cd9f009f630d573f6712ec3c89",
+  "prompts": {},
+  "sessions": {
+    "s_c9959826314bf9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ed41-6d4f-7fd1-8eef-bc4227e3e739",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "raslan <raslankiwan@gmail.com>"
+    }
+  }
+}
