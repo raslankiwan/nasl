@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { Alert, Platform, Pressable, StyleSheet, Text } from 'react-native';
+import { Alert, Platform, Pressable, Text } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { LOCALE_META, otherLocale, type Locale } from '@nasl/i18n';
 import { directionMatches, setLocale } from '../i18n';
-import { colors, MIN_TOUCH, radius, spacing, type } from '../theme';
+import { MIN_TOUCH, radius, spacing, type, createThemedStyles } from '../theme';
 
 /**
  * With two locales a switcher is a toggle, not a menu. The button shows the language you would
@@ -14,6 +14,7 @@ import { colors, MIN_TOUCH, radius, spacing, type } from '../theme';
  * only applies that on restart — so we say so first rather than having the app vanish.
  */
 export function LanguageToggle({ compact = false }: { compact?: boolean }) {
+  const styles = useStyles();
   const { i18n, t } = useTranslation('common');
   const [busy, setBusy] = useState(false);
   const current = (i18n.resolvedLanguage ?? 'ar') as Locale;
@@ -54,7 +55,7 @@ export function LanguageToggle({ compact = false }: { compact?: boolean }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   toggle: {
     minHeight: MIN_TOUCH,
     minWidth: MIN_TOUCH,
@@ -69,4 +70,4 @@ const styles = StyleSheet.create({
   compact: { minHeight: 36, paddingHorizontal: spacing.md },
   pressed: { opacity: 0.8 },
   label: { fontSize: type.label, fontWeight: '600', color: colors.ink },
-});
+}));

@@ -8,7 +8,7 @@ import { useAuth } from '../../src/auth/AuthProvider';
 import { CaptureScreen } from '../../src/components/CaptureScreen';
 import { Choice, DateField, FieldGroup, NumberField } from '../../src/components/form';
 import { Body, Notice } from '../../src/components/ui';
-import { colors, MIN_TOUCH, radius, spacing, type } from '../../src/theme';
+import { MIN_TOUCH, radius, spacing, type, useTheme } from '../../src/theme';
 
 interface Product {
   id: string;
@@ -19,6 +19,7 @@ interface Product {
 }
 
 export default function RecordTreatment() {
+  const { colors } = useTheme();
   const { animalId } = useLocalSearchParams<{ animalId: string }>();
   const { t, i18n } = useTranslation(['health', 'common']);
   const { farmId, me } = useAuth();

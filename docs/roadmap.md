@@ -1,5 +1,19 @@
 # Delivery plan
 
+## Installable web apps and saved appearance (October 2026)
+
+- [x] Both frontends have installation manifests, distinct home-screen icons and generated,
+      versioned static-asset caches. API responses and writes remain outside the service worker.
+      Existing offline records/outbox storage is preserved; updates do not force a reload.
+- [x] System, Light and Dark preferences are available before and after login, saved per device
+      and origin. Mobile screen/navigation tokens respond without remounting forms.
+- [x] Arabic/English install help covers browsers without a direct install prompt. Phone-width
+      browser checks verified both palettes; stopping the local servers verified offline reopening
+      and the admin's retained-session connection message. Native device installation is not yet
+      tested.
+- [x] Fixed the shared radio control's accessibility state: a selected appearance now exposes
+      checked=true rather than an unrelated selected attribute.
+
 ## Authentication update (October 2026)
 
 Email/username and password replace every phone/OTP login and registration route. New accounts

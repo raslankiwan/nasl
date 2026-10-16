@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { PASSWORD_MAX_LENGTH } from '@nasl/shared';
 import { LanguageToggle } from '../components/LanguageToggle';
 import { ApiError } from '../api/client';
+import { AppPreferences } from '../components/AppPreferences';
 
 export function SignIn({
   signIn,
@@ -79,6 +80,7 @@ export function SignIn({
             </button>
           </fieldset>
         </form>
+        <AppPreferences />
       </div>
     </div>
   );

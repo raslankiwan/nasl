@@ -1,14 +1,6 @@
 import { useHeaderHeight } from 'expo-router/react-navigation';
 import { useCallback, useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -18,7 +10,7 @@ import { useAuth } from '../../src/auth/AuthProvider';
 import { Body, Button, Card, Field, Notice } from '../../src/components/ui';
 import { Keypad } from '../../src/components/Keypad';
 import { ScreenHeader } from '../../src/components/ScreenHeader';
-import { colors, MIN_TOUCH, radius, spacing, type } from '../../src/theme';
+import { MIN_TOUCH, radius, spacing, type, createThemedStyles } from '../../src/theme';
 
 /**
  * Quick add (scope FR-REG-03).
@@ -40,6 +32,7 @@ function Choice<T extends string>({
   onChange: (next: T) => void;
   labelFor: (option: T) => string;
 }) {
+  const styles = useStyles();
   return (
     <View style={styles.choices}>
       {options.map((option) => {
@@ -67,6 +60,7 @@ function Choice<T extends string>({
 }
 
 export default function QuickAdd() {
+  const styles = useStyles();
   const { t } = useTranslation(['animals', 'common']);
   const { farmId } = useAuth();
   const router = useRouter();
@@ -222,7 +216,7 @@ export default function QuickAdd() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.paper },
   content: { padding: spacing.lg, paddingBottom: spacing.xxl },
   header: {
@@ -281,4 +275,4 @@ const styles = StyleSheet.create({
   logName: { fontSize: type.label, color: colors.inkSoft },
   undo: { minHeight: 32, justifyContent: 'center', paddingHorizontal: spacing.sm },
   undoLabel: { fontSize: type.label, color: colors.muted, textDecorationLine: 'underline' },
-});
+}));

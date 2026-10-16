@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { LanguageToggle } from './LanguageToggle';
 import type { StaffUser } from '../auth/useAuth';
 import { UserLink } from './UserLink';
+import { AppPreferences } from './AppPreferences';
 
 interface Props {
   user: StaffUser;
@@ -40,6 +41,7 @@ export function Layout({ user, onSignOut }: Props) {
         </nav>
 
         <div className="sidebar-foot">
+          <AppPreferences />
           <LanguageToggle />
           <UserLink user={user} />
           <button type="button" onClick={onSignOut}>

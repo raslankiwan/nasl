@@ -1,13 +1,13 @@
 import { ScreenHeader } from '../../src/components/ScreenHeader';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { findBreed } from '@nasl/shared';
 import { api, ApiError } from '../../src/api/client';
 import { useAuth } from '../../src/auth/AuthProvider';
 import { Body, Notice, Screen } from '../../src/components/ui';
-import { colors, radius, spacing, type } from '../../src/theme';
+import { radius, spacing, type, createThemedStyles } from '../../src/theme';
 
 interface Node {
   id: string;
@@ -31,6 +31,7 @@ const GENERATIONS = 4;
  * descends rightward in Arabic and leftward in English without any mirroring code.
  */
 export default function Pedigree() {
+  const styles = useStyles();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t, i18n } = useTranslation(['breeding', 'animals', 'common']);
   const { farmId } = useAuth();
@@ -112,7 +113,7 @@ export default function Pedigree() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.paper },
   content: { paddingBottom: spacing.xxl },
   gap: { height: spacing.md },
@@ -136,4 +137,4 @@ const styles = StyleSheet.create({
   tag: { fontSize: type.body, fontWeight: '700', color: colors.ink, writingDirection: 'ltr' },
   meta: { flexShrink: 1, fontSize: type.caption, color: colors.muted },
   unknown: { fontSize: type.caption, color: colors.muted, fontStyle: 'italic' },
-});
+}));

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH } from '@nasl/shared';
@@ -7,9 +7,12 @@ import { ApiError } from '../src/api/client';
 import { useAuth } from '../src/auth/AuthProvider';
 import { Body, Button, Card, Field, Notice, Title } from '../src/components/ui';
 import { LanguageToggle } from '../src/components/LanguageToggle';
-import { colors, spacing } from '../src/theme';
+import { AppearanceChoice } from '../src/components/AppearanceChoice';
+import { InstallApp } from '../src/components/InstallApp';
+import { spacing, createThemedStyles } from '../src/theme';
 
 export default function SignIn() {
+  const styles = useStyles();
   const { t, i18n } = useTranslation(['auth', 'common']);
   const { signIn, register } = useAuth();
   const insets = useSafeAreaInsets();
@@ -202,6 +205,8 @@ export default function SignIn() {
             )}
           </Card>
           <View style={styles.footer}>
+            <AppearanceChoice />
+            <InstallApp />
             <Body muted>{t('auth:signInOnlineHint')}</Body>
           </View>
         </View>
@@ -210,7 +215,7 @@ export default function SignIn() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.paper },
   scroll: { padding: spacing.lg, flexGrow: 1, justifyContent: 'center', alignItems: 'center' },
   content: { width: '100%', maxWidth: 480 },
@@ -223,6 +228,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   intro: { marginBottom: spacing.md },
-  footer: { marginTop: spacing.lg, alignItems: 'center' },
+  footer: { marginTop: spacing.lg, gap: spacing.lg },
   latin: { textAlign: 'left', writingDirection: 'ltr' },
-});
+}));

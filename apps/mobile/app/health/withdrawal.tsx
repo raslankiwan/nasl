@@ -1,12 +1,12 @@
 import { ScreenHeader } from '../../src/components/ScreenHeader';
 import { useCallback, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../src/api/client';
 import { useAuth } from '../../src/auth/AuthProvider';
 import { Body, Pill, Screen } from '../../src/components/ui';
-import { colors, radius, spacing, type } from '../../src/theme';
+import { radius, spacing, type, createThemedStyles } from '../../src/theme';
 
 interface Row {
   animalId: string;
@@ -28,6 +28,7 @@ interface Withdrawal {
  * collection, not just her own.
  */
 export default function UnderWithdrawal() {
+  const styles = useStyles();
   const { t } = useTranslation(['health', 'common']);
   const { farmId } = useAuth();
   const router = useRouter();
@@ -94,7 +95,7 @@ export default function UnderWithdrawal() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.paper },
   sectionLabel: {
     fontSize: type.caption,
@@ -123,4 +124,4 @@ const styles = StyleSheet.create({
   tag: { fontSize: type.heading, fontWeight: '700', color: colors.ink, writingDirection: 'ltr' },
   name: { fontSize: type.caption, color: colors.muted },
   gap: { height: spacing.lg },
-});
+}));

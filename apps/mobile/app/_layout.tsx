@@ -3,14 +3,15 @@ import '../src/polyfills';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { DefaultTheme, DarkTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '../src/auth/AuthProvider';
 import { initI18n } from '../src/i18n';
 import { SyncProvider } from '../src/sync/SyncProvider';
-import { colors } from '../src/theme';
+import { AppearanceProvider, useTheme } from '../src/theme';
 
 function Loading() {
+  const { colors } = useTheme();
   return (
     <View
       style={{
@@ -28,19 +29,8 @@ function Loading() {
 // Deep links keep a root destination underneath detail screens.
 export const unstable_settings = { initialRouteName: '(tabs)' };
 
-const navigationTheme = {
-  ...DefaultTheme,
-  colors: {
-    ...DefaultTheme.colors,
-    primary: colors.accent,
-    background: colors.paper,
-    card: colors.paper,
-    text: colors.ink,
-    border: colors.line,
-  },
-};
-
 function AuthGate() {
+  const { colors } = useTheme();
   const { status } = useAuth();
   if (status === 'loading') return <Loading />;
   return (
@@ -83,8 +73,21 @@ function AuthGate() {
   );
 }
 
-export default function RootLayout() {
+function AppLayout() {
+  const { colors, dark, ready: themeReady } = useTheme();
   const [ready, setReady] = useState(false);
+  const base = dark ? DarkTheme : DefaultTheme;
+  const navigationTheme = {
+    ...base,
+    colors: {
+      ...base.colors,
+      primary: colors.accent,
+      background: colors.paper,
+      card: colors.paper,
+      text: colors.ink,
+      border: colors.line,
+    },
+  };
 
   // Language and layout direction are settled before anything renders, so the app never flips
   // direction in front of the user (scope NFR-06).
@@ -92,11 +95,11 @@ export default function RootLayout() {
     void initI18n().then(() => setReady(true));
   }, []);
 
-  if (!ready) return <Loading />;
+  if (!ready || !themeReady) return <Loading />;
 
   return (
     <SafeAreaProvider>
-      <StatusBar style="dark" />
+      <StatusBar style={dark ? 'light' : 'dark'} />
       <AuthProvider>
         <SyncProvider>
           <ThemeProvider value={navigationTheme}>
@@ -105,5 +108,13 @@ export default function RootLayout() {
         </SyncProvider>
       </AuthProvider>
     </SafeAreaProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <AppearanceProvider>
+      <AppLayout />
+    </AppearanceProvider>
   );
 }

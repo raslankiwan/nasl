@@ -6,6 +6,8 @@ import { useAuth } from '../../src/auth/AuthProvider';
 import { Body, Card, NavigationRow, RowGroup, Screen, Title } from '../../src/components/ui';
 import { TabScreen } from '../../src/components/TabScreen';
 import { LanguageToggle } from '../../src/components/LanguageToggle';
+import { AppearanceChoice } from '../../src/components/AppearanceChoice';
+import { InstallApp } from '../../src/components/InstallApp';
 import { spacing } from '../../src/theme';
 
 export default function Settings() {
@@ -42,6 +44,11 @@ export default function Settings() {
               onPress={() => router.push('/pens')}
             />
           </RowGroup>
+          <Card>
+            <AppearanceChoice />
+            <InstallApp />
+          </Card>
+          <View style={styles.gap} />
           <RowGroup>
             <NavigationRow
               label={t('milk:testDay')}

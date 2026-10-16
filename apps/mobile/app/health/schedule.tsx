@@ -1,21 +1,13 @@
 import { ScreenHeader } from '../../src/components/ScreenHeader';
 import { useCallback, useState } from 'react';
-import {
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, RefreshControl, ScrollView, Switch, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { formatDate, type Locale } from '@nasl/i18n';
 import { api, ApiError } from '../../src/api/client';
 import { useAuth } from '../../src/auth/AuthProvider';
 import { Body, Button, Notice, Pill, Screen } from '../../src/components/ui';
-import { colors, MIN_TOUCH, radius, spacing, type } from '../../src/theme';
+import { MIN_TOUCH, radius, spacing, type, useTheme, createThemedStyles } from '../../src/theme';
 
 interface Group {
   protocolId: string;
@@ -57,6 +49,8 @@ interface Protocol {
  * right rather than two.
  */
 export default function ScheduleScreen() {
+  const styles = useStyles();
+  const { colors } = useTheme();
   const { t, i18n } = useTranslation(['health', 'common']);
   const { farmId } = useAuth();
   const locale = (i18n.resolvedLanguage ?? 'ar') as Locale;
@@ -230,7 +224,7 @@ export default function ScheduleScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.paper },
   gap: { height: spacing.md },
   card: {
@@ -259,4 +253,4 @@ const styles = StyleSheet.create({
   // The source is here so a farm can see why the app thinks a dose is due, and take it to a vet.
   source: { fontSize: type.caption, color: colors.muted, lineHeight: 17 },
   tags: { fontSize: type.caption, color: colors.muted },
-});
+}));

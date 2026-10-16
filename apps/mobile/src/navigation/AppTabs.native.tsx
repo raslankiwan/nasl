@@ -2,9 +2,10 @@ import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { useTranslation } from 'react-i18next';
 import { can, type Role } from '@nasl/shared';
 import { useAuth } from '../auth/AuthProvider';
-import { colors } from '../theme';
+import { useTheme } from '../theme';
 
 export default function TabsLayout() {
+  const { colors } = useTheme();
   const { t } = useTranslation(['tasks', 'animals', 'reports', 'common']);
   const { me, farmId } = useAuth();
   const role = me?.farms.find((f) => f.farmId === farmId)?.role as Role | undefined;

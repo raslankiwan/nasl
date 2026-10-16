@@ -1,13 +1,13 @@
 import { TabScreen } from '../../src/components/TabScreen';
 import { useCallback } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { formatDate, formatHijriDate, type Locale } from '@nasl/i18n';
 import { deriveAlerts, type Alerts } from '@nasl/shared';
 import { useFlock } from '../../src/sync/useFlock';
 import { Body, Card, Pill, Screen, Title } from '../../src/components/ui';
-import { colors, radius, spacing, type } from '../../src/theme';
+import { radius, spacing, type, createThemedStyles } from '../../src/theme';
 
 /**
  * The home screen is a list of what needs doing, not a dashboard (scope FR-ALT-01).
@@ -18,6 +18,7 @@ import { colors, radius, spacing, type } from '../../src/theme';
  * day and a treated ewe contaminates the whole tank.
  */
 export default function Today() {
+  const styles = useStyles();
   const { t, i18n } = useTranslation(['tasks', 'breeding', 'health', 'common']);
   const router = useRouter();
   const locale = (i18n.resolvedLanguage ?? 'ar') as Locale;
@@ -112,7 +113,7 @@ export default function Today() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.paper },
   gap: { height: spacing.lg },
   sectionLabel: {
@@ -154,4 +155,4 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   warningText: { fontSize: type.body, fontWeight: '700', color: colors.rust },
-});
+}));

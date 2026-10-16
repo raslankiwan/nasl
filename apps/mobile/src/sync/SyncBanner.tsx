@@ -1,7 +1,7 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useSync } from './SyncProvider';
-import { colors, radius, spacing, type } from '../theme';
+import { radius, spacing, type, createThemedStyles } from '../theme';
 
 /**
  * What has not reached the server yet.
@@ -11,6 +11,7 @@ import { colors, radius, spacing, type } from '../theme';
  * it. So the banner says plainly what is waiting, and offers to try again now.
  */
 export function SyncBanner() {
+  const styles = useStyles();
   const { t } = useTranslation('common');
   const { pending, stuck, online, flushing, flush } = useSync();
 
@@ -41,7 +42,7 @@ export function SyncBanner() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   bar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -65,4 +66,4 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.8 },
   actionLabel: { fontSize: type.caption, fontWeight: '700', color: colors.accent },
-});
+}));

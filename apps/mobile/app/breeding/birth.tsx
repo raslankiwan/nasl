@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, Text, TextInput, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../src/auth/AuthProvider';
 import { CaptureScreen } from '../../src/components/CaptureScreen';
 import { Choice, DateField, FieldGroup, NumberField } from '../../src/components/form';
-import { colors, MIN_TOUCH, radius, spacing, type } from '../../src/theme';
+import { MIN_TOUCH, radius, spacing, type, useTheme, createThemedStyles } from '../../src/theme';
 
 const SEXES = ['female', 'male'] as const;
 const OUTCOMES = ['live', 'stillborn', 'died24h'] as const;
@@ -36,6 +36,8 @@ const blankLamb = (): LambDraft => ({
  * one from the dam's rather than refusing the record.
  */
 export default function RecordBirth() {
+  const styles = useStyles();
+  const { colors } = useTheme();
   const { damId } = useLocalSearchParams<{ damId: string }>();
   const { t } = useTranslation(['breeding', 'animals', 'common']);
   const { farmId } = useAuth();
@@ -155,7 +157,7 @@ export default function RecordBirth() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   lamb: {
     backgroundColor: colors.surface,
     borderWidth: 1,
@@ -197,4 +199,4 @@ const styles = StyleSheet.create({
   },
   addLambLabel: { fontSize: type.body, color: colors.accent, fontWeight: '600' },
   pressed: { opacity: 0.85 },
-});
+}));

@@ -7,15 +7,15 @@ import {
   I18nManager,
   Platform,
   Pressable,
-  StyleSheet,
   Text,
   TextInput,
   View,
   type TextInputProps,
 } from 'react-native';
-import { colors, MIN_TOUCH, radius, spacing, type } from '../theme';
+import { MIN_TOUCH, radius, spacing, type, useTheme, createThemedStyles } from '../theme';
 
 export function Screen({ children }: { children: ReactNode }) {
+  const styles = useStyles();
   const insets = useSafeAreaInsets();
   return (
     <View style={[styles.screen, { paddingBottom: Math.max(insets.bottom, spacing.xl) }]}>
@@ -25,6 +25,7 @@ export function Screen({ children }: { children: ReactNode }) {
 }
 
 export function Title({ children }: { children: ReactNode }) {
+  const styles = useStyles();
   return (
     <Text accessibilityRole="header" style={styles.title}>
       {children}
@@ -33,10 +34,12 @@ export function Title({ children }: { children: ReactNode }) {
 }
 
 export function Body({ children, muted }: { children: ReactNode; muted?: boolean }) {
+  const styles = useStyles();
   return <Text style={[styles.body, muted && styles.muted]}>{children}</Text>;
 }
 
 export function Card({ children }: { children: ReactNode }) {
+  const styles = useStyles();
   return <View style={styles.card}>{children}</View>;
 }
 
@@ -53,6 +56,8 @@ export function Button({
   disabled?: boolean;
   busy?: boolean;
 }) {
+  const styles = useStyles();
+  const { colors } = useTheme();
   const isPrimary = variant === 'primary';
   return (
     <Pressable
@@ -90,6 +95,8 @@ export function Field({
   hint,
   ...props
 }: TextInputProps & { label: string; hint?: string }) {
+  const styles = useStyles();
+  const { colors } = useTheme();
   const { i18n } = useTranslation();
   // Native text alignment already follows I18nManager; web follows the active locale.
   const textAlign = Platform.OS === 'web' && i18n.dir() === 'rtl' ? 'right' : 'left';
@@ -119,6 +126,7 @@ export function Notice({
   children: ReactNode;
   tone?: 'info' | 'warning' | 'danger';
 }) {
+  const styles = useStyles();
   return (
     <View
       style={[
@@ -147,6 +155,7 @@ export function Pill({
   children: ReactNode;
   tone?: 'neutral' | 'accent' | 'good';
 }) {
+  const styles = useStyles();
   return (
     <View
       style={[
@@ -181,6 +190,8 @@ export function IconButton({
   onPress: () => void;
   disabled?: boolean;
 }) {
+  const styles = useStyles();
+  const { colors } = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
@@ -211,6 +222,8 @@ export function NavigationRow({
   onPress: () => void;
   destructive?: boolean;
 }) {
+  const styles = useStyles();
+  const { colors } = useTheme();
   const { i18n } = useTranslation();
   return (
     <Pressable
@@ -245,6 +258,7 @@ export function NavigationRow({
 }
 
 export function RowGroup({ children }: { children: ReactNode }) {
+  const styles = useStyles();
   return <View style={styles.rowGroup}>{children}</View>;
 }
 
@@ -257,6 +271,8 @@ export function SearchField({
   value: string;
   onChangeText: (value: string) => void;
 }) {
+  const styles = useStyles();
+  const { colors } = useTheme();
   const { t, i18n } = useTranslation('common');
   return (
     <View style={styles.search}>
@@ -282,7 +298,7 @@ export function SearchField({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   buttonText: {
     backgroundColor: 'transparent',
     borderColor: 'transparent',
@@ -405,4 +421,4 @@ const styles = StyleSheet.create({
   pillText: { fontSize: type.caption, color: colors.inkSoft, fontWeight: '500' },
   pillTextAccent: { color: colors.accent },
   pillTextGood: { color: colors.sage },
-});
+}));

@@ -5,9 +5,10 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../src/auth/AuthProvider';
 import { CaptureScreen } from '../../src/components/CaptureScreen';
 import { DateField, FieldGroup } from '../../src/components/form';
-import { colors, MIN_TOUCH, radius, spacing, type } from '../../src/theme';
+import { MIN_TOUCH, radius, spacing, type, useTheme } from '../../src/theme';
 
 export default function RecordAbortion() {
+  const { colors } = useTheme();
   const { damId } = useLocalSearchParams<{ damId: string }>();
   const { t } = useTranslation(['breeding', 'common']);
   const { farmId } = useAuth();

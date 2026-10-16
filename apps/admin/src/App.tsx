@@ -19,6 +19,7 @@ import { Audit } from './routes/Audit';
 import { Users } from './routes/Users';
 import { UserDetail } from './routes/UserDetail';
 import { AcceptInvitation } from './routes/AcceptInvitation';
+import { AppearanceProvider } from './appearance';
 
 interface RouterContext {
   user: StaffUser;
@@ -69,6 +70,14 @@ function Console({ user, onSignOut }: { user: StaffUser; onSignOut: () => void }
 }
 
 export function App() {
+  return (
+    <AppearanceProvider>
+      <AppContent />
+    </AppearanceProvider>
+  );
+}
+
+function AppContent() {
   const { t } = useTranslation(['common', 'auth']);
   const { state, signIn, signOut, reload } = useAuth();
 

@@ -17,6 +17,13 @@ export const ar: Translated<Catalogue> = {
     switchLanguage: 'تغيير اللغة',
     restartNeeded: 'سيُعاد تشغيل التطبيق ليظهر بالاتجاه الآخر.',
     settings: 'الإعدادات',
+    appearance: 'المظهر',
+    themeSystem: 'حسب الجهاز',
+    themeLight: 'فاتح',
+    themeDark: 'داكن',
+    installApp: 'تثبيت التطبيق',
+    installHint:
+      'افتح قائمة المتصفح واختر تثبيت التطبيق. على آيفون أو آيباد، افتح هذه الصفحة في سفاري، واضغط مشاركة ثم إضافة إلى الشاشة الرئيسية.',
     save: 'حفظ',
     cancel: 'إلغاء',
     delete: 'حذف',

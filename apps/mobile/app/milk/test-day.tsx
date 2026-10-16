@@ -1,13 +1,13 @@
 import { ScreenHeader } from '../../src/components/ScreenHeader';
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { api, ApiError } from '../../src/api/client';
 import { useAuth } from '../../src/auth/AuthProvider';
 import { Body, Button, Notice, Screen } from '../../src/components/ui';
 import { DateField } from '../../src/components/form';
-import { colors, MIN_TOUCH, radius, spacing, type } from '../../src/theme';
+import { MIN_TOUCH, radius, spacing, type, createThemedStyles } from '../../src/theme';
 
 interface Lactation {
   lactationId: string;
@@ -32,6 +32,7 @@ const STEP = 0.1;
  * the session is finished, so a herder can go back and correct before committing.
  */
 export default function TestDay() {
+  const styles = useStyles();
   const { t } = useTranslation(['milk', 'common']);
   const { farmId } = useAuth();
   const router = useRouter();
@@ -168,7 +169,7 @@ export default function TestDay() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.paper },
   content: { paddingBottom: spacing.xxl },
   head: {
@@ -218,4 +219,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.ink,
   },
-});
+}));

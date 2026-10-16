@@ -126,11 +126,56 @@ renewals; sessions renew for 30 days. Self-service password recovery is not impl
 Legacy phone-only records are preserved but cannot authenticate; transfer farms to the person's
 new approved account using the admin ownership controls when needed.
 
+## Installable apps and appearance
+
+Both sites include a web manifest, home-screen icons and a service worker. No paid hosting or
+app-store account is needed. Open the canonical HTTPS site and choose **Install app**. Supported
+browsers show their installation prompt; on iPhone/iPad use Safari > Share > Add to Home Screen.
+The admin app has a distinct icon/name so the two installations are easy to distinguish.
+
+Each production build generates a versioned cache containing only that site's static assets.
+After the first successful online load, the user app can reopen offline and use its existing
+local records/outbox. Authentication, registration and administrative operations still require
+the API. The service worker never caches API responses or writes. Updates wait until old tabs
+close; they never force a reload during data entry or delete the existing record/outbox storage.
+The admin shell can reopen offline and explain that the session is retained while disconnected.
+
+**Appearance** offers System, Light and Dark on sign-in and in Settings (user app) or the sidebar
+(admin). The choice is saved on that device/browser, separately for each origin. System follows
+the device preference. Theme changes preserve forms and navigation state. Native app screens use
+the same palettes, but native builds and device installation remain a separate validation step.
+
+The PWA icons reuse the existing Material Design Icons sheep/account-shield glyphs from
+@expo/vector-icons (Apache-2.0); no external image requests are made at startup.
+
+## Optional custom domain
+
+The existing vercel.app addresses are free and support installation. A custom domain is optional.
+Register it in the operator's own registrar account, enable two-factor authentication and
+auto-renewal, and keep recovery details current. Buying hosting or transferring the domain to
+Vercel is unnecessary. A name is not reserved until registration succeeds.
+
+After registration:
+
+1. Add the apex domain to nasl-app, admin.<domain> to nasl-admin, and api.<domain> to nasl-api.
+   Enter the exact DNS records Vercel shows for each project and wait for verification/HTTPS.
+2. Add the exact new frontend origins to API CORS_ORIGINS, preserving the existing supported
+   origins during migration. Set ADMIN_APP_URL to the new admin origin. Redeploy the API.
+3. Set VITE_API_URL and EXPO_PUBLIC_API_URL to the new HTTPS API origin and rebuild both sites.
+   Check login, registration preflight, invitation links and nested-route refresh.
+4. Use the apex as the shared user-app address and redirect www to it after verification.
+   Before redirecting an existing app origin, have users synchronize pending changes there:
+   browser sessions, local records, outboxes and PWA installations do not transfer across origins.
+   Users sign in and reinstall on the new domain. Keep the old origin usable during this transition.
+
 ## Validation
 
 Run npm run check and npm test. Build the admin with npm run build -w @nasl/admin and the user
 website with npm run build:web -w @nasl/mobile after npm run build:packages. Verify the exported
-sites in a browser; Metro development mode alone does not verify production behavior.
+sites in a browser; Metro development mode alone does not verify production behavior. npm test
+includes service-worker cache isolation/offline-fallback tests. Check theme persistence, install
+instructions, manifest/icon responses and offline reopening against exported builds; development
+servers do not generate the production service worker.
 
 ## Sources
 

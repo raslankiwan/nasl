@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH } from '@nasl/shared';
 import { apiClient, ApiError } from '../api/client';
 import { LanguageToggle } from '../components/LanguageToggle';
+import { AppPreferences } from '../components/AppPreferences';
 
 interface Invitation {
   email: string;
@@ -200,6 +201,7 @@ export function AcceptInvitation() {
         <p>
           <a href="/">{t('auth:backToSignIn')}</a>
         </p>
+        <AppPreferences />
       </div>
     </div>
   );

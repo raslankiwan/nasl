@@ -1,6 +1,6 @@
 import { ScreenHeader } from '../../src/components/ScreenHeader';
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { api, ApiError } from '../../src/api/client';
@@ -8,7 +8,7 @@ import { useAuth } from '../../src/auth/AuthProvider';
 import { useFlock } from '../../src/sync/useFlock';
 import { usePens } from '../../src/sync/usePens';
 import { Body, Button, Notice, Pill, Screen } from '../../src/components/ui';
-import { colors, radius, spacing, type } from '../../src/theme';
+import { radius, spacing, type, createThemedStyles } from '../../src/theme';
 
 /**
  * One pen, and who is in it.
@@ -17,6 +17,7 @@ import { colors, radius, spacing, type } from '../../src/theme';
  * pen, they move the five that are close. So animals are selected by tapping and moved together.
  */
 export default function PenDetail() {
+  const styles = useStyles();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation(['pens', 'animals', 'common']);
   const { farmId } = useAuth();
@@ -137,7 +138,7 @@ export default function PenDetail() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.paper },
   gap: { height: spacing.md },
   row: {
@@ -167,4 +168,4 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontWeight: '700',
   },
-});
+}));

@@ -1,7 +1,7 @@
 import { useHeaderHeight } from 'expo-router/react-navigation';
 import { ScreenHeader } from '../../src/components/ScreenHeader';
 import { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { formatDate, formatHijriDate, type Locale } from '@nasl/i18n';
@@ -22,7 +22,7 @@ import {
 import { ACTION_LABELS, ACTION_ROUTES } from '../../src/breeding';
 import { actionsFor, can, type Role, type ReproState } from '@nasl/shared';
 import { AnimalNameEditor } from '../../src/components/AnimalNameEditor';
-import { colors, spacing, type } from '../../src/theme';
+import { spacing, type, createThemedStyles } from '../../src/theme';
 
 interface LactationRow {
   lactationId: string;
@@ -50,6 +50,7 @@ interface TreatmentRow {
 }
 
 function Row({ label, value }: { label: string; value: string }) {
+  const styles = useStyles();
   return (
     <View style={styles.detailRow}>
       <Text style={styles.detailLabel}>{label}</Text>
@@ -59,6 +60,7 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 export default function AnimalScreen() {
+  const styles = useStyles();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t, i18n } = useTranslation(['animals', 'breeding', 'health', 'pens', 'milk', 'common']);
   const { farmId, me } = useAuth();
@@ -370,7 +372,7 @@ export default function AnimalScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.paper },
   head: { marginBottom: spacing.md },
   tag: { fontSize: type.heading, color: colors.muted, fontWeight: '600', writingDirection: 'ltr' },
@@ -392,4 +394,4 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     textAlign: 'right',
   },
-});
+}));

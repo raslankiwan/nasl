@@ -11,6 +11,28 @@
       href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
+    <meta name="theme-color" content="#16233B" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" href="/icons/icon-192.png" />
+    <script defer src="/pwa.js"></script>
+    <script>
+      (() => {
+        let preference = 'system';
+        try {
+          preference = localStorage.getItem('nasl.theme') || 'system';
+        } catch {}
+        const dark =
+          preference === 'dark' ||
+          (preference !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+        document.documentElement.style.backgroundColor = dark ? '#0f1624' : '#f3f4f7';
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

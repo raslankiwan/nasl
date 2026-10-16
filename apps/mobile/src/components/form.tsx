@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { formatDate, formatHijriDate, type Locale } from '@nasl/i18n';
-import { colors, MIN_TOUCH, radius, spacing, type } from '../theme';
+import { MIN_TOUCH, radius, spacing, type, createThemedStyles } from '../theme';
 
 function FieldLabel({ children }: { children: ReactNode }) {
+  const styles = useStyles();
   const { i18n } = useTranslation();
   return (
     <Text
@@ -32,6 +33,7 @@ export function Choice<T extends string>({
   labelFor: (option: T) => string;
   columns?: number;
 }) {
+  const styles = useStyles();
   const wrap = columns !== undefined && options.length > columns;
   return (
     <View style={[styles.choices, wrap && styles.choicesWrap]}>
@@ -41,7 +43,7 @@ export function Choice<T extends string>({
           <Pressable
             key={option}
             accessibilityRole="radio"
-            accessibilityState={{ selected }}
+            accessibilityState={{ checked: selected }}
             onPress={() => onChange(option)}
             style={({ pressed }) => [
               styles.choice,
@@ -83,6 +85,7 @@ export function DateField({
   onChange: (next: Date) => void;
   allowFuture?: boolean;
 }) {
+  const styles = useStyles();
   const { t, i18n } = useTranslation('common');
   const locale = (i18n.resolvedLanguage ?? 'ar') as Locale;
 
@@ -160,6 +163,7 @@ export function NumberField({
   suffix?: string;
   optional?: boolean;
 }) {
+  const styles = useStyles();
   const start = initial ?? min;
   const current = value ?? start;
   const set = (next: number) => onChange(Math.min(max, Math.max(min, Number(next.toFixed(2)))));
@@ -201,6 +205,7 @@ export function NumberField({
 }
 
 export function FieldGroup({ label, children }: { label: string; children: ReactNode }) {
+  const styles = useStyles();
   return (
     <View style={styles.field}>
       <FieldLabel>{label}</FieldLabel>
@@ -209,7 +214,7 @@ export function FieldGroup({ label, children }: { label: string; children: React
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   field: { marginBottom: spacing.lg },
   label: {
     fontSize: type.label,
@@ -261,4 +266,4 @@ const styles = StyleSheet.create({
   },
   dateMain: { fontSize: type.body, fontWeight: '600', color: colors.ink },
   dateSub: { fontSize: type.caption, color: colors.muted },
-});
+}));

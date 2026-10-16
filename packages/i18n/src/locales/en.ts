@@ -12,6 +12,13 @@ export const en = {
     switchLanguage: 'Switch language',
     restartNeeded: 'The app will restart to lay out in the other direction.',
     settings: 'Settings',
+    appearance: 'Appearance',
+    themeSystem: 'System',
+    themeLight: 'Light',
+    themeDark: 'Dark',
+    installApp: 'Install app',
+    installHint:
+      'Open your browser menu and choose Install app. On iPhone or iPad, open this page in Safari, tap Share, then Add to Home Screen.',
     save: 'Save',
     cancel: 'Cancel',
     delete: 'Delete',

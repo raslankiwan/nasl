@@ -1,6 +1,6 @@
 import { useHeaderHeight } from 'expo-router/react-navigation';
 import { useState, type ReactNode } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -8,7 +8,7 @@ import { ApiError } from '../api/client';
 import { useSync } from '../sync/SyncProvider';
 import { Body, Button, Notice } from './ui';
 import { ScreenHeader } from './ScreenHeader';
-import { colors, spacing } from '../theme';
+import { spacing, createThemedStyles } from '../theme';
 
 /**
  * The frame every capture form shares: a title, an error slot, the form, and a save that returns
@@ -31,6 +31,7 @@ export function CaptureScreen({
   canSave: boolean;
   children: ReactNode;
 }) {
+  const styles = useStyles();
   const { t } = useTranslation('common');
   const router = useRouter();
   const headerHeight = useHeaderHeight();
@@ -100,9 +101,9 @@ export function CaptureScreen({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.paper },
   content: { padding: spacing.lg, paddingBottom: spacing.xxl },
   subtitle: { marginBottom: spacing.sm },
   gap: { height: spacing.sm },
-});
+}));

@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { StyleSheet, TextInput } from 'react-native';
+import { TextInput } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { expectedOutputKg, isProcessed, MILK_ROUTES, outputPlausibility } from '@nasl/shared';
 import { useAuth } from '../../src/auth/AuthProvider';
 import { CaptureScreen } from '../../src/components/CaptureScreen';
 import { Choice, DateField, FieldGroup, NumberField } from '../../src/components/form';
 import { Body, Notice } from '../../src/components/ui';
-import { colors, MIN_TOUCH, radius, spacing, type } from '../../src/theme';
+import { MIN_TOUCH, radius, spacing, type, useTheme, createThemedStyles } from '../../src/theme';
 
 /**
  * What became of a batch of milk (FR-MLK-06).
@@ -18,6 +18,8 @@ import { colors, MIN_TOUCH, radius, spacing, type } from '../../src/theme';
  * the farm's to make.
  */
 export default function Disposition() {
+  const styles = useStyles();
+  const { colors } = useTheme();
   const { t } = useTranslation(['milk', 'common']);
   const { farmId } = useAuth();
 
@@ -132,7 +134,7 @@ export default function Disposition() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   // A buyer is a person, not a batch code: their name follows the locale rather than being
   // forced left-to-right.
   input: {
@@ -146,4 +148,4 @@ const styles = StyleSheet.create({
     color: colors.ink,
     textAlign: 'auto',
   },
-});
+}));

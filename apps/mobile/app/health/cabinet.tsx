@@ -1,6 +1,6 @@
 import { ScreenHeader } from '../../src/components/ScreenHeader';
 import { useCallback, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { RefreshControl, ScrollView, Text, TextInput, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { formatDate, type Locale } from '@nasl/i18n';
@@ -8,7 +8,7 @@ import { api, ApiError } from '../../src/api/client';
 import { useAuth } from '../../src/auth/AuthProvider';
 import { Body, Button, Notice, Pill, Screen, IconButton } from '../../src/components/ui';
 import { Choice, DateField, FieldGroup, NumberField } from '../../src/components/form';
-import { colors, MIN_TOUCH, radius, spacing, type } from '../../src/theme';
+import { MIN_TOUCH, radius, spacing, type, useTheme, createThemedStyles } from '../../src/theme';
 
 interface Item {
   id: string;
@@ -37,6 +37,8 @@ interface Product {
  * away instead of injected.
  */
 export default function Cabinet() {
+  const styles = useStyles();
+  const { colors } = useTheme();
   const { t, i18n } = useTranslation(['health', 'common']);
   const { farmId } = useAuth();
   const locale = (i18n.resolvedLanguage ?? 'ar') as Locale;
@@ -223,7 +225,7 @@ export default function Cabinet() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.paper },
   gap: { height: spacing.md },
   head: {
@@ -273,4 +275,4 @@ const styles = StyleSheet.create({
   meta: { fontSize: type.caption, color: colors.muted },
   code: { writingDirection: 'ltr', fontWeight: '600' },
   qty: { fontSize: type.heading, fontWeight: '700', color: colors.ink },
-});
+}));

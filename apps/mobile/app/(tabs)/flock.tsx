@@ -1,13 +1,13 @@
 import { TabScreen } from '../../src/components/TabScreen';
 import { useCallback, useState } from 'react';
-import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, Text, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../src/auth/AuthProvider';
 import { useFlock } from '../../src/sync/useFlock';
 import { Body, Card, IconButton, Pill, SearchField, Title } from '../../src/components/ui';
-import { colors, MIN_TOUCH, radius, spacing, type } from '../../src/theme';
+import { MIN_TOUCH, radius, spacing, type, createThemedStyles } from '../../src/theme';
 
 /**
  * The flock roster, read from the device.
@@ -16,6 +16,7 @@ import { colors, MIN_TOUCH, radius, spacing, type } from '../../src/theme';
  * coverage shows the flock rather than a connection error.
  */
 export default function Flock() {
+  const styles = useStyles();
   const { t } = useTranslation(['animals', 'breeding', 'common', 'health']);
   const { farmId } = useAuth();
   const router = useRouter();
@@ -125,7 +126,7 @@ export default function Flock() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.paper },
   header: {
     flexDirection: 'row',
@@ -173,4 +174,4 @@ const styles = StyleSheet.create({
   rowMeta: { flexShrink: 0 },
   tag: { fontSize: type.heading, fontWeight: '700', color: colors.ink, writingDirection: 'ltr' },
   name: { fontSize: type.label, color: colors.muted },
-});
+}));

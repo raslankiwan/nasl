@@ -1,5 +1,5 @@
-import { I18nManager, Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, radius, spacing } from '../theme';
+import { I18nManager, Pressable, Text, View } from 'react-native';
+import { radius, spacing, createThemedStyles } from '../theme';
 
 /**
  * A large numeric keypad, used instead of the system keyboard (scope NFR-04).
@@ -22,6 +22,7 @@ export function Keypad({
   onClear: () => void;
   disabled?: boolean;
 }) {
+  const styles = useStyles();
   const Key = ({
     label,
     onPress,
@@ -66,7 +67,7 @@ export function Keypad({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   pad: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -89,4 +90,4 @@ const styles = StyleSheet.create({
   keyDisabled: { opacity: 0.4 },
   keyLabel: { fontSize: 26, fontWeight: '600', color: colors.ink },
   keyLabelMuted: { color: colors.muted, fontSize: 22 },
-});
+}));

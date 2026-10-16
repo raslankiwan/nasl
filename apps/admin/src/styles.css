@@ -7,6 +7,8 @@
  */
 
 :root {
+  color-scheme: light;
+  --on-accent: #ffffff;
   --paper: #f3f4f7;
   --surface: #ffffff;
   --surface-2: #eaecf1;
@@ -26,23 +28,23 @@
   --mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --paper: #0f1624;
-    --surface: #17202f;
-    --surface-2: #1e2839;
-    --ink: #e4e8f0;
-    --ink-2: #bac3d3;
-    --muted: #8792a8;
-    --line: #2b3648;
-    --line-soft: #222c3d;
-    --accent: #e0a24a;
-    --accent-soft: #33291b;
-    --sage: #84b694;
-    --sage-soft: #1e2e25;
-    --rust: #d88375;
-    --rust-soft: #33211e;
-  }
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --on-accent: #16233b;
+  --paper: #0f1624;
+  --surface: #17202f;
+  --surface-2: #1e2839;
+  --ink: #e4e8f0;
+  --ink-2: #bac3d3;
+  --muted: #a0acc0;
+  --line: #3c4960;
+  --line-soft: #222c3d;
+  --accent: #e0a24a;
+  --accent-soft: #33291b;
+  --sage: #84b694;
+  --sage-soft: #1e2e25;
+  --rust: #e19486;
+  --rust-soft: #33211e;
 }
 
 * {
@@ -199,7 +201,7 @@ select:focus-visible {
 button.primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 button.primary:hover {
   filter: brightness(1.08);
@@ -453,4 +455,25 @@ tbody tr:last-child td {
   main {
     padding: 20px 16px 48px;
   }
+}
+
+.app-preferences {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-block-start: 20px;
+  padding-block-start: 16px;
+  border-block-start: 1px solid var(--line);
+  font-size: 0.85rem;
+}
+.app-preferences select {
+  flex: 1;
+  width: auto;
+  min-width: 100px;
+}
+.install-hint {
+  flex-basis: 100%;
+  color: var(--muted);
+  margin: 0;
 }

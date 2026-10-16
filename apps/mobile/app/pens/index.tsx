@@ -1,14 +1,6 @@
 import { ScreenHeader } from '../../src/components/ScreenHeader';
 import { useCallback, useState } from 'react';
-import {
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Pressable, RefreshControl, ScrollView, Text, TextInput, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { api, ApiError } from '../../src/api/client';
@@ -16,11 +8,13 @@ import { useAuth } from '../../src/auth/AuthProvider';
 import { usePens } from '../../src/sync/usePens';
 import { Body, Button, Notice, Pill, Screen, IconButton } from '../../src/components/ui';
 import { Choice, FieldGroup } from '../../src/components/form';
-import { colors, MIN_TOUCH, radius, spacing, type } from '../../src/theme';
+import { MIN_TOUCH, radius, spacing, type, useTheme, createThemedStyles } from '../../src/theme';
 
 const TYPES = ['pen', 'drop', 'weaning', 'hospital', 'breeding', 'pasture', 'fattening'] as const;
 
 export default function Pens() {
+  const styles = useStyles();
+  const { colors } = useTheme();
   const { t } = useTranslation(['pens', 'common']);
   const { farmId } = useAuth();
   const router = useRouter();
@@ -123,7 +117,7 @@ export default function Pens() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.paper },
   head: {
     flexDirection: 'row',
@@ -163,4 +157,4 @@ const styles = StyleSheet.create({
   rowMain: { flexShrink: 1, gap: 2 },
   name: { fontSize: type.body, fontWeight: '700', color: colors.ink },
   meta: { fontSize: type.caption, color: colors.muted },
-});
+}));

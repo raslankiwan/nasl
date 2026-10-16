@@ -1,13 +1,13 @@
 import { TabScreen } from '../../src/components/TabScreen';
 import { useCallback, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { formatNumber, type Locale } from '@nasl/i18n';
 import { api } from '../../src/api/client';
 import { useAuth } from '../../src/auth/AuthProvider';
 import { Body, Card, Pill, Screen, Title } from '../../src/components/ui';
-import { colors, radius, spacing, type } from '../../src/theme';
+import { radius, spacing, type, createThemedStyles } from '../../src/theme';
 
 interface EweRow {
   animalId: string;
@@ -40,6 +40,7 @@ interface Season {
  * ewes should go", and making the herder scan a list for that is making them do the work twice.
  */
 export default function Reports() {
+  const styles = useStyles();
   const { t, i18n } = useTranslation(['reports', 'breeding', 'common']);
   const { farmId } = useAuth();
   const router = useRouter();
@@ -156,6 +157,7 @@ export default function Reports() {
 }
 
 function Stat({ label, value, suffix }: { label: string; value: string; suffix?: string }) {
+  const styles = useStyles();
   return (
     <View style={styles.stat}>
       <Text style={styles.statValue}>
@@ -168,6 +170,7 @@ function Stat({ label, value, suffix }: { label: string; value: string; suffix?:
 }
 
 function Figure({ label, value }: { label: string; value: string }) {
+  const styles = useStyles();
   return (
     <View style={styles.figure}>
       <Text style={styles.figureValue}>{value}</Text>
@@ -178,7 +181,7 @@ function Figure({ label, value }: { label: string; value: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.paper },
   gap: { height: spacing.lg },
   stats: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.md },
@@ -217,4 +220,4 @@ const styles = StyleSheet.create({
   figureValue: { fontSize: type.heading, fontWeight: '600', color: colors.inkSoft },
   figureLabel: { fontSize: 11, color: colors.muted },
   signals: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: spacing.md },
-});
+}));
