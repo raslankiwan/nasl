@@ -1,0 +1,23 @@
+apps/admin/vercel.json
+  s_c9959826314bf9::t_0a38aa1a534544 4
+apps/mobile/vercel.json
+  s_c9959826314bf9::t_f0fb4b8ebfa8d8 4
+package-lock.json
+  s_c9959826314bf9::t_e363a63d9a8de4 10378-10380,10388-10391
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "59a5e26c405ea79e6616077e4c73afb8a81480db",
+  "prompts": {},
+  "sessions": {
+    "s_c9959826314bf9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ed41-6d4f-7fd1-8eef-bc4227e3e739",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "raslan <raslankiwan@gmail.com>"
+    }
+  }
+}
