@@ -1,6 +1,11 @@
-import type { ReactNode } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ActivityIndicator,
+  I18nManager,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -11,11 +16,20 @@ import {
 import { colors, MIN_TOUCH, radius, spacing, type } from '../theme';
 
 export function Screen({ children }: { children: ReactNode }) {
-  return <View style={styles.screen}>{children}</View>;
+  const insets = useSafeAreaInsets();
+  return (
+    <View style={[styles.screen, { paddingBottom: Math.max(insets.bottom, spacing.xl) }]}>
+      {children}
+    </View>
+  );
 }
 
 export function Title({ children }: { children: ReactNode }) {
-  return <Text style={styles.title}>{children}</Text>;
+  return (
+    <Text accessibilityRole="header" style={styles.title}>
+      {children}
+    </Text>
+  );
 }
 
 export function Body({ children, muted }: { children: ReactNode; muted?: boolean }) {
@@ -35,7 +49,7 @@ export function Button({
 }: {
   label: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary';
+  variant?: 'primary' | 'secondary' | 'text';
   disabled?: boolean;
   busy?: boolean;
 }) {
@@ -49,6 +63,7 @@ export function Button({
       style={({ pressed }) => [
         styles.button,
         isPrimary ? styles.buttonPrimary : styles.buttonSecondary,
+        variant === 'text' && styles.buttonText,
         (disabled || busy) && styles.buttonDisabled,
         pressed && styles.buttonPressed,
       ]}
@@ -56,7 +71,15 @@ export function Button({
       {busy ? (
         <ActivityIndicator color={isPrimary ? colors.onAccent : colors.ink} />
       ) : (
-        <Text style={[styles.buttonLabel, isPrimary && styles.buttonLabelPrimary]}>{label}</Text>
+        <Text
+          style={[
+            styles.buttonLabel,
+            isPrimary && styles.buttonLabelPrimary,
+            variant === 'text' && { color: colors.accent },
+          ]}
+        >
+          {label}
+        </Text>
       )}
     </Pressable>
   );
@@ -67,15 +90,19 @@ export function Field({
   hint,
   ...props
 }: TextInputProps & { label: string; hint?: string }) {
+  const { i18n } = useTranslation();
+  // Native text alignment already follows I18nManager; web follows the active locale.
+  const textAlign = Platform.OS === 'web' && i18n.dir() === 'rtl' ? 'right' : 'left';
   return (
     <View style={styles.field}>
-      <Text style={styles.fieldLabel}>{label}</Text>
+      <Text style={[styles.fieldLabel, { textAlign }]}>{label}</Text>
       <TextInput
+        accessibilityLabel={label}
         placeholderTextColor={colors.muted}
         {...props}
-        style={[styles.input, props.style]}
+        style={[styles.input, { textAlign }, props.style]}
       />
-      {hint ? <Text style={styles.hint}>{hint}</Text> : null}
+      {hint ? <Text style={[styles.hint, { textAlign }]}>{hint}</Text> : null}
     </View>
   );
 }
@@ -141,16 +168,181 @@ export function Pill({
   );
 }
 
+type IconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
+
+export function IconButton({
+  label,
+  icon,
+  onPress,
+  disabled,
+}: {
+  label: string;
+  icon: IconName;
+  onPress: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.iconButton,
+        pressed && styles.buttonPressed,
+        disabled && styles.buttonDisabled,
+      ]}
+    >
+      <MaterialCommunityIcons name={icon} size={24} color={colors.accent} accessible={false} />
+    </Pressable>
+  );
+}
+
+/** Navigation rows disclose destinations; filled buttons commit work. */
+export function NavigationRow({
+  label,
+  icon,
+  onPress,
+  destructive = false,
+}: {
+  label: string;
+  icon: IconName;
+  onPress: () => void;
+  destructive?: boolean;
+}) {
+  const { i18n } = useTranslation();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      accessibilityLabel={label}
+      style={({ pressed }) => [styles.navigationRow, pressed && styles.buttonPressed]}
+    >
+      <View style={[styles.navigationIcon, destructive && { backgroundColor: colors.rustSoft }]}>
+        <MaterialCommunityIcons
+          name={icon}
+          size={21}
+          color={destructive ? colors.rust : colors.accent}
+          accessible={false}
+        />
+      </View>
+      <Text style={[styles.navigationLabel, destructive && { color: colors.rust }]}>{label}</Text>
+      {!destructive && (
+        <MaterialCommunityIcons
+          name={
+            (Platform.OS === 'web' ? i18n.dir() === 'rtl' : I18nManager.isRTL)
+              ? 'chevron-left'
+              : 'chevron-right'
+          }
+          size={20}
+          color={colors.muted}
+          accessible={false}
+        />
+      )}
+    </Pressable>
+  );
+}
+
+export function RowGroup({ children }: { children: ReactNode }) {
+  return <View style={styles.rowGroup}>{children}</View>;
+}
+
+export function SearchField({
+  label,
+  value,
+  onChangeText,
+}: {
+  label: string;
+  value: string;
+  onChangeText: (value: string) => void;
+}) {
+  const { t, i18n } = useTranslation('common');
+  return (
+    <View style={styles.search}>
+      <MaterialCommunityIcons name="magnify" size={22} color={colors.muted} accessible={false} />
+      <TextInput
+        accessibilityLabel={label}
+        placeholder={label}
+        placeholderTextColor={colors.muted}
+        value={value}
+        onChangeText={onChangeText}
+        maxLength={60}
+        autoCorrect={false}
+        returnKeyType="search"
+        style={[
+          styles.searchInput,
+          { textAlign: Platform.OS === 'web' && i18n.dir() === 'rtl' ? 'right' : 'left' },
+        ]}
+      />
+      {value ? (
+        <IconButton label={t('clearSearch')} icon="close-circle" onPress={() => onChangeText('')} />
+      ) : null}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  buttonText: {
+    backgroundColor: 'transparent',
+    borderColor: 'transparent',
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.sm,
+  },
+  iconButton: {
+    minWidth: MIN_TOUCH,
+    minHeight: MIN_TOUCH,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.pill,
+  },
+  rowGroup: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    marginBottom: spacing.lg,
+  },
+  navigationRow: {
+    minHeight: 58,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  navigationIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.md,
+    backgroundColor: colors.accentSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  navigationLabel: { flex: 1, fontSize: type.body, color: colors.ink, fontWeight: '500' },
+  search: {
+    minHeight: MIN_TOUCH,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderRadius: radius.lg,
+    backgroundColor: colors.surfaceAlt,
+    paddingStart: spacing.md,
+    paddingEnd: spacing.xs,
+  },
+  searchInput: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: MIN_TOUCH,
+    fontSize: type.body,
+    color: colors.ink,
+  },
   screen: { flex: 1, backgroundColor: colors.paper, padding: spacing.lg },
-  title: { fontSize: type.title, fontWeight: '700', color: colors.ink, marginBottom: spacing.sm },
+  title: { fontSize: type.display, fontWeight: '700', color: colors.ink, marginBottom: spacing.md },
   body: { fontSize: type.body, color: colors.inkSoft, lineHeight: 24 },
   muted: { color: colors.muted },
   card: {
     backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.line,
+    borderRadius: radius.lg,
     padding: spacing.lg,
   },
   button: {

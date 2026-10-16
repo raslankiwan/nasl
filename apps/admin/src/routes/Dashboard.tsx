@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { formatNumber, type Locale } from '@nasl/i18n';
 import { apiClient } from '../api/client';
 import { PageHead } from '../components/Layout';
+import { Link } from '@tanstack/react-router';
 
 interface Stats {
   farms: number;
@@ -31,14 +32,14 @@ export function Dashboard() {
       ) : (
         <>
           <div className="stat-row">
-            <div className="card stat">
+            <Link to="/farms" className="card stat stat-link">
               <div className="v">{n(data?.farms ?? 0)}</div>
               <div className="l">{t('admin:totalFarms')}</div>
-            </div>
-            <div className="card stat">
+            </Link>
+            <Link to="/users" className="card stat stat-link">
               <div className="v">{n(data?.users ?? 0)}</div>
               <div className="l">{t('admin:totalUsers')}</div>
-            </div>
+            </Link>
             <div className="card stat">
               <div className="v">{n(data?.activeAnimals ?? 0)}</div>
               <div className="l">{t('admin:activeAnimals')}</div>

@@ -1,21 +1,11 @@
 import { Router } from 'express';
-import { z } from 'zod';
-import { SPECIES } from '@nasl/shared';
 import type { Config } from '../config.ts';
 import { AppError } from '../errors.ts';
 import { Farm } from '../models/farm.model.ts';
 import { Membership } from '../models/membership.model.ts';
 import { requireAuth } from '../middleware/requireAuth.ts';
 import { requireFarmAccess } from '../middleware/requireFarmAccess.ts';
-
-const createFarmSchema = z.object({
-  name: z.string().trim().min(1).max(120),
-  country: z.string().length(2).default('PS'),
-  currency: z.string().length(3).default('ILS'),
-  timezone: z.string().min(1).default('Asia/Hebron'),
-  species: z.array(z.enum(SPECIES)).min(1).default(['sheep']),
-  calendarPreference: z.enum(['hijri', 'gregorian']).default('gregorian'),
-});
+import { createFarmSchema } from '../http/farmInput.ts';
 
 export function farmRoutes(config: Config): Router {
   const router = Router();

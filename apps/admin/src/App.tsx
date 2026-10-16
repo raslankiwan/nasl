@@ -16,6 +16,8 @@ import { Farms } from './routes/Farms';
 import { FarmDetail } from './routes/FarmDetail';
 import { Products } from './routes/Products';
 import { Audit } from './routes/Audit';
+import { Users } from './routes/Users';
+import { UserDetail } from './routes/UserDetail';
 
 interface RouterContext {
   user: StaffUser;
@@ -33,6 +35,8 @@ const routeTree = rootRoute.addChildren([
   createRoute({ getParentRoute: () => rootRoute, path: '/', component: Dashboard }),
   createRoute({ getParentRoute: () => rootRoute, path: '/farms', component: Farms }),
   createRoute({ getParentRoute: () => rootRoute, path: '/farms/$farmId', component: FarmDetail }),
+  createRoute({ getParentRoute: () => rootRoute, path: '/users', component: Users }),
+  createRoute({ getParentRoute: () => rootRoute, path: '/users/$userId', component: UserDetail }),
   createRoute({ getParentRoute: () => rootRoute, path: '/products', component: Products }),
   createRoute({ getParentRoute: () => rootRoute, path: '/audit', component: Audit }),
 ]);
@@ -64,8 +68,8 @@ function Console({ user, onSignOut }: { user: StaffUser; onSignOut: () => void }
 }
 
 export function App() {
-  const { t } = useTranslation('common');
-  const { state, requestCode, verifyCode, signOut } = useAuth();
+  const { t } = useTranslation(['common', 'auth']);
+  const { state, requestCode, verifyCode, signOut, reload } = useAuth();
 
   // Stable across renders, so nothing downstream treats it as a changed dependency.
   const handleSignOut = useCallback(() => void signOut(), [signOut]);
@@ -75,6 +79,17 @@ export function App() {
       return <div className="loading">{t('loading')}</div>;
     case 'signedOut':
       return <SignIn requestCode={requestCode} verifyCode={verifyCode} />;
+    case 'unavailable':
+      return (
+        <div className="signin">
+          <div className="card">
+            <p role="alert">{t('auth:sessionUnavailable')}</p>
+            <button className="primary" type="button" onClick={() => void reload()}>
+              {t('common:retry')}
+            </button>
+          </div>
+        </div>
+      );
     // Signed in, but not staff. Say so plainly rather than rendering an empty console.
     case 'notStaff':
       return <NotStaff onSignOut={handleSignOut} />;

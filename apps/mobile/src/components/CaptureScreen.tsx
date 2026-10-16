@@ -1,3 +1,4 @@
+import { useHeaderHeight } from 'expo-router/react-navigation';
 import { useState, type ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -5,7 +6,8 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ApiError } from '../api/client';
 import { useSync } from '../sync/SyncProvider';
-import { Button, Notice, Title } from './ui';
+import { Body, Button, Notice } from './ui';
+import { ScreenHeader } from './ScreenHeader';
 import { colors, spacing } from '../theme';
 
 /**
@@ -31,6 +33,7 @@ export function CaptureScreen({
 }) {
   const { t } = useTranslation('common');
   const router = useRouter();
+  const headerHeight = useHeaderHeight();
   const insets = useSafeAreaInsets();
   const { send } = useSync();
   const [error, setError] = useState<string | null>(null);
@@ -70,19 +73,28 @@ export function CaptureScreen({
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={[styles.root, { paddingTop: insets.top }]}
+      style={styles.root}
+      keyboardVerticalOffset={headerHeight}
     >
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Title>{title}</Title>
-        {subtitle ? <View style={styles.subtitle}>{null}</View> : null}
+      <ScreenHeader title={title} />
+      <ScrollView
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: Math.max(insets.bottom, spacing.xl) },
+        ]}
+        keyboardShouldPersistTaps="handled"
+      >
+        {subtitle ? (
+          <View style={styles.subtitle}>
+            <Body muted>{subtitle}</Body>
+          </View>
+        ) : null}
 
         {error ? <Notice tone="danger">{error}</Notice> : null}
 
         {children}
 
         <Button label={t('save')} onPress={() => void save()} busy={busy} disabled={!canSave} />
-        <View style={styles.gap} />
-        <Button label={t('cancel')} variant="secondary" onPress={leave} />
       </ScrollView>
     </KeyboardAvoidingView>
   );

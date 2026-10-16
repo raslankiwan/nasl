@@ -1,4 +1,4 @@
-import { model, Schema } from 'mongoose';
+import { model, Schema, type ClientSession } from 'mongoose';
 import { idField } from './base.ts';
 
 /**
@@ -36,6 +36,9 @@ schema.index({ createdAt: -1 });
 
 export const AuditLog = model<AuditLogDoc>('AuditLog', schema);
 
-export async function recordAudit(entry: Omit<AuditLogDoc, '_id' | 'createdAt'>): Promise<void> {
-  await AuditLog.create(entry);
+export async function recordAudit(
+  entry: Omit<AuditLogDoc, '_id' | 'createdAt'>,
+  session?: ClientSession,
+): Promise<void> {
+  await AuditLog.create([entry], { session });
 }

@@ -23,7 +23,7 @@ if (!uri) {
   process.exit(1);
 }
 
-await mongoose.connect(uri);
+await mongoose.connect(uri, { dbName: process.env.MONGODB_DB_NAME ?? 'nasl' });
 const result = await mongoose.connection
   .collection('users')
   .updateOne({ phone }, { $set: { isPlatformAdmin: !revoke } });

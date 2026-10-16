@@ -23,7 +23,15 @@ export function SignIn({ requestCode, verifyCode }: Props) {
     try {
       await fn();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t('common:errorRetry'));
+      setError(
+        err instanceof ApiError
+          ? err.code === 'sign_in_unavailable'
+            ? t('auth:signInUnavailable')
+            : err.code === 'rate_limited'
+              ? t('auth:rateLimited')
+              : err.message
+          : t('common:errorRetry'),
+      );
     } finally {
       setBusy(false);
     }

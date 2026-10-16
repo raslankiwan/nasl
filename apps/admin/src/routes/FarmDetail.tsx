@@ -1,14 +1,18 @@
 import { useState } from 'react';
-import { useParams } from '@tanstack/react-router';
+import { Link, useParams } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { formatDate, formatNumber, type Locale } from '@nasl/i18n';
 import { apiClient, ApiError } from '../api/client';
 import { PageHead } from '../components/Layout';
+import { UserLink, type UserSummary } from '../components/UserLink';
+import { AssignOwnerForm } from '../components/AssignOwnerForm';
 
 interface FarmDetailBody {
   id: string;
   name: string;
+  ownerUserId: string;
+  owner: UserSummary | null;
   country: string;
   currency: string;
   timezone: string;
@@ -21,6 +25,7 @@ interface FarmDetailBody {
   members: Array<{
     userId: string;
     name: string | null;
+    phone: string | null;
     role: string;
     status: string;
     expiresAt: string | null;
@@ -38,8 +43,14 @@ export function FarmDetail() {
   const [plan, setPlan] = useState<string>('');
   const [reason, setReason] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [changingOwner, setChangingOwner] = useState(false);
+  const [ownerSaved, setOwnerSaved] = useState(false);
 
-  const { data, isLoading } = useQuery({
+  const {
+    data,
+    isLoading,
+    error: loadError,
+  } = useQuery({
     queryKey: ['admin', 'farm', farmId],
     queryFn: () => apiClient.get<FarmDetailBody>(`/v1/admin/farms/${farmId}`),
   });
@@ -54,11 +65,51 @@ export function FarmDetail() {
     onError: (err) => setError(err instanceof ApiError ? err.message : t('common:errorRetry')),
   });
 
-  if (isLoading || !data) return <div className="loading">{t('common:loading')}</div>;
+  if (isLoading) return <div className="loading">{t('common:loading')}</div>;
+  if (!data || loadError)
+    return (
+      <div className="notice danger" role="alert">
+        {loadError instanceof ApiError && loadError.status === 404
+          ? t('admin:recordNotFound')
+          : t('common:errorRetry')}
+      </div>
+    );
 
   return (
     <>
-      <PageHead title={data.name} />
+      <Link to="/farms">{t('admin:farms')}</Link>
+      <PageHead title={data.name}>
+        <button
+          type="button"
+          className="primary"
+          aria-expanded={changingOwner}
+          onClick={() => {
+            setChangingOwner(!changingOwner);
+            setOwnerSaved(false);
+          }}
+        >
+          {t('admin:changeOwner')}
+        </button>
+      </PageHead>
+      <p>
+        {t('admin:owner')}: {data.owner ? <UserLink user={data.owner} /> : t('common:unknown')}
+      </p>
+      {ownerSaved ? (
+        <div className="notice" role="status">
+          {t('admin:ownerSaved')}
+        </div>
+      ) : null}
+      {changingOwner ? (
+        <AssignOwnerForm
+          key={farmId}
+          farm={data}
+          onCancel={() => setChangingOwner(false)}
+          onDone={() => {
+            setChangingOwner(false);
+            setOwnerSaved(true);
+          }}
+        />
+      ) : null}
 
       <div className="stat-row">
         <div className="card stat">
@@ -136,10 +187,16 @@ export function FarmDetail() {
           <tbody>
             {data.members.map((m) => (
               <tr key={m.userId}>
-                <td>{m.name ?? t('common:unknown')}</td>
+                <td>
+                  <UserLink user={{ id: m.userId, name: m.name, phone: m.phone }} />
+                </td>
                 <td>{t(`roles:${m.role}` as 'roles:owner')}</td>
                 <td>
-                  <span className={`pill${m.status === 'active' ? ' good' : ''}`}>{m.status}</span>
+                  <span className={`pill${m.status === 'active' ? ' good' : ''}`}>
+                    {t(
+                      `admin:membershipStates.${m.expiresAt && new Date(m.expiresAt).getTime() < Date.now() && m.status === 'active' ? 'expired' : m.status}` as 'admin:membershipStates.active',
+                    )}
+                  </span>
                 </td>
               </tr>
             ))}

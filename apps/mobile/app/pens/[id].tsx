@@ -1,13 +1,13 @@
+import { ScreenHeader } from '../../src/components/ScreenHeader';
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { api, ApiError } from '../../src/api/client';
 import { useAuth } from '../../src/auth/AuthProvider';
 import { useFlock } from '../../src/sync/useFlock';
 import { usePens } from '../../src/sync/usePens';
-import { Body, Button, Notice, Pill, Screen, Title } from '../../src/components/ui';
+import { Body, Button, Notice, Pill, Screen } from '../../src/components/ui';
 import { colors, radius, spacing, type } from '../../src/theme';
 
 /**
@@ -21,7 +21,6 @@ export default function PenDetail() {
   const { t } = useTranslation(['pens', 'animals', 'common']);
   const { farmId } = useAuth();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { animals, refresh: refreshFlock } = useFlock();
   const { pens, refresh: refreshPens } = usePens();
 
@@ -66,13 +65,10 @@ export default function PenDetail() {
   };
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
+    <View style={styles.root}>
       <ScrollView>
         <Screen>
-          <Button label={t('common:back')} variant="secondary" onPress={() => router.back()} />
-          <View style={styles.gap} />
-
-          <Title>{pen?.name ?? t('pens:title')}</Title>
+          <ScreenHeader title={pen?.name ?? t('pens:title')} />
           {pen ? <Body muted>{t(`pens:types.${pen.type}` as 'pens:types.pen')}</Body> : null}
 
           {error ? <Notice tone="danger">{error}</Notice> : null}

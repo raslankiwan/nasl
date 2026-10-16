@@ -1,11 +1,12 @@
-import { useCallback } from 'react';
+import { TabScreen } from '../../src/components/TabScreen';
+import { useCallback, useState } from 'react';
 import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../src/auth/AuthProvider';
 import { useFlock } from '../../src/sync/useFlock';
-import { Body, Card, Pill, Title } from '../../src/components/ui';
+import { Body, Card, IconButton, Pill, SearchField, Title } from '../../src/components/ui';
 import { colors, MIN_TOUCH, radius, spacing, type } from '../../src/theme';
 
 /**
@@ -19,6 +20,14 @@ export default function Flock() {
   const { farmId } = useAuth();
   const router = useRouter();
   const { animals, loading, stale, refresh } = useFlock();
+  const [query, setQuery] = useState('');
+  const search = query.trim().toLocaleLowerCase();
+  const visibleAnimals = animals.filter(
+    (animal) =>
+      !search ||
+      animal.tagNumber.toLocaleLowerCase().includes(search) ||
+      animal.name?.toLocaleLowerCase().includes(search),
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -28,46 +37,52 @@ export default function Flock() {
 
   if (!farmId) {
     return (
-      <View style={styles.root}>
+      <TabScreen>
         <View style={styles.padded}>
           <Title>{t('animals:title')}</Title>
           <Card>
             <Body>{t('animals:noFarm')}</Body>
           </Card>
         </View>
-      </View>
+      </TabScreen>
     );
   }
 
   return (
-    <View style={styles.root}>
+    <TabScreen>
       <View style={styles.header}>
         <Title>{t('animals:title')}</Title>
         <View style={styles.headerActions}>
           <Text style={styles.count}>{t('animals:headCount', { count: animals.length })}</Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t('animals:addAnimal')}
+          <IconButton
+            label={t('animals:addAnimal')}
+            icon="plus"
             onPress={() => router.push('/animal/new')}
-            style={({ pressed }) => [styles.add, pressed && styles.rowPressed]}
-          >
-            <Text style={styles.addLabel}>＋</Text>
-          </Pressable>
+          />
         </View>
       </View>
 
       {/* Not an error: it says the list is what was last known, which is still worth reading. */}
       {stale ? <Text style={styles.stale}>{t('common:offline')}</Text> : null}
 
+      <View style={styles.search}>
+        <SearchField
+          label={t('animals:searchByTagOrLabel')}
+          value={query}
+          onChangeText={setQuery}
+        />
+      </View>
+
       <FlashList
-        data={animals}
+        keyboardShouldPersistTaps="handled"
+        data={visibleAnimals}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void refresh()} />}
         ListEmptyComponent={
           loading ? null : (
             <View style={styles.padded}>
-              <Body muted>{t('animals:emptyFlock')}</Body>
+              <Body muted>{t(search ? 'animals:noMatchingAnimals' : 'animals:emptyFlock')}</Body>
             </View>
           )
         }
@@ -84,7 +99,7 @@ export default function Flock() {
               */}
               <Text style={styles.tag}>{item.tagNumber}</Text>
               <Text style={styles.name} numberOfLines={1}>
-                {item.name ??
+                {item.name ||
                   t(`animals:speciesValues.${item.species}` as 'animals:speciesValues.sheep')}
               </Text>
             </View>
@@ -106,7 +121,7 @@ export default function Flock() {
           </Pressable>
         )}
       />
-    </View>
+    </TabScreen>
   );
 }
 
@@ -130,6 +145,7 @@ const styles = StyleSheet.create({
   },
   addLabel: { fontSize: 24, color: colors.onAccent, fontWeight: '700', lineHeight: 28 },
   padded: { padding: spacing.lg },
+  search: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
   count: { fontSize: type.label, color: colors.muted, fontWeight: '600' },
   stale: {
     paddingHorizontal: spacing.lg,

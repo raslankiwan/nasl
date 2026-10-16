@@ -1,3 +1,4 @@
+import { TabScreen } from '../../src/components/TabScreen';
 import { useCallback, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -71,7 +72,7 @@ export default function Reports() {
   const n = (value: number | null) => (value === null ? '—' : formatNumber(value, locale));
 
   return (
-    <View style={styles.root}>
+    <TabScreen>
       <ScrollView
         refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void load()} />}
       >
@@ -150,7 +151,7 @@ export default function Reports() {
           ))}
         </Screen>
       </ScrollView>
-    </View>
+    </TabScreen>
   );
 }
 

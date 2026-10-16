@@ -52,6 +52,74 @@ beforeEach(async () => {
 });
 
 describe('registering animals', () => {
+  test('a label can be added, renamed and cleared without changing the tag or animal details', async () => {
+    await withServer(testApp(), async (url) => {
+      const { session, farmId } = await signInWithFarm(url, '+970590000001');
+      const client = api(url, session.accessToken);
+      const created = await client.post<AnimalBody>(
+        `/v1/farms/${farmId}/animals`,
+        ewe('0012', {
+          name: '  بيضاء الوجه  ',
+          origin: 'purchased',
+          dobIsEstimate: true,
+        }),
+      );
+      assert.equal(created.status, 201);
+      assert.equal(created.body.tagNumber, '0012');
+      assert.equal(created.body.name, 'بيضاء الوجه');
+      const path = `/v1/farms/${farmId}/animals/${created.body.id}`;
+      const renamed = await client.patch<AnimalBody>(path, { name: '  ريم  ' });
+      assert.equal(renamed.status, 200);
+      assert.equal(renamed.body.name, 'ريم');
+      assert.equal(renamed.body.tagNumber, '0012');
+      const stored = await Animal.findById(created.body.id).lean();
+      assert.equal(stored?.origin, 'purchased');
+      assert.equal(stored?.dobIsEstimate, true);
+      assert.equal(stored?.species, 'sheep');
+      for (const name of [null, '   ']) {
+        const cleared = await client.patch<AnimalBody>(path, { name });
+        assert.equal(cleared.status, 200);
+        assert.equal(cleared.body.name, null);
+        assert.equal(cleared.body.tagNumber, '0012');
+      }
+    });
+  });
+
+  test('labels are optional and may repeat, while tag numbers remain unique', async () => {
+    await withServer(testApp(), async (url) => {
+      const { session, farmId } = await signInWithFarm(url, '+970590000001');
+      const client = api(url, session.accessToken);
+      const path = `/v1/farms/${farmId}/animals`;
+      assert.equal((await client.post(path, ewe('1', { name: 'بيضاء الوجه' }))).status, 201);
+      assert.equal((await client.post(path, ewe('2', { name: 'بيضاء الوجه' }))).status, 201);
+      const unlabelled = await client.post<AnimalBody>(path, ewe('3'));
+      assert.equal(unlabelled.body.name, null);
+      assert.equal((await client.post(path, ewe('1', { name: 'Another label' }))).status, 409);
+      assert.equal((await client.post(path, ewe('4', { name: 'x'.repeat(61) }))).status, 400);
+      assert.equal(
+        (await client.patch(`${path}/${unlabelled.body.id}`, { name: 'x'.repeat(61) })).status,
+        400,
+      );
+    });
+  });
+
+  test('a label update cannot change another farm’s animal', async () => {
+    await withServer(testApp(), async (url) => {
+      const first = await signInWithFarm(url, '+970590000001');
+      const second = await signInWithFarm(url, '+970590000002');
+      const created = await api(url, first.session.accessToken).post<AnimalBody>(
+        `/v1/farms/${first.farmId}/animals`,
+        ewe('12', { name: 'ريم' }),
+      );
+      const denied = await api(url, second.session.accessToken).patch(
+        `/v1/farms/${second.farmId}/animals/${created.body.id}`,
+        { name: 'changed' },
+      );
+      assert.equal(denied.status, 404);
+      assert.equal((await Animal.findById(created.body.id).lean())?.name, 'ريم');
+    });
+  });
+
   test('an animal is registered and read back', async () => {
     await withServer(testApp(), async (url) => {
       const { session, farmId } = await signInWithFarm(url, '+966501111111');

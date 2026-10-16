@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -19,6 +19,16 @@ export default function SignIn() {
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [resendAt, setResendAt] = useState(0);
+  const [resendSeconds, setResendSeconds] = useState(0);
+
+  useEffect(() => {
+    if (!resendAt) return;
+    const update = () => setResendSeconds(Math.max(0, Math.ceil((resendAt - Date.now()) / 1000)));
+    update();
+    const timer = setInterval(update, 1000);
+    return () => clearInterval(timer);
+  }, [resendAt]);
 
   const run = async (fn: () => Promise<void>) => {
     setBusy(true);
@@ -26,11 +36,28 @@ export default function SignIn() {
     try {
       await fn();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t('common:errorRetry'));
+      setError(
+        err instanceof ApiError
+          ? err.code === 'sign_in_unavailable'
+            ? t('auth:signInUnavailable')
+            : err.code === 'rate_limited'
+              ? t('auth:rateLimited')
+              : err.message
+          : t('common:errorRetry'),
+      );
     } finally {
       setBusy(false);
     }
   };
+
+  const sendCode = () =>
+    run(async () => {
+      const challenge = await requestCode(phone.trim());
+      setChallengeId(challenge.challengeId);
+      setDevCode(challenge.devCode ?? null);
+      setCode('');
+      setResendAt(Date.now() + 30_000);
+    });
 
   return (
     <KeyboardAvoidingView
@@ -55,7 +82,7 @@ export default function SignIn() {
                 onChangeText={setPhone}
                 keyboardType="phone-pad"
                 autoComplete="tel"
-                placeholder="+966501234567"
+                placeholder="+970590000000"
                 // A phone number reads left-to-right even inside an Arabic interface.
                 style={{ textAlign: 'left', writingDirection: 'ltr' }}
               />
@@ -63,13 +90,7 @@ export default function SignIn() {
                 label={t('auth:sendCode')}
                 busy={busy}
                 disabled={phone.trim().length < 6}
-                onPress={() =>
-                  void run(async () => {
-                    const challenge = await requestCode(phone.trim());
-                    setChallengeId(challenge.challengeId);
-                    setDevCode(challenge.devCode ?? null);
-                  })
-                }
+                onPress={() => void sendCode()}
               />
             </>
           ) : (
@@ -95,12 +116,35 @@ export default function SignIn() {
                 disabled={code.length !== 6}
                 onPress={() => void run(() => verifyCode(challengeId, code))}
               />
+              <View style={styles.recovery}>
+                <Button
+                  label={
+                    resendSeconds > 0
+                      ? t('auth:resendIn', { seconds: resendSeconds })
+                      : t('auth:resendCode')
+                  }
+                  variant="text"
+                  disabled={busy || resendSeconds > 0}
+                  onPress={() => void sendCode()}
+                />
+                <Button
+                  label={t('auth:changePhone')}
+                  variant="text"
+                  disabled={busy}
+                  onPress={() => {
+                    setChallengeId(null);
+                    setDevCode(null);
+                    setCode('');
+                    setError(null);
+                  }}
+                />
+              </View>
             </>
           )}
         </Card>
 
         <View style={styles.footer}>
-          <Body muted>{t('common:offline')}</Body>
+          <Body muted>{t('auth:signInOnlineHint')}</Body>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -117,4 +161,5 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   footer: { marginTop: spacing.xl, alignItems: 'center' },
+  recovery: { marginTop: spacing.md, gap: spacing.sm },
 });

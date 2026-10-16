@@ -1,3 +1,4 @@
+import { TabScreen } from '../../src/components/TabScreen';
 import { useCallback } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -49,7 +50,7 @@ export default function Today() {
   const nothingToDo = alerts && alerts.overdue.length === 0 && alerts.dueSoon.length === 0;
 
   return (
-    <View style={styles.root}>
+    <TabScreen>
       <ScrollView
         refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void refresh()} />}
       >
@@ -107,7 +108,7 @@ export default function Today() {
           ) : null}
         </Screen>
       </ScrollView>
-    </View>
+    </TabScreen>
   );
 }
 

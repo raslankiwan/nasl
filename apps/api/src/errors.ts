@@ -9,6 +9,7 @@ export const ERROR_CODES = [
   'not_found',
   'conflict',
   'rate_limited',
+  'sign_in_unavailable',
   'internal',
 ] as const;
 export type ErrorCode = (typeof ERROR_CODES)[number];
@@ -20,6 +21,7 @@ const STATUS: Record<ErrorCode, number> = {
   not_found: 404,
   conflict: 409,
   rate_limited: 429,
+  sign_in_unavailable: 503,
   internal: 500,
 };
 

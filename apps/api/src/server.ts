@@ -7,7 +7,11 @@ async function main(): Promise<void> {
   const config = loadConfig();
   const logger = createLogger(config.LOG_LEVEL, config.NODE_ENV === 'development');
 
-  await connectDatabase(config.MONGODB_URI, logger);
+  await connectDatabase(config.MONGODB_URI, logger, {
+    createIndexes: config.NODE_ENV !== 'production',
+    maxPoolSize: config.MONGO_MAX_POOL_SIZE,
+    dbName: config.MONGODB_DB_NAME,
+  });
 
   const app = createApp({ config, logger });
   const server = app.listen(config.PORT, () => {

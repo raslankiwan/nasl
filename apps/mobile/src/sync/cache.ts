@@ -162,6 +162,14 @@ export class FlockCache {
       .sort((a, b) => a.tagNumber.localeCompare(b.tagNumber, undefined, { numeric: true }));
   }
 
+  /** Cache a confirmed server write without advancing the incremental pull cursor. */
+  async storeAnimal(farmId: string, doc: Record<string, unknown>): Promise<void> {
+    const animal = toCachedAnimal(doc);
+    if (!animal) throw new Error('Cannot cache an animal without an id and tag');
+    const cache = await this.read(farmId);
+    await this.write({ ...cache, animals: { ...cache.animals, [animal.id]: animal } });
+  }
+
   async getAnimal(farmId: string, id: string): Promise<CachedAnimal | null> {
     return (await this.read(farmId)).animals[id] ?? null;
   }

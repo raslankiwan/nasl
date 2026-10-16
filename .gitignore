@@ -27,3 +27,6 @@ android/
 !.vscode/extensions.json
 *.log
 npm-debug.log*
+
+# Vercel local project links and downloaded secrets
+.vercel/

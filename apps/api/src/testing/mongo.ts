@@ -1,14 +1,16 @@
 import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import { MongoMemoryServer, MongoMemoryReplSet } from 'mongodb-memory-server';
 import { applyMongooseSettings, ensureIndexes } from '../db.ts';
 
-let server: MongoMemoryServer | undefined;
+let server: MongoMemoryServer | MongoMemoryReplSet | undefined;
 
 /** Start a throwaway MongoDB and connect mongoose to it. */
-export async function startTestMongo(): Promise<string> {
+export async function startTestMongo(replicaSet = false): Promise<string> {
   // The same settings the server runs with, so configuration bugs surface here first.
   applyMongooseSettings();
-  server = await MongoMemoryServer.create();
+  server = replicaSet
+    ? await MongoMemoryReplSet.create({ replSet: { count: 1 } })
+    : await MongoMemoryServer.create();
   const uri = server.getUri();
   await mongoose.connect(uri, { dbName: 'nasl-test' });
   // Same as the server: no test runs until the unique indexes it relies on actually exist.

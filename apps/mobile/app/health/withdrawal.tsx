@@ -1,11 +1,11 @@
+import { ScreenHeader } from '../../src/components/ScreenHeader';
 import { useCallback, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../src/api/client';
 import { useAuth } from '../../src/auth/AuthProvider';
-import { Body, Pill, Screen, Title } from '../../src/components/ui';
+import { Body, Pill, Screen } from '../../src/components/ui';
 import { colors, radius, spacing, type } from '../../src/theme';
 
 interface Row {
@@ -31,7 +31,6 @@ export default function UnderWithdrawal() {
   const { t } = useTranslation(['health', 'common']);
   const { farmId } = useAuth();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
 
   const [data, setData] = useState<Withdrawal | null>(null);
   const [loading, setLoading] = useState(true);
@@ -80,12 +79,12 @@ export default function UnderWithdrawal() {
   const empty = data && data.meat.length === 0 && data.milk.length === 0;
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
+    <View style={styles.root}>
       <ScrollView
         refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void load()} />}
       >
         <Screen>
-          <Title>{t('health:underWithdrawal')}</Title>
+          <ScreenHeader title={t('health:underWithdrawal')} />
           <Section label={t('health:milk')} rows={data?.milk ?? []} tone="milk" />
           <Section label={t('health:meat')} rows={data?.meat ?? []} tone="meat" />
           {empty ? <Body muted>{t('health:noWithdrawal')}</Body> : null}

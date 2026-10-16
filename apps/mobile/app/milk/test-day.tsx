@@ -1,11 +1,11 @@
+import { ScreenHeader } from '../../src/components/ScreenHeader';
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { api, ApiError } from '../../src/api/client';
 import { useAuth } from '../../src/auth/AuthProvider';
-import { Body, Button, Notice, Screen, Title } from '../../src/components/ui';
+import { Body, Button, Notice, Screen } from '../../src/components/ui';
 import { DateField } from '../../src/components/form';
 import { colors, MIN_TOUCH, radius, spacing, type } from '../../src/theme';
 
@@ -35,7 +35,6 @@ export default function TestDay() {
   const { t } = useTranslation(['milk', 'common']);
   const { farmId } = useAuth();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
 
   const [date, setDate] = useState(() => new Date(new Date().toISOString().slice(0, 10)));
   const [ewes, setEwes] = useState<Lactation[]>([]);
@@ -101,11 +100,11 @@ export default function TestDay() {
   };
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
+    <View style={styles.root}>
       <ScrollView contentContainerStyle={styles.content}>
         <Screen>
           <View style={styles.head}>
-            <Title>{t('milk:testDay')}</Title>
+            <ScreenHeader title={t('milk:testDay')} />
             <Text style={styles.count}>{t('milk:entered', { count: entries.length })}</Text>
           </View>
 
@@ -163,9 +162,6 @@ export default function TestDay() {
               <Button label={t('common:save')} onPress={() => void save()} busy={busy} />
             </>
           ) : null}
-
-          <View style={styles.gap} />
-          <Button label={t('common:back')} variant="secondary" onPress={() => router.back()} />
         </Screen>
       </ScrollView>
     </View>

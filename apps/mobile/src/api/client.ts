@@ -23,7 +23,11 @@ export class ApiError extends Error {
   }
 }
 
-const BASE = (Constants.expoConfig?.extra?.apiUrl as string | undefined) ?? 'http://localhost:4000';
+const BASE = (
+  process.env.EXPO_PUBLIC_API_URL ??
+  (Constants.expoConfig?.extra?.apiUrl as string | undefined) ??
+  'http://localhost:4000'
+).replace(/\/$/, '');
 
 /** In-memory mirror so hot paths do not await storage on every request. */
 let accessToken: string | null = null;

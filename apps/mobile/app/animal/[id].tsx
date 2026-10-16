@@ -1,15 +1,27 @@
+import { useHeaderHeight } from 'expo-router/react-navigation';
+import { ScreenHeader } from '../../src/components/ScreenHeader';
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { formatDate, formatHijriDate, type Locale } from '@nasl/i18n';
 import { api } from '../../src/api/client';
 import { useAnimal } from '../../src/sync/useFlock';
 import { useAuth } from '../../src/auth/AuthProvider';
-import { Body, Button, Card, Notice, Pill, Screen, Title } from '../../src/components/ui';
+import {
+  Body,
+  Button,
+  Card,
+  IconButton,
+  NavigationRow,
+  Notice,
+  Pill,
+  Screen,
+  Title,
+} from '../../src/components/ui';
 import { ACTION_LABELS, ACTION_ROUTES } from '../../src/breeding';
-import { actionsFor, type ReproState } from '@nasl/shared';
+import { actionsFor, can, type Role, type ReproState } from '@nasl/shared';
+import { AnimalNameEditor } from '../../src/components/AnimalNameEditor';
 import { colors, spacing, type } from '../../src/theme';
 
 interface LactationRow {
@@ -49,13 +61,16 @@ function Row({ label, value }: { label: string; value: string }) {
 export default function AnimalScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t, i18n } = useTranslation(['animals', 'breeding', 'health', 'pens', 'milk', 'common']);
-  const { farmId } = useAuth();
+  const { farmId, me } = useAuth();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
+  const headerHeight = useHeaderHeight();
   const locale = (i18n.resolvedLanguage ?? 'ar') as Locale;
 
   // Read from the device first, refresh behind it — the pen is where the signal is not.
-  const { animal, loading, stale } = useAnimal(id);
+  const { animal, loading, stale, refresh } = useAnimal(id);
+  const [editingName, setEditingName] = useState(false);
+  const role = me?.farms.find((farm) => farm.farmId === farmId)?.role;
+  const canEdit = role && can(role as Role, 'animals:write');
   const [treatments, setTreatments] = useState<TreatmentRow[]>([]);
   const [weights, setWeights] = useState<WeightHistory | null>(null);
   const [lactations, setLactations] = useState<LactationRow[]>([]);
@@ -86,21 +101,50 @@ export default function AnimalScreen() {
       : [];
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
-      <ScrollView>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={headerHeight}
+      style={styles.root}
+    >
+      <ScrollView keyboardShouldPersistTaps="handled">
         <Screen>
-          <Button label={t('common:back')} variant="secondary" onPress={() => router.back()} />
-          <View style={styles.gap} />
+          <ScreenHeader
+            title={t('animals:animalDetails')}
+            action={
+              animal && farmId && canEdit && !editingName ? (
+                <IconButton
+                  label={t('animals:editNameOrLabel')}
+                  icon="pencil-outline"
+                  onPress={() => setEditingName(true)}
+                />
+              ) : undefined
+            }
+          />
 
           {stale ? <Body muted>{t('common:offline')}</Body> : null}
 
           {animal ? (
             <>
               <View style={styles.head}>
-                <Title>{animal.name ?? animal.tagNumber}</Title>
+                <Title>{animal.name || animal.tagNumber}</Title>
                 {/* Only worth repeating the tag when the title is a name. */}
                 {animal.name ? <Text style={styles.tag}>{animal.tagNumber}</Text> : null}
               </View>
+
+              {farmId && canEdit && editingName ? (
+                <View style={styles.actionSpacing}>
+                  <AnimalNameEditor
+                    key={animal.id}
+                    farmId={farmId}
+                    animal={animal}
+                    onCancel={() => setEditingName(false)}
+                    onSaved={() => {
+                      setEditingName(false);
+                      void refresh();
+                    }}
+                  />
+                </View>
+              ) : null}
 
               {/*
                 Both restrictions, and milk first. For a dairy flock the milk hold is the one that
@@ -223,18 +267,18 @@ export default function AnimalScreen() {
               ) : null}
 
               <View style={styles.gap} />
-              <Button
+              <NavigationRow
                 label={t('pens:moveTo')}
-                variant="secondary"
+                icon="home-switch-outline"
                 onPress={() =>
                   router.push({ pathname: '/animal/move', params: { animalId: animal.id } })
                 }
               />
 
               <View style={styles.gap} />
-              <Button
+              <NavigationRow
                 label={t('animals:recordWeight')}
-                variant="secondary"
+                icon="scale"
                 onPress={() =>
                   router.push({ pathname: '/animal/weigh', params: { animalId: animal.id } })
                 }
@@ -273,9 +317,9 @@ export default function AnimalScreen() {
               ) : null}
 
               <View style={styles.gap} />
-              <Button
+              <NavigationRow
                 label={t('breeding:pedigree')}
-                variant="secondary"
+                icon="family-tree"
                 onPress={() =>
                   router.push({ pathname: '/animal/pedigree', params: { id: animal.id } })
                 }
@@ -285,9 +329,9 @@ export default function AnimalScreen() {
               {animal.status === 'active' ? (
                 <>
                   <View style={styles.gap} />
-                  <Button
+                  <NavigationRow
                     label={t('health:recordTreatment')}
-                    variant="secondary"
+                    icon="medical-bag"
                     onPress={() =>
                       router.push({ pathname: '/health/treat', params: { animalId: animal.id } })
                     }
@@ -322,7 +366,7 @@ export default function AnimalScreen() {
           )}
         </Screen>
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

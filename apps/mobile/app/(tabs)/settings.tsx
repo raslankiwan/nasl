@@ -3,9 +3,10 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { LOCALE_META, type Locale } from '@nasl/i18n';
 import { useAuth } from '../../src/auth/AuthProvider';
-import { Body, Button, Card, Screen, Title } from '../../src/components/ui';
+import { Body, Card, NavigationRow, RowGroup, Screen, Title } from '../../src/components/ui';
+import { TabScreen } from '../../src/components/TabScreen';
 import { LanguageToggle } from '../../src/components/LanguageToggle';
-import { colors, spacing } from '../../src/theme';
+import { spacing } from '../../src/theme';
 
 export default function Settings() {
   const { t, i18n } = useTranslation(['common', 'auth', 'roles', 'pens', 'health', 'milk']);
@@ -15,11 +16,15 @@ export default function Settings() {
   const role = me?.farms.find((f) => f.farmId === farmId)?.role;
 
   return (
-    <View style={styles.root}>
+    <TabScreen>
       <ScrollView>
         <Screen>
           <Title>{t('common:settings')}</Title>
-
+          <Card>
+            <Body>{me?.name ?? t('common:unknown')}</Body>
+            {role ? <Body muted>{t(`roles:${role}` as 'roles:owner')}</Body> : null}
+          </Card>
+          <View style={styles.gap} />
           <Card>
             <View style={styles.row}>
               <View style={styles.rowText}>
@@ -29,73 +34,58 @@ export default function Settings() {
               <LanguageToggle />
             </View>
           </Card>
-
           <View style={styles.gap} />
-
-          <Card>
-            <Body>{me?.name ?? t('common:unknown')}</Body>
-            {role ? <Body muted>{t(`roles:${role}` as 'roles:owner')}</Body> : null}
-          </Card>
-
-          <View style={styles.gap} />
-
-          <Button
-            label={t('pens:title')}
-            variant="secondary"
-            onPress={() => router.push('/pens')}
-          />
-
-          <View style={styles.gap} />
-
-          <Button
-            label={t('milk:testDay')}
-            variant="secondary"
-            onPress={() => router.push('/milk/test-day')}
-          />
-
-          <View style={styles.gap} />
-
-          <Button
-            label={t('milk:collection')}
-            variant="secondary"
-            onPress={() => router.push('/milk/collection')}
-          />
-
-          <View style={styles.gap} />
-
-          <Button
-            label={t('milk:disposition')}
-            variant="secondary"
-            onPress={() => router.push('/milk/disposition')}
-          />
-
-          <View style={styles.gap} />
-
-          <Button
-            label={t('health:cabinet')}
-            variant="secondary"
-            onPress={() => router.push('/health/cabinet')}
-          />
-
-          <View style={styles.gap} />
-
-          <Button
-            label={t('health:schedule')}
-            variant="secondary"
-            onPress={() => router.push('/health/schedule')}
-          />
-
-          <View style={styles.gap} />
-
-          <Button label={t('auth:signOut')} variant="secondary" onPress={() => void signOut()} />
+          <RowGroup>
+            <NavigationRow
+              label={t('pens:title')}
+              icon="barn"
+              onPress={() => router.push('/pens')}
+            />
+          </RowGroup>
+          <RowGroup>
+            <NavigationRow
+              label={t('milk:testDay')}
+              icon="clipboard-check-outline"
+              onPress={() => router.push('/milk/test-day')}
+            />
+            <NavigationRow
+              label={t('milk:collection')}
+              icon="pail-outline"
+              onPress={() => router.push('/milk/collection')}
+            />
+            <NavigationRow
+              label={t('milk:disposition')}
+              icon="truck-outline"
+              onPress={() => router.push('/milk/disposition')}
+            />
+          </RowGroup>
+          <RowGroup>
+            <NavigationRow
+              label={t('health:cabinet')}
+              icon="medical-bag"
+              onPress={() => router.push('/health/cabinet')}
+            />
+            <NavigationRow
+              label={t('health:schedule')}
+              icon="calendar-heart"
+              onPress={() => router.push('/health/schedule')}
+            />
+          </RowGroup>
+          <RowGroup>
+            <NavigationRow
+              label={t('auth:signOut')}
+              icon="logout"
+              destructive
+              onPress={() => void signOut()}
+            />
+          </RowGroup>
         </Screen>
       </ScrollView>
-    </View>
+    </TabScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.paper },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -103,5 +93,5 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
   rowText: { flexShrink: 1, gap: 2 },
-  gap: { height: spacing.md },
+  gap: { height: spacing.lg },
 });

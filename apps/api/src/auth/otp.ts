@@ -42,6 +42,7 @@ export async function createChallenge(
   phone: string,
   ttlMinutes: number,
   exposeCode: boolean,
+  deliver?: (code: string) => Promise<void>,
 ): Promise<CreatedChallenge> {
   // A new request supersedes any outstanding one for this number.
   await OtpChallenge.deleteMany({ phone, consumedAt: null }).exec();
@@ -56,6 +57,13 @@ export async function createChallenge(
     codeHash: await hashCode(code, salt),
     expiresAt,
   });
+
+  try {
+    await deliver?.(code);
+  } catch (error) {
+    await OtpChallenge.deleteOne({ _id: challenge._id });
+    throw error;
+  }
 
   return {
     challengeId: challenge._id,
@@ -77,21 +85,18 @@ export async function verifyChallenge(
 ): Promise<{ phone: string }> {
   const invalid = () => AppError.badRequest('That code is not right. Check it and try again.');
 
-  const challenge = await OtpChallenge.findById(challengeId).exec();
-  if (!challenge || challenge.consumedAt) throw invalid();
-
-  if (challenge.expiresAt.getTime() < Date.now()) {
-    await challenge.deleteOne();
-    throw invalid();
-  }
-
-  if (challenge.attempts >= maxAttempts) {
-    await challenge.deleteOne();
-    throw invalid();
-  }
-
-  challenge.attempts += 1;
-  await challenge.save();
+  // Reserve an attempt atomically: parallel requests must not bypass the attempt limit.
+  const challenge = await OtpChallenge.findOneAndUpdate(
+    {
+      _id: challengeId,
+      consumedAt: null,
+      expiresAt: { $gt: new Date() },
+      attempts: { $lt: maxAttempts },
+    },
+    { $inc: { attempts: 1 } },
+    { new: true },
+  ).lean();
+  if (!challenge) throw invalid();
 
   const candidate = Buffer.from(await hashCode(code, challenge.salt), 'hex');
   const expected = Buffer.from(challenge.codeHash, 'hex');
@@ -99,7 +104,14 @@ export async function verifyChallenge(
     throw invalid();
   }
 
-  challenge.consumedAt = new Date();
-  await challenge.save();
+  const consumed = await OtpChallenge.updateOne(
+    {
+      _id: challengeId,
+      consumedAt: null,
+      expiresAt: { $gt: new Date() },
+    },
+    { $set: { consumedAt: new Date() } },
+  );
+  if (!consumed.modifiedCount) throw invalid();
   return { phone: challenge.phone };
 }

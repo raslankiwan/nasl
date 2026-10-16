@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "cd ../.. && npm ci --workspace @nasl/mobile --workspace @nasl/shared --workspace @nasl/i18n --include-workspace-root",
+  "buildCommand": "cd ../.. && npm run build:packages && npm run build:web -w @nasl/mobile",
+  "outputDirectory": "dist",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

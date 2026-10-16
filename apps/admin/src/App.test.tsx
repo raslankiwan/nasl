@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { App } from './App';
 import { initI18n } from './i18n';
+import userEvent from '@testing-library/user-event';
 
 /**
  * A smoke test for the shell.
@@ -52,6 +53,22 @@ afterEach(() => {
 });
 
 describe('the console shell', () => {
+  test('a startup outage offers retry without losing the stored session', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new TypeError('Failed to fetch');
+      }),
+    );
+    render(<App />);
+    expect(await screen.findByRole('alert')).toHaveTextContent('جلسة دخولك محفوظة');
+    expect(screen.queryByLabelText('رقم الجوال')).not.toBeInTheDocument();
+    expect(window.localStorage.getItem('nasl.admin.refreshToken')).toBe('test-refresh');
+    mockApi(ME_STAFF);
+    await userEvent.click(screen.getByRole('button', { name: 'إعادة المحاولة' }));
+    await waitFor(() => expect(screen.getByRole('link', { name: 'المزارع' })).toBeInTheDocument());
+  });
+
   test('renders its navigation for platform staff', async () => {
     mockApi(ME_STAFF);
     render(<App />);

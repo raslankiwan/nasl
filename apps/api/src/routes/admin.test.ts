@@ -1,6 +1,9 @@
 import { after, before, beforeEach, describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { AuditLog } from '../models/auditLog.model.ts';
+import { Farm } from '../models/farm.model.ts';
+import { Membership } from '../models/membership.model.ts';
+import { User } from '../models/user.model.ts';
 import { clearDatabase, startTestMongo, stopTestMongo } from '../testing/mongo.ts';
 import {
   api,
@@ -76,6 +79,159 @@ describe('operator console access', () => {
 });
 
 describe('tenant directory', () => {
+  test('staff can provision a farm for its owner, with membership and an audit entry', async () => {
+    await withServer(testApp(), async (url) => {
+      const owner = await signIn(url, '+970592320211', 'Owner');
+      const staff = await signIn(url, '+970592320212', 'Ops');
+      await makePlatformAdmin(staff.user.id);
+
+      const created = await api(url, staff.accessToken).post<FarmRow>('/v1/admin/farms', {
+        name: '  مزرعة جديدة  ',
+        ownerPhone: '+970 592320211',
+        species: ['sheep', 'goat'],
+        reason: 'Owner requested onboarding',
+        ownerUserId: staff.user.id,
+        plan: 'commercial',
+      });
+      assert.equal(created.status, 201);
+      const farm = await Farm.findById(created.body.id).lean();
+      assert.equal(farm?.name, 'مزرعة جديدة');
+      assert.equal(farm?.ownerUserId, owner.user.id);
+      assert.equal(farm?.country, 'PS');
+      assert.equal(farm?.currency, 'ILS');
+      assert.equal(farm?.timezone, 'Asia/Hebron');
+      assert.equal(farm?.plan, 'free');
+      assert.deepEqual(farm?.species, ['sheep', 'goat']);
+
+      const memberships = await Membership.find({ farmId: created.body.id }).lean();
+      assert.equal(memberships.length, 1);
+      assert.equal(memberships[0]?.userId, owner.user.id);
+      assert.equal(memberships[0]?.role, 'owner');
+      assert.equal(memberships[0]?.status, 'active');
+      assert.equal(memberships[0]?.invitedBy, staff.user.id);
+      const profile = await api(url, owner.accessToken).get<{
+        farms: Array<{ farmId: string; role: string }>;
+      }>('/v1/auth/me');
+      assert.deepEqual(profile.body.farms, [{ farmId: created.body.id, role: 'owner' }]);
+      assert.equal(
+        (await api(url, staff.accessToken).get(`/v1/farms/${created.body.id}`)).status,
+        403,
+      );
+
+      const audit = await AuditLog.findOne({ targetId: created.body.id }).lean();
+      assert.equal(audit?.action, 'farm.create');
+      assert.equal(audit?.actorId, staff.user.id);
+      assert.equal(audit?.reason, 'Owner requested onboarding');
+      assert.equal((audit?.after as { ownerUserId: string }).ownerUserId, owner.user.id);
+    });
+  });
+
+  test('farm provisioning requires staff access', async () => {
+    await withServer(testApp(), async (url) => {
+      const owner = await signIn(url, '+970592320211');
+      const input = { name: 'Farm', ownerPhone: '+970592320211', reason: 'Onboarding' };
+      assert.equal((await api(url).post('/v1/admin/farms', input)).status, 401);
+      assert.equal((await api(url, owner.accessToken).post('/v1/admin/farms', input)).status, 404);
+      assert.equal(await Farm.countDocuments(), 0);
+    });
+  });
+
+  test('a new owner is provisioned without a reason and can later sign in to the farm', async () => {
+    await withServer(testApp(), async (url) => {
+      const staff = await signIn(url, '+970592320212');
+      await makePlatformAdmin(staff.user.id);
+      const created = await api(url, staff.accessToken).post<FarmRow>('/v1/admin/farms', {
+        name: 'New owner farm',
+        ownerPhone: '+970 592320299',
+        isPlatformAdmin: true,
+      });
+      assert.equal(created.status, 201);
+      const owner = await User.findOne({ phone: '+970592320299' }).lean();
+      assert.ok(owner);
+      assert.match(owner._id, /^[\da-f]{8}-[\da-f]{4}-4[\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/i);
+      assert.equal(owner.isPlatformAdmin, false);
+      assert.equal(owner.locale, 'ar');
+      assert.equal(owner.lastSeenAt, undefined);
+      const audit = await AuditLog.findOne({ targetId: created.body.id }).lean();
+      assert.equal(audit?.action, 'farm.create');
+      assert.equal(audit?.reason, null);
+
+      const session = await signIn(url, '+970592320299', 'New owner');
+      assert.equal(session.user.id, owner._id);
+      assert.equal(session.user.name, 'New owner');
+      const profile = await api(url, session.accessToken).get<{
+        farms: Array<{ farmId: string; role: string }>;
+      }>('/v1/auth/me');
+      assert.deepEqual(profile.body.farms, [{ farmId: created.body.id, role: 'owner' }]);
+      assert.equal(await User.countDocuments({ phone: '+970592320299' }), 1);
+    });
+  });
+
+  test('concurrent farm creation reuses one account and accepts blank or short reasons', async () => {
+    await withServer(testApp(), async (url) => {
+      const staff = await signIn(url, '+970592320212');
+      await makePlatformAdmin(staff.user.id);
+      const client = api(url, staff.accessToken);
+      const results = await Promise.all(
+        ['', '  ', 'x'].map((reason, index) =>
+          client.post<FarmRow>('/v1/admin/farms', {
+            name: `Farm ${index}`,
+            ownerPhone: '+970592320299',
+            reason,
+          }),
+        ),
+      );
+      for (const result of results) assert.equal(result.status, 201);
+      const owner = await User.findOne({ phone: '+970592320299' }).lean();
+      assert.ok(owner);
+      assert.equal(await User.countDocuments({ phone: owner.phone }), 1);
+      assert.equal(await Membership.countDocuments({ userId: owner._id, role: 'owner' }), 3);
+      for (const [index, result] of results.entries()) {
+        const audit = await AuditLog.findOne({ targetId: result.body.id }).lean();
+        assert.equal(audit?.reason, index === 2 ? 'x' : null);
+      }
+    });
+  });
+
+  test('invalid details leave no new account, farm or membership behind', async () => {
+    await withServer(testApp(), async (url) => {
+      const staff = await signIn(url, '+970592320212');
+      await makePlatformAdmin(staff.user.id);
+      const client = api(url, staff.accessToken);
+      const input = { name: 'Farm', ownerPhone: '+970592320299', reason: 'Onboarding' };
+      for (const invalid of [
+        { name: ' ' },
+        { reason: 'x'.repeat(301) },
+        { species: [] },
+        { ownerPhone: '592320211' },
+      ]) {
+        assert.equal((await client.post('/v1/admin/farms', { ...input, ...invalid })).status, 400);
+      }
+      assert.equal(await Farm.countDocuments(), 0);
+      assert.equal(await Membership.countDocuments(), 0);
+      assert.equal(await AuditLog.countDocuments(), 0);
+      assert.equal(await User.countDocuments(), 1);
+    });
+  });
+
+  test('a failed audit rolls back the newly provisioned farm and membership', async (t) => {
+    await withServer(testApp(), async (url) => {
+      const staff = await signIn(url, '+970592320212');
+      await makePlatformAdmin(staff.user.id);
+      t.mock.method(AuditLog, 'create', async () => {
+        throw new Error('Audit unavailable');
+      });
+      const response = await api(url, staff.accessToken).post('/v1/admin/farms', {
+        name: 'Farm',
+        ownerPhone: '+970592320212',
+        reason: 'Onboarding',
+      });
+      assert.equal(response.status, 500);
+      assert.equal(await Farm.countDocuments(), 0);
+      assert.equal(await Membership.countDocuments(), 0);
+    });
+  });
+
   test('farms are listed with their live head count', async () => {
     await withServer(testApp(), async (url) => {
       const { session, farmId } = await signInWithFarm(url, '+966501111111', 'مراح الشمال');

@@ -41,6 +41,27 @@ beforeEach(() => {
 });
 
 describe('folding in a change set', () => {
+  test('a confirmed label edit survives restart without skipping other changes in the next pull', async () => {
+    await cache.applyChanges(FARM, changes({ created: [doc('0012'), doc('20')] }));
+    const cursor = await cache.cursor(FARM);
+    await cache.storeAnimal(
+      FARM,
+      doc('0012', { name: 'ريم', updatedAt: '2026-06-02T00:00:00.000Z' }),
+    );
+    const restarted = new FlockCache(store);
+    assert.equal((await restarted.getAnimal(FARM, '0012'))?.name, 'ريم');
+    assert.equal((await restarted.getAnimal(FARM, '0012'))?.tagNumber, '0012');
+    assert.equal((await restarted.listAnimals(FARM)).length, 2);
+    assert.equal(
+      await restarted.cursor(FARM),
+      cursor,
+      'a single write must not advance past unsynced records',
+    );
+    assert.equal(await restarted.getAnimal('another-farm', '0012'), null);
+    await restarted.storeAnimal(FARM, doc('0012', { name: null }));
+    assert.equal((await new FlockCache(store).getAnimal(FARM, '0012'))?.name, null);
+  });
+
   test('created animals are stored and read back sorted by tag', async () => {
     await cache.applyChanges(FARM, changes({ created: [doc('1010'), doc('1002')] }));
 

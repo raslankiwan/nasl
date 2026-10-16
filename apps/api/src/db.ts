@@ -35,17 +35,51 @@ export async function ensureIndexes(): Promise<void> {
   await Promise.all(Object.values(mongoose.models).map((model) => model.createIndexes()));
 }
 
-export async function connectDatabase(uri: string, logger: Logger): Promise<void> {
+let connecting: Promise<void> | undefined;
+let listenersAttached = false;
+
+export async function connectDatabase(
+  uri: string,
+  logger: Logger,
+  options: { createIndexes?: boolean; maxPoolSize?: number; dbName?: string } = {},
+): Promise<void> {
+  if (connecting) return connecting;
+  connecting = openDatabase(uri, logger, options).catch((error) => {
+    connecting = undefined;
+    throw error;
+  });
+  return connecting;
+}
+
+async function openDatabase(
+  uri: string,
+  logger: Logger,
+  {
+    createIndexes = true,
+    maxPoolSize = 5,
+    dbName,
+  }: { createIndexes?: boolean; maxPoolSize?: number; dbName?: string },
+): Promise<void> {
   applyMongooseSettings();
-
-  mongoose.connection.on('error', (err) => logger.error({ err }, 'MongoDB connection error'));
-  mongoose.connection.on('disconnected', () => logger.warn('MongoDB disconnected'));
-
-  await mongoose.connect(uri);
-  await ensureIndexes();
+  if (!listenersAttached) {
+    mongoose.connection.on('error', (err) => logger.error({ err }, 'MongoDB connection error'));
+    mongoose.connection.on('disconnected', () => logger.warn('MongoDB disconnected'));
+    listenersAttached = true;
+  }
+  await mongoose.connect(uri, {
+    dbName,
+    maxPoolSize,
+    minPoolSize: 0,
+    maxIdleTimeMS: 60_000,
+    serverSelectionTimeoutMS: 10_000,
+    autoIndex: false,
+    autoCreate: false,
+  });
+  if (createIndexes) await ensureIndexes();
   logger.info('MongoDB connected');
 }
 
 export async function disconnectDatabase(): Promise<void> {
   await mongoose.disconnect();
+  connecting = undefined;
 }

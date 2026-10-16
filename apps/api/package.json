@@ -7,8 +7,9 @@
     "dev": "node --watch --env-file-if-exists=.env --experimental-strip-types src/server.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node --env-file-if-exists=.env dist/server.js",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node --test --experimental-strip-types --test-concurrency=1 'src/**/*.test.ts'"
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.vercel.json --noEmit",
+    "test": "node --test --experimental-strip-types --test-concurrency=1 'src/**/*.test.ts'",
+    "db:prepare": "node --env-file-if-exists=.env --experimental-strip-types scripts/prepare-database.ts"
   },
   "dependencies": {
     "@nasl/shared": "*",

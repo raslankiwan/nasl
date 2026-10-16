@@ -3,6 +3,7 @@ import { Link, Outlet } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { LanguageToggle } from './LanguageToggle';
 import type { StaffUser } from '../auth/useAuth';
+import { UserLink } from './UserLink';
 
 interface Props {
   user: StaffUser;
@@ -30,6 +31,9 @@ export function Layout({ user, onSignOut }: Props) {
           <Link to="/products" activeProps={{ className: 'active' }}>
             {t('admin:products')}
           </Link>
+          <Link to="/users" activeProps={{ className: 'active' }}>
+            {t('admin:users')}
+          </Link>
           <Link to="/audit" activeProps={{ className: 'active' }}>
             {t('admin:auditLog')}
           </Link>
@@ -37,7 +41,7 @@ export function Layout({ user, onSignOut }: Props) {
 
         <div className="sidebar-foot">
           <LanguageToggle />
-          <span>{user.name ?? t('common:unknown')}</span>
+          <UserLink user={user} />
           <button type="button" onClick={onSignOut}>
             {t('auth:signOut')}
           </button>

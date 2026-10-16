@@ -1,10 +1,13 @@
 import { useState } from 'react';
-import { Link } from '@tanstack/react-router';
-import { useQuery } from '@tanstack/react-query';
+import { Link, useNavigate } from '@tanstack/react-router';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { formatDate, formatNumber, type Locale } from '@nasl/i18n';
 import { apiClient } from '../api/client';
 import { PageHead } from '../components/Layout';
+import { CreateFarmForm } from '../components/CreateFarmForm';
+import { UserLink, type UserSummary } from '../components/UserLink';
+import { Pagination, PAGE_SIZE } from '../components/Pagination';
 
 interface FarmRow {
   id: string;
@@ -13,44 +16,78 @@ interface FarmRow {
   currency: string;
   plan: string;
   headCount: number;
-  owner: { id: string; name: string | null } | null;
+  owner: UserSummary | null;
   createdAt: string;
 }
 
 export function Farms() {
-  const { t, i18n } = useTranslation(['admin', 'common']);
+  const { t, i18n } = useTranslation(['admin', 'common', 'animals']);
   const locale = (i18n.resolvedLanguage ?? 'ar') as Locale;
   const [q, setQ] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [skip, setSkip] = useState(0);
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['admin', 'farms', q],
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['admin', 'farms', q, skip],
     queryFn: () =>
       apiClient.get<{ farms: FarmRow[]; total: number }>(
-        `/v1/admin/farms${q ? `?q=${encodeURIComponent(q)}` : ''}`,
+        `/v1/admin/farms?q=${encodeURIComponent(q)}&skip=${skip}&limit=${PAGE_SIZE}`,
       ),
   });
 
   return (
     <>
       <PageHead title={t('admin:farms')}>
-        <input
-          type="search"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder={t('admin:searchFarms')}
-          aria-label={t('admin:searchFarms')}
-          style={{ maxWidth: 260 }}
-        />
+        <div className="page-actions">
+          <input
+            type="search"
+            value={q}
+            onChange={(e) => {
+              setQ(e.target.value);
+              setSkip(0);
+            }}
+            maxLength={80}
+            placeholder={t('admin:searchFarms')}
+            aria-label={t('admin:searchFarms')}
+            style={{ width: 260, maxWidth: '100%' }}
+          />
+          <button
+            className="primary"
+            type="button"
+            aria-expanded={creating}
+            aria-controls="create-farm"
+            onClick={() => setCreating((value) => !value)}
+          >
+            {t('animals:createFarm')}
+          </button>
+        </div>
       </PageHead>
+
+      {creating ? (
+        <CreateFarmForm
+          onCancel={() => setCreating(false)}
+          onCreated={(farmId) => {
+            setCreating(false);
+            void queryClient.invalidateQueries({ queryKey: ['admin'] });
+            void navigate({ to: '/farms/$farmId', params: { farmId } });
+          }}
+        />
+      ) : null}
 
       <div className="table-wrap">
         {isLoading ? (
           <div className="loading">{t('common:loading')}</div>
+        ) : isError ? (
+          <div className="notice danger" role="alert">
+            {t('common:errorRetry')}
+          </div>
         ) : data && data.farms.length > 0 ? (
           <table>
             <thead>
               <tr>
-                <th>{t('common:none') === '' ? '' : t('admin:farms')}</th>
+                <th>{t('admin:farms')}</th>
                 <th>{t('admin:owner')}</th>
                 <th>{t('admin:headCount')}</th>
                 <th>{t('admin:plan')}</th>
@@ -65,7 +102,7 @@ export function Farms() {
                       {farm.name}
                     </Link>
                   </td>
-                  <td>{farm.owner?.name ?? t('common:unknown')}</td>
+                  <td>{farm.owner ? <UserLink user={farm.owner} /> : t('common:unknown')}</td>
                   <td className="num">{formatNumber(farm.headCount, locale)}</td>
                   <td>
                     <span className={`pill${farm.plan === 'free' ? '' : ' accent'}`}>
@@ -81,6 +118,7 @@ export function Farms() {
           <div className="empty">{t('admin:noFarms')}</div>
         )}
       </div>
+      <Pagination skip={skip} total={data?.total ?? 0} onChange={setSkip} />
     </>
   );
 }

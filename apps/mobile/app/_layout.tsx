@@ -1,7 +1,9 @@
+import '../src/polyfills';
+
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { Slot, useRouter, useSegments } from 'expo-router';
+import { DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '../src/auth/AuthProvider';
 import { initI18n } from '../src/i18n';
@@ -23,28 +25,62 @@ function Loading() {
   );
 }
 
-/** Keeps the visible route in step with whether there is a session. */
+// Deep links keep a root destination underneath detail screens.
+export const unstable_settings = { initialRouteName: '(tabs)' };
+
+const navigationTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: colors.accent,
+    background: colors.paper,
+    card: colors.paper,
+    text: colors.ink,
+    border: colors.line,
+  },
+};
+
 function AuthGate() {
   const { status } = useAuth();
-  const segments = useSegments();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (status === 'loading') return;
-
-    /**
-     * The gate decides on authentication alone, not on which route group you are in. Keying it to
-     * `(tabs)` bounced every legitimate route outside that group — the animal detail screen among
-     * them — straight back to the home tab.
-     */
-    const onSignIn = segments[0] === 'sign-in';
-
-    if (status === 'signedOut' && !onSignIn) router.replace('/sign-in');
-    else if (status === 'signedIn' && onSignIn) router.replace('/(tabs)');
-  }, [status, segments, router]);
-
   if (status === 'loading') return <Loading />;
-  return <Slot />;
+  return (
+    <Stack
+      screenOptions={{
+        title: '',
+        headerTintColor: colors.ink,
+        headerStyle: { backgroundColor: colors.paper },
+        headerShadowVisible: false,
+        headerBackButtonDisplayMode: 'minimal',
+        contentStyle: { backgroundColor: colors.paper },
+      }}
+    >
+      <Stack.Protected guard={status === 'signedOut'}>
+        <Stack.Screen name="sign-in" options={{ headerShown: false }} />
+      </Stack.Protected>
+      <Stack.Protected guard={status === 'signedIn'}>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="animal/new" />
+        <Stack.Screen name="animal/[id]" />
+        <Stack.Screen name="animal/pedigree" />
+        <Stack.Screen name="animal/move" />
+        <Stack.Screen name="animal/weigh" />
+        <Stack.Screen name="pens/index" />
+        <Stack.Screen name="pens/[id]" />
+        <Stack.Screen name="health/schedule" />
+        <Stack.Screen name="health/cabinet" />
+        <Stack.Screen name="health/withdrawal" />
+        <Stack.Screen name="health/treat" />
+        <Stack.Screen name="milk/test-day" />
+        <Stack.Screen name="milk/collection" />
+        <Stack.Screen name="milk/disposition" />
+        <Stack.Screen name="breeding/mating" />
+        <Stack.Screen name="breeding/check" />
+        <Stack.Screen name="breeding/birth" />
+        <Stack.Screen name="breeding/abortion" />
+        <Stack.Screen name="breeding/weaning" />
+      </Stack.Protected>
+    </Stack>
+  );
 }
 
 export default function RootLayout() {
@@ -63,7 +99,9 @@ export default function RootLayout() {
       <StatusBar style="dark" />
       <AuthProvider>
         <SyncProvider>
-          <AuthGate />
+          <ThemeProvider value={navigationTheme}>
+            <AuthGate />
+          </ThemeProvider>
         </SyncProvider>
       </AuthProvider>
     </SafeAreaProvider>

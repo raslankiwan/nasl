@@ -1,13 +1,23 @@
+import { useHeaderHeight } from 'expo-router/react-navigation';
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SEXES, SPECIES, type Sex, type Species } from '@nasl/shared';
 import { api, ApiError } from '../../src/api/client';
 import { useAuth } from '../../src/auth/AuthProvider';
-import { Body, Button, Card, Notice, Title } from '../../src/components/ui';
+import { Body, Button, Card, Field, Notice } from '../../src/components/ui';
 import { Keypad } from '../../src/components/Keypad';
+import { ScreenHeader } from '../../src/components/ScreenHeader';
 import { colors, MIN_TOUCH, radius, spacing, type } from '../../src/theme';
 
 /**
@@ -16,7 +26,7 @@ import { colors, MIN_TOUCH, radius, spacing, type } from '../../src/theme';
  * The battle a flock app loses is the first evening: if registering two hundred head means two
  * hundred trips through a form, the herder stops at animal thirty and never comes back. So the
  * species and sex are chosen once for the session, the tag goes in on a large keypad, and each
- * animal is one tap. Nothing else is asked for — the rest can be filled in later, from anywhere.
+ * animal is one tap. A name or distinguishing label is optional and belongs to this animal only.
  */
 
 function Choice<T extends string>({
@@ -60,12 +70,16 @@ export default function QuickAdd() {
   const { t } = useTranslation(['animals', 'common']);
   const { farmId } = useAuth();
   const router = useRouter();
+  const headerHeight = useHeaderHeight();
   const insets = useSafeAreaInsets();
 
   const [species, setSpecies] = useState<Species>('sheep');
   const [sex, setSex] = useState<Sex>('female');
   const [tag, setTag] = useState('');
-  const [added, setAdded] = useState<Array<{ id: string; tagNumber: string }>>([]);
+  const [name, setName] = useState('');
+  const [added, setAdded] = useState<Array<{ id: string; tagNumber: string; name: string | null }>>(
+    [],
+  );
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -74,18 +88,19 @@ export default function QuickAdd() {
     setBusy(true);
     setError(null);
     try {
-      const created = await api.post<{ id: string; tagNumber: string }>(
+      const created = await api.post<{ id: string; tagNumber: string; name: string | null }>(
         `/v1/farms/${farmId}/animals`,
-        { tagNumber: tag, species, sex },
+        { tagNumber: tag, species, sex, ...(name.trim() ? { name: name.trim() } : {}) },
       );
       setAdded((prev) => [created, ...prev]);
       setTag('');
+      setName('');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t('common:errorRetry'));
     } finally {
       setBusy(false);
     }
-  }, [farmId, tag, species, sex, t]);
+  }, [farmId, tag, name, species, sex, t]);
 
   const undo = useCallback(
     async (id: string) => {
@@ -101,10 +116,30 @@ export default function QuickAdd() {
   );
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={styles.root}
+      keyboardVerticalOffset={headerHeight}
+    >
+      <ScreenHeader
+        title={t('animals:bulkAdd')}
+        action={
+          <Button
+            label={t('common:done')}
+            variant="text"
+            disabled={busy}
+            onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/flock'))}
+          />
+        }
+      />
+      <ScrollView
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: Math.max(insets.bottom, spacing.xl) },
+        ]}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.header}>
-          <Title>{t('animals:bulkAdd')}</Title>
           <Text style={styles.count}>{t('animals:addedThisSession', { count: added.length })}</Text>
         </View>
 
@@ -145,20 +180,32 @@ export default function QuickAdd() {
         />
 
         <View style={styles.gap} />
+        <Field
+          label={t('animals:nameOrLabel')}
+          accessibilityLabel={t('animals:nameOrLabel')}
+          hint={t('animals:nameOrLabelHint')}
+          placeholder={t('animals:nameOrLabelExample')}
+          value={name}
+          onChangeText={setName}
+          maxLength={60}
+          editable={!busy}
+          returnKeyType="done"
+        />
         <Button
           label={t('common:add')}
           onPress={() => void save()}
           disabled={tag.length === 0}
           busy={busy}
         />
-        <View style={styles.gapSmall} />
-        <Button label={t('common:done')} variant="secondary" onPress={() => router.back()} />
 
         {added.length > 0 ? (
           <View style={styles.log}>
             {added.map((animal) => (
               <View key={animal.id} style={styles.logRow}>
-                <Text style={styles.logTag}>{t('animals:added', { tag: animal.tagNumber })}</Text>
+                <View style={{ flexShrink: 1 }}>
+                  <Text style={styles.logTag}>{t('animals:added', { tag: animal.tagNumber })}</Text>
+                  {animal.name ? <Text style={styles.logName}>{animal.name}</Text> : null}
+                </View>
                 <Pressable
                   accessibilityRole="button"
                   onPress={() => void undo(animal.id)}
@@ -171,7 +218,7 @@ export default function QuickAdd() {
           </View>
         ) : null}
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -231,6 +278,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
   },
   logTag: { fontSize: type.label, color: colors.sage, fontWeight: '600' },
+  logName: { fontSize: type.label, color: colors.inkSoft },
   undo: { minHeight: 32, justifyContent: 'center', paddingHorizontal: spacing.sm },
   undoLabel: { fontSize: type.label, color: colors.muted, textDecorationLine: 'underline' },
 });

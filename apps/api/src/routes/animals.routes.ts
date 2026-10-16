@@ -23,7 +23,13 @@ const animalInput = z.object({
   id: z.string().uuid().optional(),
   tagNumber: z.string().trim().min(1).max(32),
   eid: z.string().trim().max(64).optional(),
-  name: z.string().trim().max(60).optional(),
+  name: z
+    .string()
+    .trim()
+    .max(60)
+    .nullable()
+    .transform((value) => value || null)
+    .optional(),
   species: z.enum(SPECIES),
   breedId: z.string().trim().max(40).optional(),
   sex: z.enum(SEXES),

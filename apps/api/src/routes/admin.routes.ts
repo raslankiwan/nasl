@@ -12,6 +12,29 @@ import { PRODUCT_KINDS, VetProduct } from '../models/vetProduct.model.ts';
 import { requireAuth } from '../middleware/requireAuth.ts';
 import { requirePlatformAdmin } from '../middleware/requirePlatformAdmin.ts';
 import { parse, pathParam, userIdOf } from '../http/validate.ts';
+import { createFarmSchema } from '../http/farmInput.ts';
+import { normalisePhone } from '../auth/otp.ts';
+import { changeFarmOwner } from '../services/farmOwnership.service.ts';
+
+const directoryQuery = z.object({
+  q: z.string().trim().max(80).optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(25),
+  skip: z.coerce.number().int().min(0).default(0),
+});
+const ownerChange = z
+  .object({
+    expectedOwnerUserId: z.string().min(1).max(64),
+    ownerUserId: z.string().min(1).max(64).optional(),
+    ownerPhone: z.string().min(6).max(20).optional(),
+    reason: z.string().trim().max(300).optional(),
+  })
+  .refine((value) => Boolean(value.ownerUserId) !== Boolean(value.ownerPhone), {
+    message: 'Choose one owner by user ID or phone number',
+  });
+const searchPattern = (q: string) => ({
+  $regex: q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+  $options: 'i',
+});
 
 const productInput = z.object({
   nameAr: z.string().trim().min(1).max(120),
@@ -30,6 +53,11 @@ const productInput = z.object({
 const planChange = z.object({
   plan: z.enum(['free', 'standard', 'commercial']),
   reason: z.string().trim().min(3).max(300),
+});
+
+const adminFarmInput = createFarmSchema.extend({
+  ownerPhone: z.string().min(6).max(20),
+  reason: z.string().trim().max(300).optional(),
 });
 
 export function adminRoutes(config: Config): Router {
@@ -62,21 +90,56 @@ export function adminRoutes(config: Config): Router {
   // Tenant directory (FR-ADM-01)
   // -------------------------------------------------------------------------
 
+  router.post('/farms', async (req, res) => {
+    const { ownerPhone, reason, ...input } = parse(adminFarmInput, req.body);
+    const phone = normalisePhone(ownerPhone);
+    // Provision a normal account, or reuse the existing one without changing its profile or
+    // privileges. The unique phone index keeps concurrent farm requests on the same identity.
+    const owner = await User.findOneAndUpdate(
+      { phone },
+      { $setOnInsert: { phone } },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    )
+      .select('_id')
+      .lean()
+      .orFail();
+
+    const farm = await Farm.create({ ...input, ownerUserId: owner._id });
+    try {
+      await Membership.create({
+        farmId: farm._id,
+        userId: owner._id,
+        role: 'owner',
+        status: 'active',
+        invitedBy: userIdOf(req),
+      });
+      await recordAudit({
+        actorId: userIdOf(req),
+        action: 'farm.create',
+        targetType: 'farm',
+        targetId: farm._id,
+        reason: reason || null,
+        after: { ...input, ownerUserId: owner._id, plan: farm.plan },
+      });
+    } catch (error) {
+      // Local MongoDB is standalone: compensate if provisioning fails instead of leaving an
+      // ownerless or unaudited tenant behind. Only this request's newly created farm is removed.
+      await Membership.deleteMany({ farmId: farm._id });
+      await Farm.deleteOne({ _id: farm._id });
+      throw error;
+    }
+
+    res.status(201).json({ id: farm._id, name: farm.name });
+  });
+
   router.get('/farms', async (req, res) => {
-    const { q, limit, skip } = parse(
-      z.object({
-        q: z.string().trim().max(80).optional(),
-        limit: z.coerce.number().int().min(1).max(100).default(25),
-        skip: z.coerce.number().int().min(0).default(0),
-      }),
-      req.query,
-    );
+    const { q, limit, skip } = parse(directoryQuery, req.query);
 
     const filter = q
       ? { name: { $regex: q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } }
       : {};
     const [farms, total] = await Promise.all([
-      Farm.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean().exec(),
+      Farm.find(filter).sort({ createdAt: -1, _id: 1 }).skip(skip).limit(limit).lean().exec(),
       Farm.countDocuments(filter).exec(),
     ]);
 
@@ -105,8 +168,8 @@ export function adminRoutes(config: Config): Router {
           plan: f.plan,
           species: f.species,
           headCount: headCount.get(f._id) ?? 0,
-          // The console shows who to call, not a browsable contact list.
-          owner: owner ? { id: owner._id, name: owner.name ?? null } : null,
+          ownerUserId: f.ownerUserId,
+          owner: owner ? { id: owner._id, name: owner.name ?? null, phone: owner.phone } : null,
           createdAt: f.createdAt.toISOString(),
         };
       }),
@@ -125,15 +188,20 @@ export function adminRoutes(config: Config): Router {
       Animal.findOne({ farmId }).sort({ updatedAt: -1 }).select('updatedAt').lean().exec(),
     ]);
 
-    const users = await User.find({ _id: { $in: members.map((m) => m.userId) } })
-      .select('name')
+    const users = await User.find({
+      _id: { $in: [farm.ownerUserId, ...members.map((m) => m.userId)] },
+    })
+      .select('name phone')
       .lean()
       .exec();
-    const nameById = new Map(users.map((u) => [u._id, u.name ?? null]));
+    const userById = new Map(users.map((u) => [u._id, u]));
+    const owner = userById.get(farm.ownerUserId);
 
     res.json({
       id: farm._id,
       name: farm.name,
+      ownerUserId: farm.ownerUserId,
+      owner: owner ? { id: owner._id, name: owner.name ?? null, phone: owner.phone } : null,
       country: farm.country,
       currency: farm.currency,
       timezone: farm.timezone,
@@ -146,11 +214,95 @@ export function adminRoutes(config: Config): Router {
       createdAt: farm.createdAt.toISOString(),
       members: members.map((m) => ({
         userId: m.userId,
-        name: nameById.get(m.userId) ?? null,
+        name: userById.get(m.userId)?.name ?? null,
+        phone: userById.get(m.userId)?.phone ?? null,
         role: m.role,
         status: m.status,
         expiresAt: m.expiresAt?.toISOString() ?? null,
       })),
+    });
+  });
+
+  router.patch('/farms/:farmId/owner', async (req, res) => {
+    const input = parse(ownerChange, req.body);
+    const result = await changeFarmOwner(
+      {
+        ...input,
+        ...(input.ownerPhone ? { ownerPhone: normalisePhone(input.ownerPhone) } : {}),
+        farmId: pathParam(req, 'farmId'),
+        actorId: userIdOf(req),
+      },
+      config.NODE_ENV === 'production',
+    );
+    res.json(result);
+  });
+
+  router.get('/users', async (req, res) => {
+    const { q, limit, skip } = parse(directoryQuery, req.query);
+    const filter = q ? { $or: [{ name: searchPattern(q) }, { phone: searchPattern(q) }] } : {};
+    const [users, total] = await Promise.all([
+      User.find(filter).sort({ createdAt: -1, _id: 1 }).skip(skip).limit(limit).lean().exec(),
+      User.countDocuments(filter),
+    ]);
+    const counts = await Farm.aggregate<{ _id: string; count: number }>([
+      { $match: { ownerUserId: { $in: users.map((u) => u._id) } } },
+      { $group: { _id: '$ownerUserId', count: { $sum: 1 } } },
+    ]);
+    const owned = new Map(counts.map((item) => [item._id, item.count]));
+    res.json({
+      users: users.map((user) => ({
+        id: user._id,
+        name: user.name ?? null,
+        phone: user.phone,
+        locale: user.locale,
+        isPlatformAdmin: user.isPlatformAdmin,
+        ownedFarmCount: owned.get(user._id) ?? 0,
+        createdAt: user.createdAt.toISOString(),
+        lastSeenAt: user.lastSeenAt?.toISOString() ?? null,
+      })),
+      total,
+    });
+  });
+
+  router.get('/users/:userId', async (req, res) => {
+    const userId = pathParam(req, 'userId');
+    const user = await User.findById(userId).lean().exec();
+    if (!user) throw AppError.notFound('User not found');
+    const memberships = await Membership.find({ userId }).lean().exec();
+    const farms = await Farm.find({
+      $or: [{ ownerUserId: userId }, { _id: { $in: memberships.map((m) => m.farmId) } }],
+    })
+      .sort({ name: 1, _id: 1 })
+      .lean()
+      .exec();
+    const owners = await User.find({ _id: { $in: farms.map((f) => f.ownerUserId) } })
+      .select('name phone')
+      .lean()
+      .exec();
+    const ownerById = new Map(owners.map((owner) => [owner._id, owner]));
+    const membershipByFarm = new Map(memberships.map((m) => [m.farmId, m]));
+    res.json({
+      id: user._id,
+      name: user.name ?? null,
+      phone: user.phone,
+      locale: user.locale,
+      isPlatformAdmin: user.isPlatformAdmin,
+      createdAt: user.createdAt.toISOString(),
+      lastSeenAt: user.lastSeenAt?.toISOString() ?? null,
+      farms: farms.map((farm) => {
+        const membership = membershipByFarm.get(farm._id);
+        const owner = ownerById.get(farm.ownerUserId);
+        return {
+          id: farm._id,
+          name: farm.name,
+          plan: farm.plan,
+          ownerUserId: farm.ownerUserId,
+          owner: owner ? { id: owner._id, name: owner.name ?? null, phone: owner.phone } : null,
+          role: membership?.role ?? null,
+          status: membership?.status ?? null,
+          expiresAt: membership?.expiresAt?.toISOString() ?? null,
+        };
+      }),
     });
   });
 
@@ -266,18 +418,30 @@ export function adminRoutes(config: Config): Router {
 
     const entries = await AuditLog.find(filter).sort({ createdAt: -1 }).limit(limit).lean().exec();
     const actors = await User.find({ _id: { $in: entries.map((e) => e.actorId) } })
+      .select('name phone')
+      .lean()
+      .exec();
+    const actorById = new Map(actors.map((a) => [a._id, a]));
+    const farms = await Farm.find({
+      _id: { $in: entries.filter((e) => e.targetType === 'farm').map((e) => e.targetId) },
+    })
       .select('name')
       .lean()
       .exec();
-    const nameById = new Map(actors.map((a) => [a._id, a.name ?? null]));
+    const farmNames = new Map(farms.map((farm) => [farm._id, farm.name]));
 
     res.json({
       entries: entries.map((e) => ({
         id: e._id,
-        actor: { id: e.actorId, name: nameById.get(e.actorId) ?? null },
+        actor: {
+          id: e.actorId,
+          name: actorById.get(e.actorId)?.name ?? null,
+          phone: actorById.get(e.actorId)?.phone ?? null,
+        },
         action: e.action,
         targetType: e.targetType,
         targetId: e.targetId,
+        targetName: e.targetType === 'farm' ? (farmNames.get(e.targetId) ?? null) : null,
         reason: e.reason ?? null,
         before: e.before ?? null,
         after: e.after ?? null,

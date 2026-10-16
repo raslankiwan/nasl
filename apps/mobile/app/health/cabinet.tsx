@@ -1,12 +1,12 @@
+import { ScreenHeader } from '../../src/components/ScreenHeader';
 import { useCallback, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { formatDate, type Locale } from '@nasl/i18n';
 import { api, ApiError } from '../../src/api/client';
 import { useAuth } from '../../src/auth/AuthProvider';
-import { Body, Button, Notice, Pill, Screen, Title } from '../../src/components/ui';
+import { Body, Button, Notice, Pill, Screen, IconButton } from '../../src/components/ui';
 import { Choice, DateField, FieldGroup, NumberField } from '../../src/components/form';
 import { colors, MIN_TOUCH, radius, spacing, type } from '../../src/theme';
 
@@ -39,8 +39,6 @@ interface Product {
 export default function Cabinet() {
   const { t, i18n } = useTranslation(['health', 'common']);
   const { farmId } = useAuth();
-  const router = useRouter();
-  const insets = useSafeAreaInsets();
   const locale = (i18n.resolvedLanguage ?? 'ar') as Locale;
   const arabic = locale === 'ar';
 
@@ -110,22 +108,22 @@ export default function Cabinet() {
           : null;
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
+    <View style={styles.root}>
       <ScrollView
+        keyboardShouldPersistTaps="handled"
         refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void load()} />}
       >
         <Screen>
-          <Button label={t('common:back')} variant="secondary" onPress={() => router.back()} />
-          <View style={styles.gap} />
-
-          <View style={styles.head}>
-            <Title>{t('health:cabinet')}</Title>
-            <Button
-              label={adding ? t('common:cancel') : t('health:addStock')}
-              variant="secondary"
-              onPress={() => setAdding((v) => !v)}
-            />
-          </View>
+          <ScreenHeader
+            title={t('health:cabinet')}
+            action={
+              <IconButton
+                label={adding ? t('common:cancel') : t('health:addStock')}
+                icon={adding ? 'close' : 'plus'}
+                onPress={() => setAdding((v) => !v)}
+              />
+            }
+          />
 
           {error ? <Notice tone="danger">{error}</Notice> : null}
 

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "express",
+  "installCommand": "cd ../.. && npm ci --workspace @nasl/api --workspace @nasl/shared --include-workspace-root",
+  "buildCommand": "cd ../.. && npm run build -w @nasl/shared && npm run build -w @nasl/api",
+  "regions": ["fra1"],
+  "functions": {
+    "index.ts": {
+      "maxDuration": 30
+    }
+  }
+}

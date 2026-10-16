@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import rateLimit from 'express-rate-limit';
+import rateLimit, { type Options } from 'express-rate-limit';
 import { z } from 'zod';
 import type { Config } from '../config.ts';
 import type { Logger } from '../logger.ts';
@@ -15,6 +15,8 @@ import {
   signAccessToken,
 } from './tokens.ts';
 import { RefreshToken } from '../models/refreshToken.model.ts';
+import { mongoRateLimitStore } from './rateLimitStore.ts';
+import { sendOtpSms } from './sms.ts';
 import { requireAuth } from '../middleware/requireAuth.ts';
 import { parse } from '../http/validate.ts';
 
@@ -32,11 +34,13 @@ const refreshSchema = z.object({
 
 export function authRoutes(config: Config, logger: Logger): Router {
   const router = Router();
+  router.use((_req, res, next) => {
+    res.set('Cache-Control', 'no-store');
+    next();
+  });
 
-  // Blunt but effective: an SMS costs money and a phone number is a person.
-  const otpLimiter = rateLimit({
+  const otpLimitOptions: Partial<Options> = {
     windowMs: 15 * 60_000,
-    limit: 5,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
     handler: (_req, res) => {
@@ -44,14 +48,44 @@ export function authRoutes(config: Config, logger: Logger): Router {
         .status(429)
         .json({ error: { code: 'rate_limited', message: 'Too many attempts. Try again later.' } });
     },
+  };
+
+  // SMS limits belong to the phone. A separate network cap bounds requests across many phones
+  // without making a handful of people behind the same router exhaust each other's quota.
+  const requestIpLimiter = rateLimit({
+    ...otpLimitOptions,
+    limit: 30,
+    store: mongoRateLimitStore('otp-request-ip'),
+  });
+  const requestPhoneLimiter = rateLimit({
+    ...otpLimitOptions,
+    limit: 5,
+    store: mongoRateLimitStore('otp-request-phone'),
+    keyGenerator: (req) => normalisePhone(parse(requestSchema, req.body).phone),
+  });
+  // Sending a code must never consume the budget for redeeming it. Each challenge also keeps
+  // its own OTP_MAX_ATTEMPTS guard; successful sign-ins do not consume this failed-attempt cap.
+  const verifyIpLimiter = rateLimit({
+    ...otpLimitOptions,
+    limit: 60,
+    store: mongoRateLimitStore('otp-verify-ip'),
+    skipSuccessfulRequests: true,
   });
 
-  router.post('/otp/request', otpLimiter, async (req, res) => {
+  router.post('/otp/request', requestIpLimiter, requestPhoneLimiter, async (req, res) => {
     const { phone } = parse(requestSchema, req.body);
     const normalised = normalisePhone(phone);
+    if (config.SMS_PROVIDER === 'disabled') {
+      throw new AppError('sign_in_unavailable', 'Phone sign-in is not available yet.');
+    }
     const exposeCode = config.SMS_PROVIDER === 'log';
 
-    const challenge = await createChallenge(normalised, config.OTP_TTL_MINUTES, exposeCode);
+    const challenge = await createChallenge(
+      normalised,
+      config.OTP_TTL_MINUTES,
+      exposeCode,
+      exposeCode ? undefined : (code) => sendOtpSms(config, normalised, code),
+    );
 
     if (exposeCode) {
       // Development only. The redaction list keeps this out of production logs regardless.
@@ -65,7 +99,7 @@ export function authRoutes(config: Config, logger: Logger): Router {
     });
   });
 
-  router.post('/otp/verify', otpLimiter, async (req, res) => {
+  router.post('/otp/verify', verifyIpLimiter, async (req, res) => {
     const { challengeId, code, deviceId, name } = parse(verifySchema, req.body);
     const { phone } = await verifyChallenge(challengeId, code, config.OTP_MAX_ATTEMPTS);
 

@@ -1,8 +1,22 @@
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { formatDate, formatHijriDate, type Locale } from '@nasl/i18n';
 import { colors, MIN_TOUCH, radius, spacing, type } from '../theme';
+
+function FieldLabel({ children }: { children: ReactNode }) {
+  const { i18n } = useTranslation();
+  return (
+    <Text
+      style={[
+        styles.label,
+        { textAlign: Platform.OS === 'web' && i18n.dir() === 'rtl' ? 'right' : 'left' },
+      ]}
+    >
+      {children}
+    </Text>
+  );
+}
 
 /** A row of mutually exclusive options, sized for a thumb. */
 export function Choice<T extends string>({
@@ -81,7 +95,7 @@ export function DateField({
 
   return (
     <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
+      <FieldLabel>{label}</FieldLabel>
       <View style={styles.dateRow}>
         <Pressable
           accessibilityRole="button"
@@ -152,7 +166,7 @@ export function NumberField({
 
   return (
     <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
+      <FieldLabel>{label}</FieldLabel>
       <View style={styles.dateRow}>
         <Pressable
           accessibilityRole="button"
@@ -189,7 +203,7 @@ export function NumberField({
 export function FieldGroup({ label, children }: { label: string; children: ReactNode }) {
   return (
     <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
+      <FieldLabel>{label}</FieldLabel>
       {children}
     </View>
   );

@@ -11,12 +11,12 @@ export class ApiError extends Error {
   readonly code: string;
   readonly details: unknown;
 
-  constructor(status: number, body: ApiErrorBody) {
-    super(body.error?.message ?? 'Request failed');
+  constructor(status: number, body: ApiErrorBody | null) {
+    super(body?.error?.message ?? 'Request failed');
     this.name = 'ApiError';
     this.status = status;
-    this.code = body.error?.code ?? 'internal';
-    this.details = body.error?.details;
+    this.code = body?.error?.code ?? 'internal';
+    this.details = body?.error?.details;
   }
 }
 
@@ -60,33 +60,49 @@ export function deviceId(): string {
   return id;
 }
 
-const BASE = import.meta.env.VITE_API_URL ?? '';
+const BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
 
 let refreshInFlight: Promise<boolean> | null = null;
 
-/** Refresh once even if several requests fail at the same moment. */
-async function refreshTokens(): Promise<boolean> {
-  const token = tokens.refresh();
-  if (!token) return false;
-
-  refreshInFlight ??= (async () => {
-    try {
+/** Serialize rotation across requests and browser tabs sharing the same stored session. */
+function refreshTokens(failedAccess: string | null): Promise<boolean> {
+  if (!refreshInFlight) {
+    const rotate = async () => {
+      // A delayed 401 may arrive after another request (or tab) already renewed this session.
+      if (tokens.access() && tokens.access() !== failedAccess) return true;
+      const token = tokens.refresh();
+      if (!token) return false;
       const res = await fetch(`${BASE}/v1/auth/refresh`, {
         method: 'POST',
+        cache: 'no-store',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ refreshToken: token, deviceId: deviceId() }),
       });
-      if (!res.ok) {
+
+      // Signing out or signing in elsewhere while a refresh is in flight wins over its result.
+      if (tokens.refresh() !== token) return Boolean(tokens.access());
+      if (res.status === 401) {
         tokens.clear();
         return false;
       }
+      if (!res.ok) throw new ApiError(res.status, null);
       const body = (await res.json()) as { accessToken: string; refreshToken: string };
+      if (tokens.refresh() !== token) return Boolean(tokens.access());
+      if (!body.accessToken || !body.refreshToken) throw new Error('Invalid session response');
       tokens.set(body.accessToken, body.refreshToken);
       return true;
-    } finally {
+    };
+
+    // Older browsers still get in-tab coalescing; Web Locks also prevent two tabs replaying the
+    // same one-use refresh token and causing the server to revoke its family.
+    refreshInFlight = (async () => {
+      return navigator.locks
+        ? await navigator.locks.request('nasl.admin.refresh', rotate)
+        : await rotate();
+    })().finally(() => {
       refreshInFlight = null;
-    }
-  })();
+    });
+  }
 
   return refreshInFlight;
 }
@@ -100,6 +116,7 @@ export async function request<T>(
 
   const res = await fetch(`${BASE}${path}`, {
     method,
+    cache: 'no-store',
     headers: {
       'content-type': 'application/json',
       ...(access ? { authorization: `Bearer ${access}` } : {}),
@@ -107,7 +124,7 @@ export async function request<T>(
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
 
-  if (res.status === 401 && retry && (await refreshTokens())) {
+  if (res.status === 401 && retry && (await refreshTokens(access))) {
     return request<T>(path, { ...options, retry: false });
   }
 

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "installCommand": "cd ../.. && npm ci --workspace @nasl/admin --workspace @nasl/shared --workspace @nasl/i18n --include-workspace-root",
+  "buildCommand": "cd ../.. && npm run build:packages && npm run build -w @nasl/admin",
+  "outputDirectory": "dist",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

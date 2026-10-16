@@ -1,3 +1,4 @@
+import { ScreenHeader } from '../../src/components/ScreenHeader';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -5,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { findBreed } from '@nasl/shared';
 import { api, ApiError } from '../../src/api/client';
 import { useAuth } from '../../src/auth/AuthProvider';
-import { Body, Button, Notice, Screen, Title } from '../../src/components/ui';
+import { Body, Notice, Screen } from '../../src/components/ui';
 import { colors, radius, spacing, type } from '../../src/theme';
 
 interface Node {
@@ -101,10 +102,7 @@ export default function Pedigree() {
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content}>
       <Screen>
-        <Button label={t('common:back')} variant="secondary" onPress={() => router.back()} />
-        <View style={styles.gap} />
-
-        <Title>{t('breeding:pedigree')}</Title>
+        <ScreenHeader title={t('breeding:pedigree')} />
         {error ? <Notice tone="danger">{error}</Notice> : null}
         {!tree && !error ? <Body muted>{t('common:loading')}</Body> : null}
 
