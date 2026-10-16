@@ -1,0 +1,23 @@
+apps/mobile/src/components/form.tsx
+  s_c9959826314bf9::t_fcc4c3cf4c34b5 46
+apps/mobile/package.json
+  s_c9959826314bf9::t_f94e6bc4f2c843 38
+docs/roadmap.md
+  s_c9959826314bf9::t_f94e6bc4f2c843 17-20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "64d20831cd5da9ee35df394a8af7c80206f8f5a0",
+  "prompts": {},
+  "sessions": {
+    "s_c9959826314bf9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ed41-6d4f-7fd1-8eef-bc4227e3e739",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "raslan <raslankiwan@gmail.com>"
+    }
+  }
+}
