@@ -67,6 +67,16 @@ export data before keeping anything irreplaceable in this pilot.
 The configs include SPA rewrites for deep links. Farm/account API responses use private,
 no-store caching. Only explicitly configured frontend origins receive CORS permission.
 
+Share https://nasl-app.vercel.app and https://nasl-admin.vercel.app with users. A deployment's
+generated Vercel URL is a separate browser origin, even when it serves the same production build.
+If that URL must also work, verify its project and production target with `vercel inspect`, add
+its exact HTTPS origin to the API's CORS_ORIGINS, and redeploy the API. Environment changes do
+not update an already-running deployment. Never allow every vercel.app domain or every preview.
+Check the registration preflight from each supported origin after deployment: OPTIONS
+/v1/auth/register with Origin, Access-Control-Request-Method: POST, and
+Access-Control-Request-Headers: content-type must return Access-Control-Allow-Origin matching
+that origin. An unrelated origin must receive no such header.
+
 ## User registration and administrator invitations
 
 Farm users register only in the user app. Accounts stay pending until an administrator approves
