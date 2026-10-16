@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "express",
-  "installCommand": "cd ../.. && npm ci --workspace @nasl/api --workspace @nasl/shared --include-workspace-root",
+  "installCommand": "cd ../.. && MONGOMS_DISABLE_POSTINSTALL=1 npm ci --include=dev --workspace @nasl/api --workspace @nasl/shared --include-workspace-root",
   "buildCommand": "cd ../.. && npm run build -w @nasl/shared && npm run build -w @nasl/api",
   "regions": ["fra1"],
   "functions": {
