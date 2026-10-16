@@ -5,7 +5,7 @@
   "buildCommand": "cd ../.. && npm run build:packages && npm run build -w @nasl/api",
   "regions": ["fra1"],
   "functions": {
-    "index.ts": {
+    "index.mjs": {
       "maxDuration": 30
     }
   }

@@ -1,9 +1,9 @@
 import express from 'express';
-import { createApp } from './src/app.ts';
-import { loadConfig } from './src/config.ts';
-import { connectDatabase } from './src/db.ts';
-import { errorHandler } from './src/errors.ts';
-import { createLogger } from './src/logger.ts';
+import { createApp } from './dist/app.js';
+import { loadConfig } from './dist/config.js';
+import { connectDatabase } from './dist/db.js';
+import { errorHandler } from './dist/errors.js';
+import { createLogger } from './dist/logger.js';
 
 const config = loadConfig();
 const logger = createLogger(config.LOG_LEVEL, false);
