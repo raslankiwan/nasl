@@ -1,0 +1,159 @@
+apps/mobile/src/components/AppearanceChoice.tsx
+  s_c9959826314bf9::t_2893387ebbef8a 1,3-7,11
+  s_c9959826314bf9::t_de591436dc9446 2,8-10
+  s_c9959826314bf9::t_ab16739f59093a 12-19
+apps/mobile/src/browserAppearance.ts
+  s_c9959826314bf9::t_0155b468e03e3b 1-3
+apps/mobile/app/sign-in.tsx
+  s_c9959826314bf9::t_de591436dc9446 2,10-12,15,208-209,218,231,233
+eslint.config.js
+  s_c9959826314bf9::t_14ec35ce17752d 36-40
+  s_c9959826314bf9::t_5cc9dcda285685 41
+apps/admin/src/routes/SignIn.tsx
+  s_c9959826314bf9::t_de591436dc9446 6,83
+docs/roadmap.md
+  s_c9959826314bf9::t_da7ee5d7a73165 3-16
+packages/i18n/src/locales/ar.ts
+  s_c9959826314bf9::t_de591436dc9446 20-25
+  s_c9959826314bf9::t_cbbadd6cc3cb22 26
+apps/mobile/app/(tabs)/settings.tsx
+  s_c9959826314bf9::t_de591436dc9446 9-10,47-48
+  s_c9959826314bf9::t_16296b723603de 49-51
+apps/mobile/app/_layout.tsx
+  s_c9959826314bf9::t_f6fa3da99e8487 6,11,14,33,76-77,79-84
+  s_c9959826314bf9::t_0d2f106a32fe6a 85-90,98,102,113-120
+apps/admin/src/App.tsx
+  s_c9959826314bf9::t_de591436dc9446 22,73-76
+  s_c9959826314bf9::t_67ed0bbcf1fcd8 77-80
+apps/admin/src/components/AppPreferences.tsx
+  s_c9959826314bf9::t_2893387ebbef8a 1-34
+  s_c9959826314bf9::t_0fec3ce93474a1 35-50
+apps/admin/src/appearance.tsx
+  s_c9959826314bf9::t_2893387ebbef8a 1-38
+  s_c9959826314bf9::t_db68a23b6577b0 39-49
+apps/mobile/src/components/InstallApp.tsx
+  s_c9959826314bf9::t_2893387ebbef8a 1-29
+  s_c9959826314bf9::t_9a7e201bf39984 30-33
+apps/mobile/src/components/form.tsx
+  s_c9959826314bf9::t_737fe89f7d37cb 2,5,8,36,46,88,166,208,217,269
+apps/admin/src/routes/AcceptInvitation.tsx
+  s_c9959826314bf9::t_de591436dc9446 6,204
+scripts/build-pwa.mjs
+  s_c9959826314bf9::t_1f5bc52c3e3b25 1-30
+  s_c9959826314bf9::t_7f2e55226d7d3e 31-41
+scripts/pwa.test.mjs
+  s_c9959826314bf9::t_cf3cac727801f0 1-82
+  s_c9959826314bf9::t_315830b37f3549 83-137
+docs/hosting.md
+  s_c9959826314bf9::t_da7ee5d7a73165 129-170,175-178
+packages/i18n/src/locales/en.ts
+  s_c9959826314bf9::t_de591436dc9446 15-20
+  s_c9959826314bf9::t_e4200f39ab4d36 21
+apps/admin/src/components/Layout.tsx
+  s_c9959826314bf9::t_de591436dc9446 7,44
+scripts/pwa/worker.js
+  s_c9959826314bf9::t_1f5bc52c3e3b25 1-34
+  s_c9959826314bf9::t_c7aa2d2134548c 35-51
+scripts/pwa/client.js
+  s_c9959826314bf9::t_1f5bc52c3e3b25 1-34
+apps/mobile/src/components/InstallApp.native.tsx
+  s_c9959826314bf9::t_2893387ebbef8a 1
+  s_c9959826314bf9::t_a38b1d63710ab5 2-3
+apps/mobile/src/browserAppearance.web.ts
+  s_c9959826314bf9::t_0155b468e03e3b 1-6
+apps/mobile/src/theme.ts
+  s_c9959826314bf9::t_69cd868aaeb2c6 15-16,18-19,36-37,52-55,59-68,80-84,88-92,98-102,106-107,111
+  s_c9959826314bf9::t_0155b468e03e3b 7-14,17,38-51,56-58,69-79,85-87,93-97,103-105,108-110
+  s_c9959826314bf9::t_4b2635bff3828a 112
+apps/admin/src/appearance.test.tsx
+  s_c9959826314bf9::t_0155b468e03e3b 1-48
+  s_c9959826314bf9::t_51e3709c5af72f 49-74
+apps/admin/index.html
+  s_c9959826314bf9::t_84b74d6b718b95 14-35
+apps/admin/package.json
+  s_c9959826314bf9::t_36455bb3c33856 8
+apps/admin/public/manifest.webmanifest
+  s_c9959826314bf9::t_d15e0c3166372d 1-28
+apps/admin/src/styles.css
+  s_c9959826314bf9::t_753f2d2370e456 10-11,31-47,204,459-479
+apps/admin/vercel.json
+  s_c9959826314bf9::t_9d3fedacb5ef43 12-39
+apps/mobile/app.json
+  s_c9959826314bf9::t_83a277cd56e591 29
+apps/mobile/app/(tabs)/flock.tsx
+  s_c9959826314bf9::t_15c7a25f7d9556 3,10,19,129,177
+apps/mobile/app/(tabs)/index.tsx
+  s_c9959826314bf9::t_e26d13f59701d4 3,10,21,116,158
+apps/mobile/app/(tabs)/reports.tsx
+  s_c9959826314bf9::t_240b128ce37180 3,10,43,160,173,184,223
+apps/mobile/app/animal/[id].tsx
+  s_c9959826314bf9::t_10933e50cd2c3e 4,25,53,63,375,397
+apps/mobile/app/animal/new.tsx
+  s_c9959826314bf9::t_f8c3788ec2b264 3,13,35,63,219,278
+apps/mobile/app/animal/pedigree.tsx
+  s_c9959826314bf9::t_0330d4aed9abcb 3,10,34,116,140
+apps/mobile/app/breeding/abortion.tsx
+  s_c9959826314bf9::t_eb054d77756848 8,11
+apps/mobile/app/breeding/birth.tsx
+  s_c9959826314bf9::t_03d0065569770d 2,8,39-40,160,202
+apps/mobile/app/health/cabinet.tsx
+  s_c9959826314bf9::t_7dfb837aeced68 3,11,40-41,228,278
+apps/mobile/app/health/schedule.tsx
+  s_c9959826314bf9::t_561cb918535838 3,10,52-53,227,256
+apps/mobile/app/health/treat.tsx
+  s_c9959826314bf9::t_8400931307b81c 11,22
+apps/mobile/app/health/withdrawal.tsx
+  s_c9959826314bf9::t_a5f2fe32b0fed7 3,9,31,98,127
+apps/mobile/app/milk/disposition.tsx
+  s_c9959826314bf9::t_410611035381e3 2,9,21-22,137,151
+apps/mobile/app/milk/test-day.tsx
+  s_c9959826314bf9::t_04517b50942461 3,10,35,172,222
+apps/mobile/app/pens/[id].tsx
+  s_c9959826314bf9::t_88a9aa09c4dc91 3,11,20,141,171
+apps/mobile/app/pens/index.tsx
+  s_c9959826314bf9::t_eba039b393f1a1 3,11,16-17,120,160
+apps/mobile/package.json
+  s_c9959826314bf9::t_9da82cbae56d50 38
+apps/mobile/public/index.html
+  s_c9959826314bf9::t_c5ccdfa4cccc82 1-60
+apps/mobile/public/manifest.webmanifest
+  s_c9959826314bf9::t_29a84c6f943469 1-28
+apps/mobile/src/components/CaptureScreen.tsx
+  s_c9959826314bf9::t_0134ad9a78b3a7 3,11,34,104,109
+apps/mobile/src/components/Keypad.tsx
+  s_c9959826314bf9::t_39d315593fedb5 1-2,25,70,93
+apps/mobile/src/components/LanguageToggle.tsx
+  s_c9959826314bf9::t_dc045533d1d1eb 2,6,17,58,73
+apps/mobile/src/components/TabScreen.native.tsx
+  s_c9959826314bf9::t_c90c1805bae5d5 4,8
+apps/mobile/src/components/TabScreen.tsx
+  s_c9959826314bf9::t_2f69c9e5025cfe 4,7
+apps/mobile/src/components/ui.tsx
+  s_c9959826314bf9::t_8aa8ec742fce6f 15,18,28,37,42,59-60,98-99,129,158,193-194,225-226,261,274-275,301,424
+apps/mobile/src/navigation/AppTabs.native.tsx
+  s_c9959826314bf9::t_e200ccb6ac1563 5,8
+apps/mobile/src/navigation/AppTabs.tsx
+  s_c9959826314bf9::t_d58b16e488218d 6,9
+apps/mobile/src/sync/SyncBanner.tsx
+  s_c9959826314bf9::t_1dedcf2628ff6d 1,4,14,45,69
+apps/mobile/vercel.json
+  s_c9959826314bf9::t_1f4b6e7712b3cc 12-39
+package.json
+  s_c9959826314bf9::t_d7f48138587e0c 17,25-26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "177bc8acd291da7bd697643f26e695a33983cfcd",
+  "prompts": {},
+  "sessions": {
+    "s_c9959826314bf9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ed41-6d4f-7fd1-8eef-bc4227e3e739",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "raslan <raslankiwan@gmail.com>"
+    }
+  }
+}
