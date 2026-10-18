@@ -1,0 +1,31 @@
+.nvmrc
+  s_c9959826314bf9::t_83969fd930f2f1 1
+scripts/dependencies.test.mjs
+  s_c9959826314bf9::t_88f38a414e47bf 1-23
+docs/roadmap.md
+  s_c9959826314bf9::t_4514c06208bf26 27-28
+README.md
+  s_c9959826314bf9::t_83969fd930f2f1 30
+docs/dependencies.md
+  s_c9959826314bf9::t_4514c06208bf26 28-56
+package.json
+  s_c9959826314bf9::t_88f38a414e47bf 17,26-27,40-43
+package-lock.json
+  s_c9959826314bf9::t_3cb34ce797861d 2299-2301,4489-4491,5239-5241,5611-5613,5619,5627-5630,7559-7561,11474-11476,11642-11644,12403-12409,12412
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "eca3ea9d893f0d962f23818c25c4eada87a80413",
+  "prompts": {},
+  "sessions": {
+    "s_c9959826314bf9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ed41-6d4f-7fd1-8eef-bc4227e3e739",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "raslan <raslankiwan@gmail.com>"
+    }
+  }
+}
