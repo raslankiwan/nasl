@@ -1,0 +1,111 @@
+apps/admin/src/api/client.test.ts
+  s_c9959826314bf9::t_51c2b79b8bae9f 132-139
+apps/admin/src/api/client.ts
+  s_c9959826314bf9::t_605b1a119424b9 132-137
+apps/admin/src/routes/Audit.tsx
+  s_c9959826314bf9::t_379d8699669dd4 24,36-42
+apps/admin/src/routes/Dashboard.tsx
+  s_c9959826314bf9::t_e8d254edbf8499 19,32-38
+apps/admin/src/routes/LoadErrors.test.tsx
+  s_c9959826314bf9::t_a393261e833619 1-44
+apps/admin/src/routes/Products.tsx
+  s_c9959826314bf9::t_a06df2cefa313e 12,27-28,42,113,181-187,209
+apps/api/src/repositories/tenantRepository.ts
+  s_c9959826314bf9::t_7baf5f8f8ceee1 43-44
+apps/api/src/routes/breeding.test.ts
+  s_c9959826314bf9::t_4995770b95695c 532-533,542-572
+apps/api/src/routes/farms.routes.ts
+  s_c9959826314bf9::t_4517bc91e087a7 26-30
+apps/api/src/routes/farms.test.ts
+  s_c9959826314bf9::t_ba2108818c08d4 128-145
+apps/api/src/routes/health.test.ts
+  s_c9959826314bf9::t_816d9b047cb018 1-2,391-476
+apps/api/src/routes/sync.routes.ts
+  s_c9959826314bf9::t_6129d110a5508b 2,8,15-23,42-48,50,56-65,68-73
+apps/api/src/routes/sync.test.ts
+  s_c9959826314bf9::t_d9b7dc94d40d53 5-7,14,122-123,126-157,161,164-179,183,186,191-203,205-206,208-216,220,224-225
+apps/api/src/routes/weights.test.ts
+  s_c9959826314bf9::t_94b74fa7e559fa 199-225
+apps/api/src/services/breeding.service.ts
+  s_c9959826314bf9::t_6d7a21d1ee33df 114-116,164-166,232-234,315-317,351-353
+apps/api/src/services/health.service.ts
+  s_c9959826314bf9::t_f2126cdd47b926 1,3,42-58,104,129,133-138
+apps/api/src/services/milk.service.ts
+  s_c9959826314bf9::t_08a42fea05f8d9 172-174,308-318
+apps/api/src/services/sync.service.ts
+  s_c9959826314bf9::t_fa77f30dcd03ba 1-2,12,15-34,43-46,49,55-62,64-92,94,102-108,111-112
+apps/api/src/services/weights.service.ts
+  s_c9959826314bf9::t_43342d7bc42d5e 23-25,41,81
+apps/mobile/app/(tabs)/flock.tsx
+  s_c9959826314bf9::t_9c91f7d0ed6a5c 1,22,24-25,61-67,115,117
+apps/mobile/app/animal/[id].tsx
+  s_c9959826314bf9::t_79d020e8f2941e 3,5,23-30,88-100,102-109,111-123,127-131,185,192,302-310,313-321,365
+apps/mobile/app/animal/weigh.tsx
+  s_c9959826314bf9::t_cb3757fc1cabc2 49,54
+apps/mobile/src/api/client.ts
+  s_c9959826314bf9::t_4c511deb0af031 1,4,6-7,15-18
+apps/mobile/src/api/sessionClient.test.ts
+  s_c9959826314bf9::t_23cf3ab7469dfe 1-117
+apps/mobile/src/api/sessionClient.ts
+  s_c9959826314bf9::t_6ea48027a80f27 1-156
+apps/mobile/src/auth/AuthProvider.tsx
+  s_c9959826314bf9::t_0b0ef98a2899ed 2-10,13-21,51,75-78,87,90,94,109,134,139,145,148,155,157,160,164
+apps/mobile/src/components/CaptureScreen.tsx
+  s_c9959826314bf9::t_79fbe7176f6fd7 1,3,41-42,57-58,65,73-79,81
+apps/mobile/src/platformLock.ts
+  s_c9959826314bf9::t_5a9fb228183640 1-7
+apps/mobile/src/sync/SyncBanner.tsx
+  s_c9959826314bf9::t_e28e063a95606d 16,18,24-31,37,40,44-46,70-72
+apps/mobile/src/sync/SyncProvider.tsx
+  s_c9959826314bf9::t_20d04702511f2b 12-13,15,21-22,27,34-36,40,42-58,62-74,76-91,93-95,97-100,102,105,107,109-110,115,117-118,121-124,129,131
+apps/mobile/src/sync/cache.ts
+  s_c9959826314bf9::t_ab5a66bf7b3a29 45
+apps/mobile/src/sync/delivery.test.ts
+  s_c9959826314bf9::t_22edb2a7f20a93 1-102
+apps/mobile/src/sync/delivery.ts
+  s_c9959826314bf9::t_f931b548612b4a 1-77
+apps/mobile/src/sync/device.ts
+  s_c9959826314bf9::t_7e7ae5e5b19cee 1,4,6,15-16,25-27
+apps/mobile/src/sync/outbox.test.ts
+  s_c9959826314bf9::t_dd6591d5928773 75,84-85,100,103-110,112-120
+apps/mobile/src/sync/outbox.ts
+  s_c9959826314bf9::t_18ea0a449ca830 6-11,15-16,22,26,28,31,33,35,37,42-55,57,60-72,75-79,83,87-96,99-101,105-106,111-118,123
+apps/mobile/src/sync/pull.test.ts
+  s_c9959826314bf9::t_7fef8a098467b2 1-38
+apps/mobile/src/sync/pull.ts
+  s_c9959826314bf9::t_fac1f8e4256020 1-36
+apps/mobile/src/sync/storage.native.ts
+  s_c9959826314bf9::t_5dcdbabc6ebb29 2,5,9
+apps/mobile/src/sync/useFlock.ts
+  s_c9959826314bf9::t_7ab75f070538f7 1,4,8-13,16-18,20,23-24,28,30,33,36,39-44,46-54,59-68,71-72,74
+docs/roadmap.md
+  s_c9959826314bf9::t_6a49821ca26e6b 3-27
+docs/scope.md
+  s_c9959826314bf9::t_51d63f343ff3fe 526,529-534
+packages/i18n/src/locales/ar.ts
+  s_c9959826314bf9::t_5f381fb0461c2b 75-77,163-164,485-492
+packages/i18n/src/locales/en.ts
+  s_c9959826314bf9::t_69b6dc898ce854 70-74,162-163,493-500
+packages/shared/src/alerts.ts
+  s_c9959826314bf9::t_749b17ac28454f 1,103
+packages/shared/src/health.test.ts
+  s_c9959826314bf9::t_74801fbc65be2b 34-42
+packages/shared/src/health.ts
+  s_c9959826314bf9::t_11a2d083d8e14a 1,73-80
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "fa75d8949761f535cf82060b2f2e77feaf476146",
+  "prompts": {},
+  "sessions": {
+    "s_c9959826314bf9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ed41-6d4f-7fd1-8eef-bc4227e3e739",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "raslan <raslankiwan@gmail.com>"
+    }
+  }
+}
