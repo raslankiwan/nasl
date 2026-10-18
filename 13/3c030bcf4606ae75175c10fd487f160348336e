@@ -1,0 +1,44 @@
+apps/mobile/src/numberEntry.test.ts
+  s_c9959826314bf9::t_1336530e377a8e 1-43
+  s_c9959826314bf9::t_8dea363cf13cbc 44-62
+apps/mobile/src/components/NumberEditor.tsx
+  s_c9959826314bf9::t_202f17ca0732d6 1-109
+  s_c9959826314bf9::t_e8828db3f04323 110-214
+apps/mobile/src/components/form.tsx
+  s_c9959826314bf9::t_202f17ca0732d6 1,6,67,84,95,98-99,110,122-128,132-133,136,143-155,210
+  s_c9959826314bf9::t_1abf55e03786ba 219,222
+apps/mobile/app/breeding/check.tsx
+  s_c9959826314bf9::t_202f17ca0732d6 65
+apps/mobile/src/numberEntry.ts
+  s_c9959826314bf9::t_1336530e377a8e 1-38
+  s_c9959826314bf9::t_853750ba2f9fb0 39-59
+apps/mobile/src/components/Keypad.tsx
+  s_c9959826314bf9::t_202f17ca0732d6 2,19,25,29
+  s_c9959826314bf9::t_5c459283ed8535 1,30-84
+apps/mobile/app/animal/weigh.tsx
+  s_c9959826314bf9::t_6b48299c43c513 11
+apps/mobile/app/milk/test-day.tsx
+  s_c9959826314bf9::t_bc7faadefd8686 3,9,27,64,66,70,133-143
+docs/roadmap.md
+  s_c9959826314bf9::t_7a0b210bfe0462 3-16
+packages/i18n/src/locales/ar.ts
+  s_c9959826314bf9::t_46925aa676037a 57-68
+packages/i18n/src/locales/en.ts
+  s_c9959826314bf9::t_14fc8d20c8def4 52-63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "133c030bcf4606ae75175c10fd487f160348336e",
+  "prompts": {},
+  "sessions": {
+    "s_c9959826314bf9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ed41-6d4f-7fd1-8eef-bc4227e3e739",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "raslan <raslankiwan@gmail.com>"
+    }
+  }
+}
