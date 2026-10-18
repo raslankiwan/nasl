@@ -1,5 +1,19 @@
 # Delivery plan
 
+## Manual numeric entry (18 October 2026)
+
+- [x] Tap any quantity/value to enter an exact number using the large keypad, typing or paste.
+      Weight, birth weight, dose, stock, milk quantities, output, revenue and test-day yield share
+      the same editor; plus/minus adjustments remain available. Counts allow whole numbers only.
+- [x] Manual decimals are independent of step size. Arabic/Persian digits and decimal separators
+      are accepted; invalid precision and out-of-range values are explained without silently
+      rounding/clamping them. Cancel preserves the value; clearing an optional field differs from zero.
+- [x] The keypad retains keyboard focus between presses and reads left-to-right in both languages.
+- [x] Parser/keypad tests and browser checks cover typing, touch entry, replacement, backspace,
+      cancel, clear, zero, bounds and integer counts. Verified Arabic/light at 320px and English/dark
+      at 390px against a temporary API/database, including saved 42.35 kg weight, 3.25 kg test-day
+      yield and 199.95 revenue. Native device checks remain pending; no emulator was launched.
+
 ## Calendar selection and sheep lambing windows (18 October 2026)
 
 - [x] All twelve editable date fields use a shared offline calendar with direct month/year

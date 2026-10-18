@@ -1,4 +1,5 @@
-import { I18nManager, Pressable, Text, View } from 'react-native';
+import { I18nManager, Platform, Pressable, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { radius, spacing, createThemedStyles } from '../theme';
 
 /**
@@ -15,25 +16,72 @@ export function Keypad({
   onDigit,
   onBackspace,
   onClear,
+  onDecimal,
   disabled,
 }: {
   onDigit: (digit: string) => void;
   onBackspace: () => void;
   onClear: () => void;
+  onDecimal?: () => void;
   disabled?: boolean;
 }) {
   const styles = useStyles();
-  const Key = ({
-    label,
-    onPress,
-    tone = 'normal',
-    accessibilityLabel,
-  }: {
-    label: string;
-    onPress: () => void;
-    tone?: 'normal' | 'muted';
-    accessibilityLabel?: string;
-  }) => (
+  const { t, i18n } = useTranslation('common');
+  const rtl = Platform.OS === 'web' ? i18n.dir() === 'rtl' : I18nManager.isRTL;
+
+  /**
+   * Digits read 1-2-3 left-to-right in every language, so the visual order must not mirror with
+   * the interface. `direction` is not a usable style here — react-native-web rejects it — so the
+   * row is reversed instead, which cancels the mirroring Yoga applies under RTL.
+   */
+  return (
+    <View style={[styles.pad, rtl && styles.padRTL]}>
+      {KEYS.map((key) => (
+        <Key disabled={disabled} key={key} label={key} onPress={() => onDigit(key)} />
+      ))}
+      <Key
+        disabled={disabled}
+        label="⌫"
+        onPress={onBackspace}
+        tone="muted"
+        accessibilityLabel={t('backspace')}
+      />
+      <Key disabled={disabled} label="0" onPress={() => onDigit('0')} />
+      {onDecimal ? (
+        <Key
+          disabled={disabled}
+          label="."
+          onPress={onDecimal}
+          accessibilityLabel={t('decimalPoint')}
+        />
+      ) : (
+        <Key
+          disabled={disabled}
+          label="✕"
+          onPress={onClear}
+          tone="muted"
+          accessibilityLabel={t('clearValue')}
+        />
+      )}
+    </View>
+  );
+}
+
+function Key({
+  label,
+  onPress,
+  tone = 'normal',
+  accessibilityLabel,
+  disabled,
+}: {
+  label: string;
+  onPress: () => void;
+  tone?: 'normal' | 'muted';
+  accessibilityLabel?: string;
+  disabled?: boolean;
+}) {
+  const styles = useStyles();
+  return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
@@ -48,22 +96,6 @@ export function Keypad({
     >
       <Text style={[styles.keyLabel, tone === 'muted' && styles.keyLabelMuted]}>{label}</Text>
     </Pressable>
-  );
-
-  /**
-   * Digits read 1-2-3 left-to-right in every language, so the visual order must not mirror with
-   * the interface. `direction` is not a usable style here — react-native-web rejects it — so the
-   * row is reversed instead, which cancels the mirroring Yoga applies under RTL.
-   */
-  return (
-    <View style={[styles.pad, I18nManager.isRTL && styles.padRTL]}>
-      {KEYS.map((key) => (
-        <Key key={key} label={key} onPress={() => onDigit(key)} />
-      ))}
-      <Key label="⌫" onPress={onBackspace} tone="muted" accessibilityLabel="backspace" />
-      <Key label="0" onPress={() => onDigit('0')} />
-      <Key label="✕" onPress={onClear} tone="muted" accessibilityLabel="clear" />
-    </View>
   );
 }
 

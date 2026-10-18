@@ -8,8 +8,7 @@ import { useAuth } from '../../src/auth/AuthProvider';
 const METHODS = ['scale', 'tape', 'estimate'] as const;
 
 /**
- * A weighing. The value steps rather than being typed, starting at something plausible for a
- * grown ewe — a herder at the race is holding the animal with one hand.
+ * A weighing accepts the exact scale reading; quick adjustments start at a plausible adult weight.
  */
 export default function RecordWeight() {
   const { animalId } = useLocalSearchParams<{ animalId: string }>();

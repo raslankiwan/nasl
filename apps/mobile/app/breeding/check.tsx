@@ -62,6 +62,7 @@ export default function RecordPregnancyCheck() {
           onChange={setFetusCount}
           min={1}
           max={4}
+          decimals={0}
           initial={1}
           optional
         />

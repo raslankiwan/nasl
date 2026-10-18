@@ -1,12 +1,12 @@
 import { ScreenHeader } from '../../src/components/ScreenHeader';
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { api, ApiError } from '../../src/api/client';
 import { useAuth } from '../../src/auth/AuthProvider';
 import { Body, Button, Notice, Screen } from '../../src/components/ui';
-import { DateField } from '../../src/components/form';
+import { DateField, NumberField } from '../../src/components/form';
 import { MIN_TOUCH, radius, spacing, type, createThemedStyles } from '../../src/theme';
 
 interface Lactation {
@@ -21,13 +21,10 @@ interface Result {
   withheld: Array<{ tagNumber: string; until: string }>;
 }
 
-/** Steps small enough for a ewe's daily yield, which runs roughly 0.5–4 kg. */
-const STEP = 0.1;
-
 /**
  * A test day at the parlour.
  *
- * Every milking ewe on one screen with a stepper each, because the parlour is a production line:
+ * Every milking ewe on one screen with editable yield and quick adjustments:
  * the ewe is in front of you for a few seconds and the entry has to keep up. Nothing is sent until
  * the session is finished, so a herder can go back and correct before committing.
  */
@@ -64,14 +61,13 @@ export default function TestDay() {
     }, [load]),
   );
 
-  const adjust = (animalId: string, delta: number) =>
+  const setYield = (animalId: string, value: number | null) =>
     setYields((prev) => {
-      const next = Number(Math.max(0, (prev[animalId] ?? 0) + delta).toFixed(1));
-      if (next === 0 && delta < 0) {
+      if (value === null) {
         const { [animalId]: _removed, ...rest } = prev;
         return rest;
       }
-      return { ...prev, [animalId]: next };
+      return { ...prev, [animalId]: value };
     });
 
   const entries = Object.entries(yields).map(([animalId, kg]) => ({ animalId, kg }));
@@ -134,25 +130,17 @@ export default function TestDay() {
                   </Text>
                 </View>
 
-                <View style={styles.stepper}>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={`-${ewe.tagNumber}`}
-                    onPress={() => adjust(ewe.animalId, -STEP)}
-                    style={({ pressed }) => [styles.step, pressed && styles.pressed]}
-                  >
-                    <Text style={styles.stepLabel}>−</Text>
-                  </Pressable>
-                  <Text style={styles.value}>{value === undefined ? '—' : `${value}`}</Text>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={`+${ewe.tagNumber}`}
-                    onPress={() => adjust(ewe.animalId, STEP)}
-                    style={({ pressed }) => [styles.step, pressed && styles.pressed]}
-                  >
-                    <Text style={styles.stepLabel}>＋</Text>
-                  </Pressable>
-                </View>
+                <NumberField
+                  label={`${t('milk:quantity')} · ${ewe.tagNumber}`}
+                  value={value ?? null}
+                  onChange={(next) => setYield(ewe.animalId, next)}
+                  min={0}
+                  max={20}
+                  step={0.1}
+                  initial={0.1}
+                  suffix="kg"
+                  optional
+                />
               </View>
             );
           })}
@@ -182,9 +170,6 @@ const useStyles = createThemedStyles((colors) => ({
   count: { fontSize: type.label, fontWeight: '600', color: colors.accent },
   gap: { height: spacing.md },
   row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.line,
@@ -199,24 +184,4 @@ const useStyles = createThemedStyles((colors) => ({
   rowMain: { flexShrink: 1, gap: 2 },
   tag: { fontSize: type.heading, fontWeight: '700', color: colors.ink, writingDirection: 'ltr' },
   meta: { fontSize: type.caption, color: colors.muted },
-  stepper: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
-  step: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: radius.sm,
-    backgroundColor: colors.surface,
-  },
-  pressed: { opacity: 0.8 },
-  stepLabel: { fontSize: 20, fontWeight: '600', color: colors.ink },
-  value: {
-    minWidth: 52,
-    textAlign: 'center',
-    fontSize: type.heading,
-    fontWeight: '700',
-    color: colors.ink,
-  },
 }));

@@ -1,8 +1,9 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Platform, Pressable, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 export { DateField } from './DateField';
 import { MIN_TOUCH, radius, spacing, type, createThemedStyles } from '../theme';
+import { NumberEditor } from './NumberEditor';
 
 function FieldLabel({ children }: { children: ReactNode }) {
   const styles = useStyles();
@@ -63,7 +64,7 @@ export function Choice<T extends string>({
 }
 
 /**
- * A number stepped rather than typed — weights and scores are small and bounded.
+ * Direct numeric entry plus quick adjustments; step size never restricts manual precision.
  *
  * `initial` is what the first press jumps to, and it matters more than it looks: a birth weight
  * that starts at the minimum and steps by 0.1 takes thirty-five presses to reach a realistic
@@ -80,6 +81,7 @@ export function NumberField({
   initial,
   suffix,
   optional,
+  decimals = 2,
 }: {
   label: string;
   value: number | null;
@@ -90,8 +92,11 @@ export function NumberField({
   initial?: number;
   suffix?: string;
   optional?: boolean;
+  decimals?: number;
 }) {
   const styles = useStyles();
+  const { t } = useTranslation('common');
+  const [editing, setEditing] = useState(false);
   const start = initial ?? min;
   const current = value ?? start;
   const set = (next: number) => onChange(Math.min(max, Math.max(min, Number(next.toFixed(2)))));
@@ -102,7 +107,7 @@ export function NumberField({
       <View style={styles.dateRow}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="-"
+          accessibilityLabel={t('decreaseNumber', { label })}
           onPress={() =>
             value === null
               ? set(start)
@@ -114,20 +119,40 @@ export function NumberField({
         >
           <Text style={styles.stepLabel}>−</Text>
         </Pressable>
-        <View style={styles.dateValue}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${label}: ${value ?? '—'}${suffix ? ` ${suffix}` : ''}`}
+          accessibilityHint={t('enterNumber')}
+          onPress={() => setEditing(true)}
+          style={({ pressed }) => [styles.dateValue, pressed && styles.pressed]}
+        >
           <Text style={styles.dateMain}>
             {value === null ? '—' : `${value}${suffix ? ` ${suffix}` : ''}`}
           </Text>
-        </View>
+          <Text style={styles.editHint}>{t(value === null ? 'enterValue' : 'edit')}</Text>
+        </Pressable>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="+"
+          accessibilityLabel={t('increaseNumber', { label })}
           onPress={() => set(value === null ? start : current + step)}
           style={({ pressed }) => [styles.step, pressed && styles.pressed]}
         >
           <Text style={styles.stepLabel}>＋</Text>
         </Pressable>
       </View>
+      {editing ? (
+        <NumberEditor
+          label={label}
+          value={value}
+          suffix={suffix}
+          min={min}
+          max={max}
+          decimals={decimals}
+          optional={optional}
+          onChange={onChange}
+          onClose={() => setEditing(false)}
+        />
+      ) : null}
     </View>
   );
 }
@@ -182,6 +207,7 @@ const useStyles = createThemedStyles((colors) => ({
   stepLabel: { fontSize: 24, fontWeight: '600', color: colors.ink },
   dateValue: {
     flex: 1,
+    minWidth: 0,
     minHeight: MIN_TOUCH,
     alignItems: 'center',
     justifyContent: 'center',
@@ -190,6 +216,8 @@ const useStyles = createThemedStyles((colors) => ({
     borderRadius: radius.md,
     backgroundColor: colors.surface,
     paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
   },
   dateMain: { fontSize: type.body, fontWeight: '600', color: colors.ink },
+  editHint: { fontSize: type.caption, color: colors.accent, marginTop: spacing.xs },
 }));
