@@ -67,13 +67,10 @@ const schema = tenantSchema<AnimalDoc>({
 });
 
 /**
- * One live tag number per farm, enforced by the database rather than by a read-then-write in
- * application code, which races (FR-REG-02). Partial, so a culled animal's tag can be reused.
+ * One tag number per farm, including archived ancestors, enforced by the database rather than by a read-then-write in
+ * application code, which races (FR-REG-02). Historical numbers cannot be reassigned to another animal.
  */
-schema.index(
-  { farmId: 1, tagNumber: 1 },
-  { unique: true, partialFilterExpression: { deletedAt: null } },
-);
+schema.index({ farmId: 1, tagNumber: 1 }, { unique: true, name: 'farm_tag_never_reused' });
 
 // The Today list and the due-to-lamb alerts.
 schema.index({ farmId: 1, 'repro.state': 1, 'repro.dueDate': 1 });

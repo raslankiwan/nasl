@@ -3,18 +3,18 @@ export type PushSupport = 'supported' | 'install' | 'unsupported';
 export interface PushState {
   available: boolean;
   enabled: boolean;
-  leadDays: number;
+  reminderDays: number[];
 }
 export const pushSupport = (): PushSupport => 'unsupported';
 export const readPushState = async (_userId: string): Promise<PushState> => ({
   available: false,
   enabled: false,
-  leadDays: 3,
+  reminderDays: [0],
 });
 export const enablePush = async (
   _userId: string,
   _locale: string,
-  _leadDays: number,
+  _reminderDays: number[],
 ): Promise<void> => {};
 export const disablePush = async (): Promise<void> => {};
 export const testPush = async (): Promise<void> => {};

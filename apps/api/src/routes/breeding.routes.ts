@@ -69,7 +69,7 @@ const abortionInput = z.object({
 
 export function breedingRoutes(config: Config): Router {
   const router = Router({ mergeParams: true });
-  const breeding = new BreedingService();
+  const breeding = new BreedingService(config.NODE_ENV === 'production');
 
   router.use(requireAuth(config.JWT_SECRET));
 
@@ -122,6 +122,7 @@ export function breedingRoutes(config: Config): Router {
       date: birth.date.toISOString().slice(0, 10),
       offspring: birth.offspring.map((o) => ({
         animalId: o.animalId ?? null,
+        tagNumber: o.tagNumber ?? null,
         sex: o.sex,
         outcome: o.outcome,
         birthWeightKg: o.birthWeightKg ?? null,

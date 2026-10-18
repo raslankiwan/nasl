@@ -142,13 +142,13 @@ describe('reproductive state machine', () => {
 });
 
 describe('derived windows', () => {
-  test('the sheep lambing window is day 142 through day 150, including old due dates', () => {
+  test('the sheep lambing window is day 145 through day 152, including old due dates', () => {
     const window = lambingWindow(d('2026-06-06'), 'sheep');
-    assert.equal(toDateString(window.from), '2026-06-01');
-    assert.equal(toDateString(window.to), '2026-06-09');
+    assert.equal(toDateString(window.from), '2026-06-04');
+    assert.equal(toDateString(window.to), '2026-06-11');
     const leap = lambingWindow(expectedDueDate(d('2023-10-10'), 'sheep'), 'sheep');
-    assert.equal(toDateString(leap.from), '2024-02-29');
-    assert.equal(toDateString(leap.to), '2024-03-08');
+    assert.equal(toDateString(leap.from), '2024-03-03');
+    assert.equal(toDateString(leap.to), '2024-03-10');
   });
 
   test('the goat estimate stays at 150 days', () => {

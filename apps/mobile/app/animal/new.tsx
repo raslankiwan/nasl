@@ -1,6 +1,14 @@
 import { useHeaderHeight } from 'expo-router/react-navigation';
-import { useCallback, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { useCallback, useRef, useState } from 'react';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -8,6 +16,8 @@ import { SEXES, SPECIES, type Sex, type Species } from '@nasl/shared';
 import { api, ApiError } from '../../src/api/client';
 import { useAuth } from '../../src/auth/AuthProvider';
 import { Body, Button, Card, Field, Notice } from '../../src/components/ui';
+import { Toggle } from '../../src/components/form';
+import { useFlock } from '../../src/sync/useFlock';
 import { Keypad } from '../../src/components/Keypad';
 import { ScreenHeader } from '../../src/components/ScreenHeader';
 import { MIN_TOUCH, radius, spacing, type, createThemedStyles } from '../../src/theme';
@@ -69,6 +79,10 @@ export default function QuickAdd() {
 
   const [species, setSpecies] = useState<Species>('sheep');
   const [sex, setSex] = useState<Sex>('female');
+  const { allAnimals, refresh } = useFlock();
+  const [automatic, setAutomatic] = useState(true);
+  const recordId = useRef(globalThis.crypto.randomUUID());
+  const saving = useRef(false);
   const [tag, setTag] = useState('');
   const [name, setName] = useState('');
   const [added, setAdded] = useState<Array<{ id: string; tagNumber: string; name: string | null }>>(
@@ -78,23 +92,39 @@ export default function QuickAdd() {
   const [busy, setBusy] = useState(false);
 
   const save = useCallback(async () => {
-    if (!farmId || tag.length === 0) return;
+    if (!farmId || saving.current || (!automatic && !tag.trim())) return;
+    saving.current = true;
     setBusy(true);
     setError(null);
     try {
       const created = await api.post<{ id: string; tagNumber: string; name: string | null }>(
         `/v1/farms/${farmId}/animals`,
-        { tagNumber: tag, species, sex, ...(name.trim() ? { name: name.trim() } : {}) },
+        {
+          id: recordId.current,
+          ...(!automatic ? { tagNumber: tag.trim() } : {}),
+          species,
+          sex,
+          ...(name.trim() ? { name: name.trim() } : {}),
+        },
       );
       setAdded((prev) => [created, ...prev]);
+      void refresh();
+      recordId.current = globalThis.crypto.randomUUID();
       setTag('');
       setName('');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t('common:errorRetry'));
+      setError(
+        err instanceof ApiError && (err.details as { field?: string })?.field === 'tagNumber'
+          ? t('animals:duplicateTag', { tag })
+          : err instanceof ApiError
+            ? err.message
+            : t('common:errorRetry'),
+      );
     } finally {
+      saving.current = false;
       setBusy(false);
     }
-  }, [farmId, tag, name, species, sex, t]);
+  }, [farmId, tag, name, species, sex, t, automatic, refresh]);
 
   const undo = useCallback(
     async (id: string) => {
@@ -161,17 +191,40 @@ export default function QuickAdd() {
 
         <View style={styles.gap} />
 
-        <View style={styles.tagDisplay}>
-          <Text style={styles.tagLabel}>{t('animals:tagNumberShort')}</Text>
-          <Text style={styles.tagValue}>{tag || '—'}</Text>
-        </View>
-
-        <Keypad
-          onDigit={(digit) => setTag((prev) => (prev.length < 12 ? prev + digit : prev))}
-          onBackspace={() => setTag((prev) => prev.slice(0, -1))}
-          onClear={() => setTag('')}
-          disabled={busy}
+        <Toggle
+          label={t('animals:autoNumber')}
+          value={automatic}
+          onChange={(value) => {
+            if (!busy) setAutomatic(value);
+          }}
         />
+        {automatic ? (
+          <Body muted>{t('animals:autoNumberHint')}</Body>
+        ) : (
+          <>
+            <View style={styles.tagDisplay}>
+              <Text style={styles.tagLabel}>{t('animals:tagNumberShort')}</Text>
+              <TextInput
+                accessibilityLabel={t('animals:tagNumber')}
+                keyboardType="number-pad"
+                value={tag}
+                onChangeText={setTag}
+                maxLength={32}
+                editable={!busy}
+                style={[styles.tagValue, { width: '100%', textAlign: 'center' }]}
+              />
+            </View>
+            <Keypad
+              onDigit={(digit) => setTag((prev) => (prev.length < 32 ? prev + digit : prev))}
+              onBackspace={() => setTag((prev) => prev.slice(0, -1))}
+              onClear={() => setTag('')}
+              disabled={busy}
+            />
+            {[...allAnimals, ...added].some((animal) => animal.tagNumber === tag.trim()) ? (
+              <Notice tone="danger">{t('animals:duplicateTag', { tag })}</Notice>
+            ) : null}
+          </>
+        )}
 
         <View style={styles.gap} />
         <Field
@@ -188,7 +241,11 @@ export default function QuickAdd() {
         <Button
           label={t('common:add')}
           onPress={() => void save()}
-          disabled={tag.length === 0}
+          disabled={
+            !automatic &&
+            (!tag.trim() ||
+              [...allAnimals, ...added].some((animal) => animal.tagNumber === tag.trim()))
+          }
           busy={busy}
         />
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { useAuth } from '../auth/AuthProvider';
 import { useSync } from './SyncProvider';
@@ -47,11 +47,19 @@ const EMPTY_FLOCK: CachedAnimal[] = [];
 export function useFlock() {
   const { farmId } = useAuth();
   const read = useCallback(
-    () => (farmId ? flockCache.listAnimals(farmId) : Promise.resolve(EMPTY_FLOCK)),
+    () => (farmId ? flockCache.listAnimals(farmId, true) : Promise.resolve(EMPTY_FLOCK)),
     [farmId],
   );
-  const { data: animals, ...rest } = useCachedRead(farmId ?? '', farmId, read, EMPTY_FLOCK);
-  return { animals, ...rest };
+  const { data: allAnimals, ...rest } = useCachedRead(farmId ?? '', farmId, read, EMPTY_FLOCK);
+  const animals = useMemo(
+    () => allAnimals.filter((animal) => animal.status === 'active'),
+    [allAnimals],
+  );
+  const animalsById = useMemo(
+    () => new Map(allAnimals.map((animal) => [animal.id, animal])),
+    [allAnimals],
+  );
+  return { animals, allAnimals, animalsById, ...rest };
 }
 
 export function useAnimal(id: string | undefined) {

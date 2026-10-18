@@ -13,7 +13,7 @@ import { request } from '../api/client';
 import { useAuth } from '../auth/AuthProvider';
 import { isStuck, type OutboxEntry } from './outbox';
 import { Delivery } from './delivery';
-import { outbox } from './device';
+import { outbox, pullFlock } from './device';
 
 interface SyncValue {
   pending: number;
@@ -65,7 +65,21 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       flushingRef.current = true;
       setFlushing(true);
       try {
-        setOnline(await delivery.flush(retryBlocked));
+        const pending = await outbox.pending();
+        const farmsToRefresh = (current.current.me?.farms ?? []).filter((farm) =>
+          pending.some(
+            (entry) =>
+              entry.userId === current.current.me?.id &&
+              (!entry.blocked || retryBlocked) &&
+              entry.path.startsWith(`/v1/farms/${farm.farmId}/`),
+          ),
+        );
+        const sent = await delivery.flush(retryBlocked);
+        setOnline(sent);
+        if (sent)
+          await Promise.all(
+            farmsToRefresh.map((farm) => pullFlock(farm.farmId, true).catch(() => undefined)),
+          );
         setError(null);
       } catch {
         setError('storage');
@@ -85,6 +99,10 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         throw new Error('Sign in to this farm before saving');
       const sent = await delivery.send({ id, path, body, userId });
       setOnline(sent);
+      const farm = current.current.me?.farms.find((entry) =>
+        path.startsWith(`/v1/farms/${entry.farmId}/`),
+      );
+      if (sent && farm) await pullFlock(farm.farmId, true).catch(() => undefined);
       return sent;
     },
     [delivery, acceptsPath],

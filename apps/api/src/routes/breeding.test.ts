@@ -236,8 +236,8 @@ describe('lambing', () => {
         lambs.every((l) => l.sireId === sireId),
         'paternity comes from the mating',
       );
-      assert.equal(lambs[0]?.tagNumber, '1001-1', 'an untagged lamb gets a provisional tag');
-      assert.equal(lambs[1]?.tagNumber, '1101');
+      assert.equal(lambs[0]?.tagNumber, '1101');
+      assert.equal(lambs[1]?.tagNumber, '3002', 'an untagged lamb gets its own next farm number');
 
       assert.equal(await state(client, farmId, damId), 'nursing');
     });
@@ -411,7 +411,7 @@ describe('the full cycle', () => {
 });
 
 describe('alerts', () => {
-  for (const gestation of [148, 150, 151]) {
+  for (const gestation of [145, 152, 153]) {
     test(`day ${gestation} uses the full sheep window through the API`, async () => {
       await withServer(testApp(), async (url) => {
         const { client, farmId, damId, sireId } = await flock(url);
@@ -423,16 +423,16 @@ describe('alerts', () => {
           overdue: Array<{ days: number }>;
         }>(`${base}/alerts`);
         assert.equal(res.status, 200);
-        if (gestation <= 150) {
+        if (gestation <= 152) {
           assert.equal(res.body.overdue.length, 0);
           assert.equal(res.body.dueSoon[0]?.days, 0);
           assert.equal(
             res.body.dueSoon[0]?.windowStart,
-            new Date(new Date(date).getTime() + 142 * 86_400_000).toISOString().slice(0, 10),
+            new Date(new Date(date).getTime() + 145 * 86_400_000).toISOString().slice(0, 10),
           );
           assert.equal(
             res.body.dueSoon[0]?.windowEnd,
-            new Date(new Date(date).getTime() + 150 * 86_400_000).toISOString().slice(0, 10),
+            new Date(new Date(date).getTime() + 152 * 86_400_000).toISOString().slice(0, 10),
           );
         } else {
           assert.equal(res.body.dueSoon.length, 0);

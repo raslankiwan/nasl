@@ -2,6 +2,7 @@ import { timingSafeEqual, createHash } from 'node:crypto';
 import { Router } from 'express';
 import { z } from 'zod';
 import { ar, en } from '@nasl/i18n';
+import { birthReminderDays } from '@nasl/shared';
 import type { Config } from '../config.ts';
 import type { Logger } from '../logger.ts';
 import { AppError } from '../errors.ts';
@@ -25,7 +26,13 @@ const subscriptionInput = endpointInput.extend({
     auth: z.string().regex(/^[A-Za-z0-9_-]{22}$/),
   }),
   locale: z.enum(['ar', 'en']).default('ar'),
-  leadDays: z.union([z.literal(1), z.literal(3), z.literal(7)]).default(3),
+  leadDays: z.union([z.literal(1), z.literal(3), z.literal(7)]).optional(),
+  reminderDays: z
+    .array(z.union([z.literal(0), z.literal(3), z.literal(7)]))
+    .min(1)
+    .max(3)
+    .refine((days) => new Set(days).size === days.length, 'Choose each timing once')
+    .optional(),
 });
 
 export function notificationRoutes(config: Config, send: PushSender) {
@@ -40,12 +47,18 @@ export function notificationRoutes(config: Config, send: PushSender) {
       userId: userIdOf(req),
       endpointHash: endpointHash(endpoint),
     }).lean();
-    res.json({ enabled: subscription?.enabled ?? false, leadDays: subscription?.leadDays ?? 3 });
+    const reminderDays = birthReminderDays(subscription?.reminderDays, subscription?.leadDays);
+    res.json({
+      enabled: subscription?.enabled ?? false,
+      reminderDays,
+      leadDays: reminderDays.find((day) => day > 0) ?? 1,
+    });
   });
   router.post('/subscribe', async (req, res) => {
     if (!pushConfigured(config))
       throw new AppError('push_unavailable', 'Push notifications are not configured.');
-    const input = parse(subscriptionInput, req.body);
+    const { leadDays, reminderDays: selectedDays, ...input } = parse(subscriptionInput, req.body);
+    const reminderDays = birthReminderDays(selectedDays, leadDays);
     const userId = userIdOf(req);
     const hash = endpointHash(input.endpoint);
     const existing = await PushSubscription.findOne({ endpointHash: hash }).lean();
@@ -59,7 +72,8 @@ export function notificationRoutes(config: Config, send: PushSender) {
       await PushSubscription.findOneAndUpdate(
         { endpointHash: hash, userId },
         {
-          $set: { ...input, enabled: true },
+          $set: { ...input, reminderDays, enabled: true },
+          $unset: { leadDays: 1 },
           $setOnInsert: { userId, endpointHash: hash },
         },
         { upsert: true, runValidators: true },
@@ -69,7 +83,7 @@ export function notificationRoutes(config: Config, send: PushSender) {
         throw AppError.conflict('Subscription changed. Try again.');
       throw error;
     }
-    res.json({ enabled: true, leadDays: input.leadDays });
+    res.json({ enabled: true, reminderDays });
   });
   router.post('/disable', async (req, res) => {
     const { endpoint } = parse(endpointInput, req.body);

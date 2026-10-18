@@ -5,6 +5,7 @@
  * get its indexes built. Importing them all in one place makes that impossible to get wrong.
  */
 export * from './animal.model.ts';
+export * from './animalNumber.model.ts';
 export * from './adminInvitation.model.ts';
 export * from './auditLog.model.ts';
 export * from './base.ts';

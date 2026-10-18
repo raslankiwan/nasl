@@ -3,6 +3,8 @@ import { Pressable, Text, TextInput, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../src/auth/AuthProvider';
+import { useFlock } from '../../src/sync/useFlock';
+import { Body, Notice } from '../../src/components/ui';
 import { CaptureScreen } from '../../src/components/CaptureScreen';
 import { Choice, DateField, FieldGroup, NumberField } from '../../src/components/form';
 import { MIN_TOUCH, radius, spacing, type, useTheme, createThemedStyles } from '../../src/theme';
@@ -32,8 +34,8 @@ const blankLamb = (): LambDraft => ({
  * pen, within a day, by whoever was standing there, every report downstream is fiction.
  *
  * So it opens with one lamb already filled in at the commonest values — a live female — and asks
- * for nothing that can be filled in later. The tag is optional: the server allocates a provisional
- * one from the dam's rather than refusing the record.
+ * for nothing that can be filled in later. An empty tag gets the next unique farm number;
+ * the mother is linked through the pedigree, not encoded into the child's number.
  */
 export default function RecordBirth() {
   const styles = useStyles();
@@ -42,6 +44,7 @@ export default function RecordBirth() {
   const { t } = useTranslation(['breeding', 'animals', 'common']);
   const { farmId } = useAuth();
 
+  const { allAnimals } = useFlock();
   const [date, setDate] = useState(() => new Date(new Date().toISOString().slice(0, 10)));
   const [difficulty, setDifficulty] = useState<(typeof DIFFICULTY)[number]>('1');
   const [lambs, setLambs] = useState<LambDraft[]>([blankLamb()]);
@@ -49,10 +52,19 @@ export default function RecordBirth() {
   const update = (key: string, patch: Partial<LambDraft>) =>
     setLambs((prev) => prev.map((l) => (l.key === key ? { ...l, ...patch } : l)));
 
+  const tags = lambs
+    .filter((lamb) => lamb.outcome === 'live')
+    .map((lamb) => lamb.tagNumber.trim())
+    .filter(Boolean);
+  const duplicate = tags.find(
+    (tag, index) =>
+      tags.indexOf(tag) !== index || allAnimals.some((animal) => animal.tagNumber === tag),
+  );
+
   return (
     <CaptureScreen
       title={t('breeding:recordBirth')}
-      canSave={Boolean(farmId && damId) && lambs.length > 0}
+      canSave={Boolean(farmId && damId) && lambs.length > 0 && !duplicate}
       path={`/v1/farms/${farmId}/breeding/births`}
       buildBody={(id) => ({
         id,
@@ -68,6 +80,10 @@ export default function RecordBirth() {
         })),
       })}
     >
+      {duplicate ? (
+        <Notice tone="danger">{t('animals:duplicateTag', { tag: duplicate })}</Notice>
+      ) : null}
+      <Body muted>{t('animals:autoNumberHint')}</Body>
       <DateField label={t('breeding:birth')} value={date} onChange={setDate} />
 
       <FieldGroup label={t('breeding:difficulty')}>
@@ -131,10 +147,12 @@ export default function RecordBirth() {
               />
               <FieldGroup label={t('animals:tagNumber')}>
                 <TextInput
+                  accessibilityLabel={t('animals:tagNumber')}
+                  maxLength={32}
                   value={lamb.tagNumber}
                   onChangeText={(tagNumber) => update(lamb.key, { tagNumber })}
                   keyboardType="number-pad"
-                  placeholder="—"
+                  placeholder={t('animals:autoNumber')}
                   placeholderTextColor={colors.muted}
                   style={styles.tagInput}
                 />

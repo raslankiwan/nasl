@@ -63,6 +63,38 @@ export function Choice<T extends string>({
   );
 }
 
+/** Independent checkboxes for settings that can be combined. */
+export function Toggle({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: boolean;
+  onChange: (value: boolean) => void;
+}) {
+  const styles = useStyles();
+  return (
+    <Pressable
+      accessibilityRole="checkbox"
+      aria-checked={value}
+      accessibilityLabel={label}
+      accessibilityState={{ checked: value }}
+      onPress={() => onChange(!value)}
+      style={[
+        styles.choice,
+        value && styles.choiceSelected,
+        { flex: 0, flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.md },
+      ]}
+    >
+      <Text style={styles.choiceLabel}>{value ? '✓' : '○'}</Text>
+      <Text style={[styles.choiceLabel, { flexShrink: 1 }, value && styles.choiceLabelSelected]}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
 /**
  * Direct numeric entry plus quick adjustments; step size never restricts manual precision.
  *

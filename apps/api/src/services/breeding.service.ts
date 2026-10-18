@@ -1,3 +1,5 @@
+import mongoose, { type ClientSession } from 'mongoose';
+import { randomUUID } from 'node:crypto';
 import {
   applyReproEvent,
   deriveAlerts,
@@ -35,13 +37,25 @@ import {
  * identical conclusions from the same events — the property offline sync will rest on.
  */
 export class BreedingService {
-  private readonly animals = new AnimalRepository();
-  private readonly milk = new MilkService();
-  private readonly matings = new TenantRepository<MatingDoc>(Mating);
-  private readonly checks = new TenantRepository<PregnancyCheckDoc>(PregnancyCheck);
-  private readonly births = new TenantRepository<BirthDoc>(Birth);
-  private readonly weanings = new TenantRepository<WeaningDoc>(Weaning);
-  private readonly abortions = new TenantRepository<AbortionDoc>(Abortion);
+  private readonly animals: AnimalRepository;
+  private readonly milk: MilkService;
+  private readonly matings: TenantRepository<MatingDoc>;
+  private readonly checks: TenantRepository<PregnancyCheckDoc>;
+  private readonly births: TenantRepository<BirthDoc>;
+  private readonly weanings: TenantRepository<WeaningDoc>;
+  private readonly abortions: TenantRepository<AbortionDoc>;
+  private readonly transactional: boolean;
+
+  constructor(transactional = false, session?: ClientSession) {
+    this.transactional = transactional;
+    this.animals = new AnimalRepository(undefined, session);
+    this.milk = new MilkService(session);
+    this.matings = new TenantRepository(Mating, undefined, session);
+    this.checks = new TenantRepository(PregnancyCheck, undefined, session);
+    this.births = new TenantRepository(Birth, undefined, session);
+    this.weanings = new TenantRepository(Weaning, undefined, session);
+    this.abortions = new TenantRepository(Abortion, undefined, session);
+  }
 
   private async loadDam(farmId: string, damId: string): Promise<AnimalDoc> {
     const dam = await this.animals.findById(farmId, damId);
@@ -197,18 +211,6 @@ export class BreedingService {
 
   // ----------------------------------------------------------------- birth --
 
-  /**
-   * A lamb often arrives before anyone has a tag to hand. Refusing the record is how births go
-   * unrecorded, so it gets a provisional tag derived from its dam's, replaced when actually tagged.
-   */
-  private async provisionalTag(farmId: string, damTag: string): Promise<string> {
-    for (let n = 1; n <= 12; n += 1) {
-      const candidate = `${damTag}-${n}`;
-      if (!(await this.animals.findByTag(farmId, candidate))) return candidate;
-    }
-    throw AppError.conflict('Could not allocate a provisional tag for this lamb.');
-  }
-
   async recordBirth(
     farmId: string,
     input: {
@@ -228,7 +230,28 @@ export class BreedingService {
       notes?: string;
     },
     recordedBy: string,
-  ) {
+  ): Promise<BirthDoc> {
+    if (this.transactional) {
+      const request = { ...input, id: input.id ?? randomUUID() };
+      // The counter, children, birth, lactation and mother state commit together.
+      for (let attempt = 0; ; attempt++) {
+        try {
+          return await mongoose.connection.transaction((session) =>
+            new BreedingService(false, session).recordBirth(farmId, request, recordedBy),
+          );
+        } catch (error) {
+          const previous = await this.births.findById(farmId, request.id);
+          if (previous) return previous;
+          if ((error as { code?: number }).code === 11000) {
+            if (attempt < 3) continue;
+            throw AppError.conflict('An animal number was assigned by another save. Try again.', {
+              field: 'tagNumber',
+            });
+          }
+          throw error;
+        }
+      }
+    }
     const previous = input.id ? await this.births.findById(farmId, input.id) : null;
     if (previous) return previous;
 
@@ -240,15 +263,23 @@ export class BreedingService {
     const birthType =
       (['single', 'twin', 'triplet', 'quad'] as const)[input.offspring.length - 1] ?? 'quad';
 
+    // Validate the whole litter before creating the first child (also safe on standalone dev Mongo).
+    const explicitTags = input.offspring
+      .filter((lamb) => lamb.outcome === 'live' && lamb.tagNumber)
+      .map((lamb) => lamb.tagNumber!.trim());
+    if (new Set(explicitTags).size !== explicitTags.length)
+      throw AppError.conflict('Each lamb must have its own number.', { field: 'tagNumber' });
+    for (const tag of explicitTags) await this.animals.assertTagAvailable(farmId, tag);
+    await this.animals.reserveNumbers(farmId, explicitTags);
     const recorded: OffspringRecord[] = [];
     for (const lamb of input.offspring) {
       let animalId: string | null = null;
+      let assignedTag: string | null = null;
 
       // Only a live lamb joins the flock. A stillbirth belongs on the birth record, not the roster.
       if (lamb.outcome === 'live') {
-        const tagNumber = lamb.tagNumber ?? (await this.provisionalTag(farmId, dam.tagNumber));
         const created = await this.animals.register(farmId, {
-          tagNumber,
+          ...(lamb.tagNumber ? { tagNumber: lamb.tagNumber } : {}),
           species: dam.species,
           sex: lamb.sex,
           dateOfBirth: input.date,
@@ -261,6 +292,7 @@ export class BreedingService {
           ...(lamb.birthWeightKg ? { lastWeightKg: lamb.birthWeightKg } : {}),
         } as Partial<AnimalDoc> & { tagNumber: string });
         animalId = created._id;
+        assignedTag = created.tagNumber;
       }
 
       recorded.push({
@@ -269,7 +301,7 @@ export class BreedingService {
         birthWeightKg: lamb.birthWeightKg ?? null,
         vigour: lamb.vigour ?? null,
         outcome: lamb.outcome,
-        tagNumber: lamb.tagNumber ?? null,
+        tagNumber: assignedTag,
       });
     }
 

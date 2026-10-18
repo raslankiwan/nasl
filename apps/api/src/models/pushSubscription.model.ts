@@ -9,7 +9,8 @@ export interface PushSubscriptionDoc {
   endpoint: string;
   keys: { p256dh: string; auth: string };
   locale: 'ar' | 'en';
-  leadDays: number;
+  leadDays?: number;
+  reminderDays?: number[];
   enabled: boolean;
   notifiedKeys: string[];
   leaseUntil: Date;
@@ -24,7 +25,8 @@ const schema = globalSchema<PushSubscriptionDoc>({
   endpoint: { type: String, required: true },
   keys: { p256dh: { type: String, required: true }, auth: { type: String, required: true } },
   locale: { type: String, enum: ['ar', 'en'], default: 'ar' },
-  leadDays: { type: Number, enum: [1, 3, 7], default: 3 },
+  leadDays: { type: Number, enum: [1, 3, 7] },
+  reminderDays: { type: [Number], enum: [0, 3, 7], default: undefined },
   enabled: { type: Boolean, default: true },
   notifiedKeys: { type: [String], default: [] },
   leaseUntil: { type: Date, default: () => new Date(0) },

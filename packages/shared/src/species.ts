@@ -33,7 +33,7 @@ export interface SpeciesProfile {
 export const SPECIES_PROFILES: Record<Species, SpeciesProfile> = {
   sheep: {
     gestationDays: 147,
-    gestationRangeDays: [142, 150],
+    gestationRangeDays: [145, 152],
     oestrousCycleDays: 17,
     scanWindowDays: [45, 70],
     preLambingBoosterDays: [105, 119],

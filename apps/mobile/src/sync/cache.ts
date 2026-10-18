@@ -156,10 +156,10 @@ export class FlockCache {
     return count;
   }
 
-  async listAnimals(farmId: string): Promise<CachedAnimal[]> {
+  async listAnimals(farmId: string, includeInactive = false): Promise<CachedAnimal[]> {
     const cache = await this.read(farmId);
     return Object.values(cache.animals)
-      .filter((a) => a.status === 'active')
+      .filter((a) => includeInactive || a.status === 'active')
       .sort((a, b) => a.tagNumber.localeCompare(b.tagNumber, undefined, { numeric: true }));
   }
 

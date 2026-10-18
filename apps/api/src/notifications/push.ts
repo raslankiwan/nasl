@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import webpush from 'web-push';
-import { birthReminders, can, type Role } from '@nasl/shared';
+import { birthReminders, birthReminderDays, can, type Role } from '@nasl/shared';
 import { ar, en, formatDate } from '@nasl/i18n';
 import type { Config } from '../config.ts';
 import type { Logger } from '../logger.ts';
@@ -95,7 +95,7 @@ export async function remindersFor(subscription: PushSubscriptionDoc, now: Date)
     const rows = birthReminders(
       flock.map((animal) => ({ ...animal, id: animal._id })),
       localDay(now, farm.timezone),
-      subscription.leadDays,
+      birthReminderDays(subscription.reminderDays, subscription.leadDays),
     );
     for (const row of rows) {
       const animal = flock.find((a) => a._id === row.animalId)!;
@@ -103,7 +103,7 @@ export async function remindersFor(subscription: PushSubscriptionDoc, now: Date)
         ...row,
         farmId: farm._id,
         key: endpointHash(
-          `${farm._id}:${row.animalId}:${animal.repro?.matingId}:${row.windowStart}:${row.windowEnd}`,
+          `${farm._id}:${row.animalId}:${animal.repro?.matingId}:${row.windowStart}:${row.windowEnd}:${row.reminderDays}`,
         ),
       });
     }
@@ -135,7 +135,7 @@ export function reminderMessage(
   };
 }
 
-/** One digest per device, only new pregnancies. Leases exclude overlapping cron invocations. */
+/** One digest per device, only newly reached reminder timings. Leases exclude overlapping cron invocations. */
 export async function dispatchBirthReminders(send: PushSender, logger: Logger, now = new Date()) {
   const stats = { sent: 0, failed: 0, expired: 0, checked: 0, deferred: 0 };
   const total = await PushSubscription.countDocuments({ enabled: true });
@@ -168,7 +168,10 @@ export async function dispatchBirthReminders(send: PushSender, logger: Logger, n
           }
           await PushSubscription.updateOne(
             { _id: subscription._id },
-            { $set: { notifiedKeys: rows.map((r) => r.key), lastCheckedAt: now } },
+            {
+              $addToSet: { notifiedKeys: { $each: pending.map((r) => r.key) } },
+              $set: { lastCheckedAt: now },
+            },
           );
           stats.checked++;
         } catch (error) {

@@ -1,5 +1,36 @@
 # Delivery plan
 
+## Birth timing, reminder choices and animal numbers (18 October 2026)
+
+- [x] Sheep planning windows now span days 145–152 inclusive; overdue begins on day 153.
+      Existing mating records use the new window immediately, while the stored day-147 reference
+      and goat timing remain compatible with existing reproductive and health records.
+- [x] Reminder checkboxes combine first day (default), 3 days before and 7 days before. Each
+      selected milestone has its own delivery key; a previous reminder cannot suppress the next.
+      A failed daily dispatch can catch up until the next selected milestone, never after day 145.
+      Existing single 3/7-day preferences gain the first day; the retired 1-day choice becomes day zero.
+- [x] One atomic number sequence per farm covers quick-add and births. Manual tags remain available;
+      duplicate and archived tags are rejected, and client-ID retries return the existing animal.
+      Number allocation can leave gaps after interrupted manual creation, but cannot share a number.
+- [x] Births assign independent numbers and retain dam/sire links; assigned numbers are stored in
+      the birth response/history. The roster shows a mother badge, and details link to her profile.
+      Mothers outside the active roster remain available through the offline cache.
+- [x] Production birth writes use a transaction covering number allocation, children, the birth,
+      lactation and mother state. Tests cover duplicate litter tags, concurrent retries, and rollback
+      after a simulated failure. Standalone development Mongo prevalidates tags; transactions require
+      a replica set, as provided by Atlas and the dedicated transaction tests.
+- [x] A pull that overlaps a birth commit no longer hides some twins. Successful captures request
+      a fresh pull after any in-flight read; incremental reads overlap the previous cursor by five
+      minutes to cover transaction timestamps assigned before commit. Empty outbox retries do not
+      add farm reads. Regression tests cover overlap recovery and the post-write refresh.
+- [x] Browser checks with a temporary replica-set API cover automatic creation, blocked duplicate
+      tags, two twin births appearing immediately, mother badges/profile/pedigree links, and all
+      three reminder checkboxes in Arabic and English. OS push delivery still needs a permitted
+      installed device; no simulator or emulator was launched.
+- [x] Run `apps/api/scripts/prepare-animal-numbers.ts --apply` with the production environment
+      before deploying the API. Its read-only default checks historical conflicts; applying creates
+      indexes without renumbering animals. Existing partial indexes may coexist until later cleanup.
+
 ## Repository refactor and reliability audit (18 October 2026)
 
 - [x] Mobile refresh propagates network, 429 and server failures without converting them to a

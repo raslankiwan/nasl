@@ -79,11 +79,12 @@ export const en = {
   notifications: {
     title: 'Birth reminders',
     description:
-      'A morning push reminder before the expected birth window. Sheep use days 142–150. Notifications need an internet connection and synced mating records.',
-    leadLabel: 'Remind me before the window starts',
-    lead1: '1 day',
-    lead3: '3 days',
-    lead7: '7 days',
+      'A morning push reminder before the expected birth window. Sheep use days 145–152. Notifications need an internet connection and synced mating records.',
+    leadLabel: 'Reminder timings — choose any combination',
+    lead0: 'On the first day (day 145 for sheep)',
+    chooseTiming: 'Choose at least one timing, or disable notifications.',
+    lead3: '3 days before',
+    lead7: '7 days before',
     enable: 'Enable notifications',
     save: 'Save reminder settings',
     disable: 'Disable on this device',
@@ -154,6 +155,10 @@ export const en = {
     createFarm: 'Create a farm',
     addedThisSession: 'Added: {{count}}',
     sessionDefaults: 'Applies to every animal you add now',
+    autoNumber: 'Assign the next number automatically',
+    autoNumberHint:
+      'A unique farm number is assigned when saved or synced. Newborns are linked to their mother in the family tree.',
+    motherBadge: 'Mother: {{mother}}',
     tagNumberShort: 'Tag',
     added: 'Added {{tag}}',
     undo: 'Undo',

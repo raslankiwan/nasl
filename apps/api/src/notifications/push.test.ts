@@ -49,7 +49,7 @@ async function fixture(url: string, identity = 'one') {
   });
   await client.post(`/v1/farms/${farmId}/breeding/matings`, {
     damId: animal.body.id,
-    startDate: addDays(now, -139).toISOString().slice(0, 10),
+    startDate: addDays(now, -142).toISOString().slice(0, 10),
   });
   assert.equal((await client.post('/v1/notifications/subscribe', input(identity))).status, 200);
   return { client, userId: session.user.id, farmId, animalId: animal.body.id };
@@ -123,7 +123,7 @@ test('dispatch is farm-isolated, batches animals and deduplicates repeated/concu
     );
     await first.client.post(`/v1/farms/${first.farmId}/breeding/matings`, {
       damId: secondAnimal.body.id,
-      startDate: addDays(now, -139).toISOString().slice(0, 10),
+      startDate: addDays(now, -142).toISOString().slice(0, 10),
     });
     await Promise.all([
       dispatchBirthReminders(send, logger, now),
@@ -196,7 +196,7 @@ test('farm timezone controls the date and changed pregnancy windows get a fresh 
     await Farm.updateOne({ _id: first.farmId }, { $set: { timezone: 'Asia/Hebron' } });
     assert.equal((await remindersFor(subscription, new Date('2026-10-17T21:30:00Z'))).length, 1);
     await dispatchBirthReminders(send, logger, now);
-    await Animal.updateOne({ _id: first.animalId }, { $set: { 'repro.dueDate': addDays(now, 7) } });
+    await Animal.updateOne({ _id: first.animalId }, { $set: { 'repro.dueDate': addDays(now, 4) } });
     await dispatchBirthReminders(send, logger, now);
     assert.equal(sent.length, 2);
   });
@@ -231,5 +231,49 @@ test('a full dispatch batch reports deferred devices even when expired endpoints
     assert.equal(result.expired, 500);
     assert.equal(result.deferred, 1);
     assert.equal(await PushSubscription.countDocuments(), 1);
+  });
+});
+
+test('multi-select settings round-trip, default to first day, and reject empty/duplicate choices', async () => {
+  await withServer(app(), async (url) => {
+    const { client } = await fixture(url);
+    for (const reminderDays of [[], [1], [0, 0], [0, 3, 7, 7]])
+      assert.equal(
+        (await client.post('/v1/notifications/subscribe', { ...input(), reminderDays })).status,
+        400,
+      );
+    const { leadDays: _legacy, ...fresh } = input();
+    assert.equal((await client.post('/v1/notifications/subscribe', fresh)).status, 200);
+    assert.deepEqual(
+      (await client.post<{ reminderDays: number[] }>('/v1/notifications/status', input())).body
+        .reminderDays,
+      [0],
+    );
+    for (const reminderDays of [[3], [0, 7], [0, 3, 7]]) {
+      await client.post('/v1/notifications/subscribe', { ...fresh, reminderDays });
+      assert.deepEqual(
+        (await client.post<{ reminderDays: number[] }>('/v1/notifications/status', input())).body
+          .reminderDays,
+        reminderDays,
+      );
+    }
+  });
+});
+test('all three reminders deliver once on days 138, 142 and 145 without suppressing each other', async () => {
+  await withServer(app(), async (url) => {
+    const { client, animalId } = await fixture(url);
+    await client.post('/v1/notifications/subscribe', { ...input(), reminderDays: [0, 3, 7] });
+    await Animal.updateOne({ _id: animalId }, { $set: { 'repro.dueDate': addDays(now, 9) } }); // Today = day 138.
+    for (const offset of [0, 4, 7]) {
+      const day = addDays(now, offset);
+      const before = sent.length;
+      await dispatchBirthReminders(send, logger, day);
+      assert.equal(sent.length, before + 1);
+      await dispatchBirthReminders(send, logger, day);
+      assert.equal(sent.length, before + 1);
+    }
+    assert.equal(new Set(sent.map((row) => row.message.tag)).size, 3);
+    await dispatchBirthReminders(send, logger, addDays(now, 8));
+    assert.equal(sent.length, 3);
   });
 });

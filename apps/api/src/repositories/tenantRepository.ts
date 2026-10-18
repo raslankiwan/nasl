@@ -1,4 +1,11 @@
-import type { FilterQuery, Model, ProjectionType, SortOrder, UpdateQuery } from 'mongoose';
+import type {
+  ClientSession,
+  FilterQuery,
+  Model,
+  ProjectionType,
+  SortOrder,
+  UpdateQuery,
+} from 'mongoose';
 import type { TenantDocument } from '../models/base.ts';
 
 /**
@@ -57,7 +64,10 @@ export class TenantRepository<TDoc extends TenantDocument> {
   protected readonly model: Model<TDoc>;
   private readonly logger: RepositoryLogger | undefined;
 
-  constructor(model: Model<TDoc>, logger?: RepositoryLogger) {
+  protected readonly session: ClientSession | undefined;
+
+  constructor(model: Model<TDoc>, logger?: RepositoryLogger, session?: ClientSession) {
+    this.session = session;
     this.model = model;
     this.logger = logger;
   }
@@ -147,6 +157,7 @@ export class TenantRepository<TDoc extends TenantDocument> {
         options.projection,
       )
       .lean<TDoc | null>()
+      .session(this.session ?? null)
       .exec();
   }
 
@@ -155,6 +166,7 @@ export class TenantRepository<TDoc extends TenantDocument> {
       .findOne(this.scope(farmId, filter, options.includeDeleted), options.projection)
       .sort(options.sort as never)
       .lean<TDoc | null>()
+      .session(this.session ?? null)
       .exec();
   }
 
@@ -165,15 +177,20 @@ export class TenantRepository<TDoc extends TenantDocument> {
     if (options.sort) query = query.sort(options.sort as never);
     if (options.skip) query = query.skip(options.skip);
     if (options.limit) query = query.limit(options.limit);
-    return query.exec();
+    return query.session(this.session ?? null).exec();
   }
 
   async count(farmId: string, filter: FilterQuery<TDoc> = {}, options: FindOptions<TDoc> = {}) {
-    return this.model.countDocuments(this.scope(farmId, filter, options.includeDeleted)).exec();
+    return this.model
+      .countDocuments(this.scope(farmId, filter, options.includeDeleted))
+      .session(this.session ?? null)
+      .exec();
   }
 
   async exists(farmId: string, filter: FilterQuery<TDoc>): Promise<boolean> {
-    return (await this.model.exists(this.scope(farmId, filter))) !== null;
+    return (
+      (await this.model.exists(this.scope(farmId, filter)).session(this.session ?? null)) !== null
+    );
   }
 
   /**
@@ -186,6 +203,7 @@ export class TenantRepository<TDoc extends TenantDocument> {
       .sort({ updatedAt: 1 })
       .limit(limit)
       .lean<TDoc[]>()
+      .session(this.session ?? null)
       .exec();
   }
 
@@ -197,11 +215,14 @@ export class TenantRepository<TDoc extends TenantDocument> {
     if (!farmId) throw new TenantScopeError('farmId is required to create a document');
     const { _id, ...rest } = data;
     const payload = this.stripProtected(rest as Record<string, unknown>, 'create');
-    const created = await this.model.create({
+    const payloadToCreate = {
       ...payload,
       ...(_id ? { _id } : {}),
       farmId,
-    });
+    };
+    const created = this.session
+      ? (await this.model.create([payloadToCreate], { session: this.session }))[0]!
+      : await this.model.create(payloadToCreate);
     return created.toObject() as TDoc;
   }
 
@@ -213,12 +234,14 @@ export class TenantRepository<TDoc extends TenantDocument> {
         { new: true, runValidators: true },
       )
       .lean<TDoc | null>()
+      .session(this.session ?? null)
       .exec();
   }
 
   async updateMany(farmId: string, filter: FilterQuery<TDoc>, update: UpdateQuery<TDoc>) {
     const result = await this.model
       .updateMany(this.scope(farmId, filter), this.sanitizeUpdate(update))
+      .session(this.session ?? null)
       .exec();
     return result.modifiedCount;
   }
@@ -230,6 +253,7 @@ export class TenantRepository<TDoc extends TenantDocument> {
         $set: { deletedAt: new Date() },
       })
       .lean<TDoc | null>()
+      .session(this.session ?? null)
       .exec();
   }
 
@@ -241,6 +265,7 @@ export class TenantRepository<TDoc extends TenantDocument> {
         { new: true },
       )
       .lean<TDoc | null>()
+      .session(this.session ?? null)
       .exec();
   }
 
@@ -248,6 +273,7 @@ export class TenantRepository<TDoc extends TenantDocument> {
   async hardDelete(farmId: string, id: string): Promise<boolean> {
     const result = await this.model
       .deleteOne(this.scope(farmId, { _id: id } as FilterQuery<TDoc>, true))
+      .session(this.session ?? null)
       .exec();
     return result.deletedCount === 1;
   }

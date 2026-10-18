@@ -176,7 +176,7 @@ vaccines, diseases, medicines), investigates issues.
 This is the spine of the product. Every ewe carries one reproductive state; the state advances on
 recorded events, and every alert the app raises is derived from it. Days are counted from mating,
 using a per-species reference estimate — **147 days** for sheep, **150** for goats. Sheep display
-a **day 142–150 inclusive lambing window** for planning; overdue starts after day 150. The stored
+a **day 145–152 inclusive lambing window** for planning; overdue starts after day 152. The stored
 reference estimate remains available for existing records and health-protocol schedules.
 
 ```
@@ -213,7 +213,7 @@ stateDiagram-v2
 | Puberty                 | 6–9 months, or ~65% of mature weight        |
 | Pregnancy scan window   | gestation d45–70                            |
 | Pre-lambing booster     | gestation d105–119                          |
-| Gestation               | Sheep planning window d142–150 · goats d150 |
+| Gestation               | Sheep planning window d145–152 · goats d150 |
 | Weaning                 | d60–90                                      |
 | Target lambing interval | 8 months (3 lambings / 2 years)             |
 

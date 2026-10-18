@@ -1,4 +1,5 @@
-import type { FilterQuery } from 'mongoose';
+import type { ClientSession, FilterQuery } from 'mongoose';
+import { AnimalNumberRepository } from './animalNumber.repository.ts';
 import { AppError } from '../errors.ts';
 import { Animal, type AnimalDoc } from '../models/animal.model.ts';
 import { TenantRepository, type RepositoryLogger } from './tenantRepository.ts';
@@ -39,12 +40,14 @@ function escapeRegex(value: string): string {
 }
 
 export class AnimalRepository extends TenantRepository<AnimalDoc> {
-  constructor(logger?: RepositoryLogger) {
-    super(Animal, logger);
+  constructor(logger?: RepositoryLogger, session?: ClientSession) {
+    super(Animal, logger, session);
   }
 
   async findByTag(farmId: string, tagNumber: string) {
-    return this.findOne(farmId, { tagNumber } as FilterQuery<AnimalDoc>);
+    return this.findOne(farmId, { tagNumber: tagNumber.trim() } as FilterQuery<AnimalDoc>, {
+      includeDeleted: true,
+    });
   }
 
   /**
@@ -54,24 +57,94 @@ export class AnimalRepository extends TenantRepository<AnimalDoc> {
    * two shepherds add the same tag from two phones. The duplicate-key error is translated into the
    * conflicting animal so the app can show it (FR-REG-02).
    */
-  async register(farmId: string, input: Partial<AnimalDoc> & { tagNumber: string }) {
-    await this.assertParentageIsPossible(farmId, input);
-
-    try {
-      return await this.create(farmId, input);
-    } catch (err) {
-      if (!isDuplicateKey(err)) throw err;
-      const existing = await this.findByTag(farmId, input.tagNumber);
-      throw AppError.conflict(`Tag ${input.tagNumber} is already used by another animal.`, {
+  async assertTagAvailable(farmId: string, tagNumber: string, selfId?: string) {
+    const existing = await this.findByTag(farmId, tagNumber);
+    if (existing && existing._id !== selfId)
+      throw AppError.conflict(`Tag ${tagNumber} is already used by another animal.`, {
         field: 'tagNumber',
-        conflictsWith: existing
-          ? { id: existing._id, tagNumber: existing.tagNumber, name: existing.name ?? null }
-          : null,
+        conflictsWith: {
+          id: existing._id,
+          tagNumber: existing.tagNumber,
+          name: existing.name ?? null,
+        },
       });
+  }
+
+  private async numberSequence(farmId: string, tag?: string) {
+    const sequence = new AnimalNumberRepository(this.session);
+    if (!(await sequence.findOne(farmId))) {
+      const all = await this.find(
+        farmId,
+        {},
+        { includeDeleted: true, projection: { tagNumber: 1 } },
+      );
+      const highest = all.reduce(
+        (max, animal) =>
+          /^\d+$/.test(animal.tagNumber)
+            ? Math.max(max, Math.min(Number(animal.tagNumber), Number.MAX_SAFE_INTEGER))
+            : max,
+        0,
+      );
+      await sequence.advanceTo(farmId, highest);
     }
+    if (tag && /^\d+$/.test(tag))
+      await sequence.advanceTo(farmId, Math.min(Number(tag), Number.MAX_SAFE_INTEGER));
+    return sequence;
+  }
+
+  async reserveNumbers(farmId: string, tags: string[]) {
+    for (const tag of tags) await this.numberSequence(farmId, tag);
+  }
+
+  async register(farmId: string, input: Partial<AnimalDoc>) {
+    const tag = input.tagNumber?.trim();
+    if (input._id) {
+      const previous = await this.findById(farmId, input._id, { includeDeleted: true });
+      if (previous) {
+        if (
+          (tag && tag !== previous.tagNumber) ||
+          input.species !== previous.species ||
+          input.sex !== previous.sex
+        )
+          throw AppError.conflict('This animal ID has already been assigned.');
+        return previous;
+      }
+    }
+    await this.assertParentageIsPossible(farmId, input);
+    if (tag) await this.assertTagAvailable(farmId, tag);
+    const sequence = await this.numberSequence(farmId, tag);
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const tagNumber = tag ?? (await sequence.next(farmId));
+      try {
+        return await this.create(farmId, { ...input, tagNumber });
+      } catch (error) {
+        if (!isDuplicateKey(error)) throw error;
+        if (this.session) throw error;
+        if (input._id) {
+          const previous = await this.findById(farmId, input._id, { includeDeleted: true });
+          if (
+            previous &&
+            (!tag || tag === previous.tagNumber) &&
+            input.species === previous.species &&
+            input.sex === previous.sex
+          )
+            return previous;
+        }
+        if (tag) {
+          await this.assertTagAvailable(farmId, tag);
+          throw AppError.conflict('This animal ID has already been assigned.');
+        }
+      }
+    }
+    throw AppError.conflict('Could not allocate a unique animal number. Try again.');
   }
 
   async updateAnimal(farmId: string, id: string, patch: Partial<AnimalDoc>) {
+    if (patch.tagNumber !== undefined) {
+      patch = { ...patch, tagNumber: patch.tagNumber.trim() };
+      await this.assertTagAvailable(farmId, patch.tagNumber!, id);
+      await this.numberSequence(farmId, patch.tagNumber);
+    }
     if (
       patch.damId !== undefined ||
       patch.sireId !== undefined ||

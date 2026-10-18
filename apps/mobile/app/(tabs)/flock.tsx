@@ -23,7 +23,7 @@ export default function Flock() {
   const router = useRouter();
   const role = me?.farms.find((farm) => farm.farmId === farmId)?.role;
   const canWrite = role && can(role as Role, 'animals:write');
-  const { animals, loading, stale, refresh } = useFlock();
+  const { animals, animalsById, loading, stale, refresh } = useFlock();
   const [query, setQuery] = useState('');
   const search = query.trim().toLocaleLowerCase();
   const visibleAnimals = animals.filter(
@@ -108,6 +108,16 @@ export default function Flock() {
                 {item.name ||
                   t(`animals:speciesValues.${item.species}` as 'animals:speciesValues.sheep')}
               </Text>
+              {item.damId && animalsById.has(item.damId) ? (
+                <View style={{ alignSelf: 'flex-start', marginTop: spacing.xs }}>
+                  <Pill>
+                    {t('animals:motherBadge', {
+                      mother:
+                        animalsById.get(item.damId)!.name || animalsById.get(item.damId)!.tagNumber,
+                    })}
+                  </Pill>
+                </View>
+              ) : null}
             </View>
 
             <View style={styles.rowMeta}>

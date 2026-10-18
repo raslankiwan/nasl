@@ -28,10 +28,13 @@ export async function readPushState(userId: string): Promise<PushState> {
   const config = await api.get<{ available: boolean }>('/v1/notifications/config');
   const sub = pushSupport() === 'supported' ? await subscription() : null;
   const owner = await (await (await caches.open(OWNER_CACHE)).match(OWNER_PATH))?.text();
-  if (!sub || owner !== userId) return { ...config, enabled: false, leadDays: 3 };
-  const state = await api.post<{ enabled: boolean; leadDays: number }>('/v1/notifications/status', {
-    endpoint: sub.endpoint,
-  });
+  if (!sub || owner !== userId) return { ...config, enabled: false, reminderDays: [0] };
+  const state = await api.post<{ enabled: boolean; reminderDays: number[] }>(
+    '/v1/notifications/status',
+    {
+      endpoint: sub.endpoint,
+    },
+  );
   return { ...config, ...state, enabled: state.enabled && Notification.permission === 'granted' };
 }
 
@@ -60,7 +63,11 @@ async function pushWorker(): Promise<ServiceWorkerRegistration> {
     });
   return navigator.serviceWorker.ready;
 }
-export async function enablePush(userId: string, locale: string, leadDays: number): Promise<void> {
+export async function enablePush(
+  userId: string,
+  locale: string,
+  reminderDays: number[],
+): Promise<void> {
   // Must be the first async operation in this user gesture, especially on iOS.
   if ((await Notification.requestPermission()) !== 'granted') throw new Error('permission_denied');
   const config = await api.get<{ available: boolean; publicKey: string }>(
@@ -82,7 +89,7 @@ export async function enablePush(userId: string, locale: string, leadDays: numbe
   await api.post('/v1/notifications/subscribe', {
     ...sub.toJSON(),
     locale: locale.startsWith('en') ? 'en' : 'ar',
-    leadDays,
+    reminderDays,
   });
   await cache.put(OWNER_PATH, new Response(userId));
 }

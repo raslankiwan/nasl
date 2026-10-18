@@ -21,7 +21,7 @@ const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD');
 const animalInput = z.object({
   /** The device mints the id so an animal recorded offline keeps its identity (scope §10). */
   id: z.string().uuid().optional(),
-  tagNumber: z.string().trim().min(1).max(32),
+  tagNumber: z.string().trim().min(1).max(32).optional(),
   eid: z.string().trim().max(64).optional(),
   name: z
     .string()
@@ -68,7 +68,7 @@ const statusChange = z.object({
 /** Statuses that take the animal off the farm as food. */
 const LEAVES_AS_FOOD = new Set(['sold', 'slaughtered']);
 
-function toDoc(input: z.infer<typeof animalInput>): Partial<AnimalDoc> & { tagNumber: string } {
+function toDoc(input: z.infer<typeof animalInput>): Partial<AnimalDoc> {
   const { id: _id, dateOfBirth, acquiredAt, ...rest } = input;
   return {
     ...rest,
@@ -152,7 +152,7 @@ export function animalRoutes(config: Config): Router {
         created.push(present(animal));
       } catch (err) {
         if (err instanceof AppError) {
-          failed.push({ tagNumber: row.tagNumber, code: err.code, message: err.message });
+          failed.push({ tagNumber: row.tagNumber ?? '', code: err.code, message: err.message });
         } else {
           throw err;
         }

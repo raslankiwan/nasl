@@ -1,3 +1,4 @@
+import type { ClientSession } from 'mongoose';
 import {
   averageDailyYield,
   daysInMilk,
@@ -49,11 +50,19 @@ export interface LactationSummary {
  * weighing eighty ewes twice a day is not something a farm outside a selection scheme will do.
  */
 export class MilkService {
-  private readonly animals = new AnimalRepository();
-  private readonly lactations = new TenantRepository<LactationDoc>(Lactation);
-  private readonly testDays = new TenantRepository<MilkTestDayDoc>(MilkTestDay);
-  private readonly collections = new TenantRepository<MilkCollectionDoc>(MilkCollection);
-  private readonly dispositions = new TenantRepository<MilkDispositionDoc>(MilkDisposition);
+  private readonly animals: AnimalRepository;
+  private readonly lactations: TenantRepository<LactationDoc>;
+  private readonly testDays: TenantRepository<MilkTestDayDoc>;
+  private readonly collections: TenantRepository<MilkCollectionDoc>;
+  private readonly dispositions: TenantRepository<MilkDispositionDoc>;
+
+  constructor(session?: ClientSession) {
+    this.animals = new AnimalRepository(undefined, session);
+    this.lactations = new TenantRepository(Lactation, undefined, session);
+    this.testDays = new TenantRepository(MilkTestDay, undefined, session);
+    this.collections = new TenantRepository(MilkCollection, undefined, session);
+    this.dispositions = new TenantRepository(MilkDisposition, undefined, session);
+  }
 
   /** Opened by the birth flow. A ewe that has lambed is in milk whether or not she is weighed. */
   async openLactation(

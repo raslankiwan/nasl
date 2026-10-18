@@ -6,11 +6,17 @@ export function createPullFlock(
   fetchPage: (farmId: string, body: unknown) => Promise<PullResponse>,
 ) {
   const pending = new Map<string, Promise<{ count: number }>>();
-  return (farmId: string): Promise<{ count: number }> => {
+  const pull = (farmId: string, afterWrite = false): Promise<{ count: number }> => {
     const existing = pending.get(farmId);
-    if (existing) return existing;
+    if (existing)
+      return afterWrite ? existing.catch(() => undefined).then(() => pull(farmId)) : existing;
     const run = (async () => {
-      const lastPulledAt = await cache.cursor(farmId);
+      const cursor = await cache.cursor(farmId);
+      // Mongo timestamps are assigned before transaction commit. Re-read a five-minute overlap
+      // (longer than the API request/transaction lifetime) so an in-flight commit cannot be skipped.
+      const lastPulledAt = cursor
+        ? new Date(Math.max(0, new Date(cursor).getTime() - 5 * 60_000)).toISOString()
+        : null;
       const changes: PullResponse['changes'] = {};
       let response: PullResponse;
       let page: unknown;
@@ -33,4 +39,5 @@ export function createPullFlock(
     pending.set(farmId, run);
     return run;
   };
+  return pull;
 }

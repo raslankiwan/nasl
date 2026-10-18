@@ -168,7 +168,7 @@ describe('registering animals', () => {
     });
   });
 
-  test('a tag frees up once the animal is removed', async () => {
+  test('an archived animal keeps its number reserved', async () => {
     await withServer(testApp(), async (url) => {
       const { session, farmId } = await signInWithFarm(url, '+966501111111');
       const client = api(url, session.accessToken);
@@ -180,7 +180,7 @@ describe('registering animals', () => {
       });
 
       const reused = await client.post<AnimalBody>(`/v1/farms/${farmId}/animals`, ewe('1001'));
-      assert.equal(reused.status, 201, 'the unique index is partial on live animals');
+      assert.equal(reused.status, 409, 'historical numbers cannot be reassigned');
     });
   });
 
@@ -478,5 +478,40 @@ describe('withdrawal periods gate sale', () => {
       assert.equal(res.body.total, 1);
       assert.equal(res.body.animals[0]?.tagNumber, '1001');
     });
+  });
+});
+
+test('automatic numbers are unique across simultaneous creation, edits and retries', async () => {
+  await withServer(testApp(), async (url) => {
+    const { session, farmId } = await signInWithFarm(url, 'numbering');
+    const client = api(url, session.accessToken);
+    const path = `/v1/farms/${farmId}/animals`;
+    await client.post(path, ewe('100'));
+    const rows = await Promise.all(
+      Array.from({ length: 8 }, () =>
+        client.post<AnimalBody>(path, { species: 'sheep', sex: 'female' }),
+      ),
+    );
+    assert.ok(rows.every((row) => row.status === 201));
+    assert.equal(new Set(rows.map((row) => row.body.tagNumber)).size, 8);
+    assert.ok(rows.every((row) => Number(row.body.tagNumber) > 100));
+    assert.equal(
+      (await client.patch(`${path}/${rows[0]!.body.id}`, { tagNumber: rows[1]!.body.tagNumber }))
+        .status,
+      409,
+    );
+    const id = randomUUID();
+    const retried = await Promise.all(
+      [1, 2].map(() => client.post<AnimalBody>(path, { id, species: 'sheep', sex: 'male' })),
+    );
+    assert.ok(retried.every((row) => row.status === 201));
+    assert.equal(retried[0]!.body.tagNumber, retried[1]!.body.tagNumber);
+    assert.equal(await Animal.countDocuments({ _id: id }), 1);
+    const other = await signInWithFarm(url, 'numbering-other');
+    const first = await api(url, other.session.accessToken).post<AnimalBody>(
+      `/v1/farms/${other.farmId}/animals`,
+      { species: 'sheep', sex: 'female' },
+    );
+    assert.equal(first.body.tagNumber, '1', 'another farm has its own sequence');
   });
 });

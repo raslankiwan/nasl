@@ -78,6 +78,7 @@ export default function AnimalScreen() {
 
   // Read from the device first, refresh behind it — the pen is where the signal is not.
   const { animal, loading, stale, refresh } = useAnimal(id);
+  const { animal: mother } = useAnimal(animal?.damId ?? undefined);
   const [editingName, setEditingName] = useState(false);
   const role = me?.farms.find((farm) => farm.farmId === farmId)?.role;
   const canEdit = role && can(role as Role, 'animals:write');
@@ -227,6 +228,18 @@ export default function AnimalScreen() {
                   value={animal.lastWeightKg ? `${animal.lastWeightKg} kg` : dash}
                 />
               </Card>
+
+              {animal.damId ? (
+                <View style={styles.actionSpacing}>
+                  <NavigationRow
+                    icon="family-tree"
+                    label={t('animals:motherBadge', {
+                      mother: mother?.name || mother?.tagNumber || t('animals:dam'),
+                    })}
+                    onPress={() => router.push(`/animal/${animal.damId}`)}
+                  />
+                </View>
+              ) : null}
 
               {animal.sex === 'female' && animal.status === 'active' ? (
                 <>
