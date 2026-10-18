@@ -1,0 +1,83 @@
+apps/api/.env.example
+  s_c9959826314bf9::t_9826a79a6e1a21 22-28
+apps/api/package.json
+  s_c9959826314bf9::t_29d745a7f774be 16,26-27,33
+apps/api/src/app.ts
+  s_c9959826314bf9::t_c3559b48775db1 27-29,34,40,69-71
+apps/api/src/config.ts
+  s_4e257b8353e4a7::t_4832d259cc65d2 16-25
+apps/api/src/errors.ts
+  s_c9959826314bf9::t_1b4da2acab1c74 17,36
+apps/api/src/logger.ts
+  s_c9959826314bf9::t_78e6848061985e 5-8
+apps/api/src/models/index.ts
+  s_c9959826314bf9::t_772d52b6ed3db8 25
+apps/api/src/models/pushSubscription.model.ts
+  s_c9959826314bf9::t_0a7f6a669edc38 1-35
+apps/api/src/notifications/push.test.ts
+  s_c9959826314bf9::t_9e327bea619445 1-212
+apps/api/src/notifications/push.ts
+  s_c9959826314bf9::t_de6cb806bdbad0 1-201
+apps/api/src/notifications/routes.ts
+  s_4e257b8353e4a7::t_27b4550c398d27 1-142
+apps/api/vercel.json
+  s_4e257b8353e4a7::t_7c2accdf1e4c1b 9,11-17
+apps/mobile/app/(tabs)/settings.tsx
+  s_c9959826314bf9::t_2096d32ac95801 11,53-54
+apps/mobile/app/_layout.tsx
+  s_c9959826314bf9::t_eb8fd45c83aa52 52
+apps/mobile/app/notification.tsx
+  s_4e257b8353e4a7::t_555fca97922b98 1-36
+apps/mobile/src/auth/AuthProvider.tsx
+  s_c9959826314bf9::t_35f35b25f68eb7 8-9,68,74,120,127
+apps/mobile/src/components/PushSettings.tsx
+  s_c9959826314bf9::t_21df54cd10ad0f 1-104
+apps/mobile/src/notifications/push.ts
+  s_c9959826314bf9::t_804019d801e287 1-23
+apps/mobile/src/notifications/push.web.ts
+  s_c9959826314bf9::t_b664ecd8919c59 1-126
+docs/hosting.md
+  s_c9959826314bf9::t_0358a665e54e12 207-233
+docs/roadmap.md
+  s_c9959826314bf9::t_de2d03ed8759e3 3-23
+package-lock.json
+  s_c9959826314bf9::t_df26c3cdb87f11 116,123,4250-4259,4838-4849,5175-5180,5312-5317,6020-6028,7717-7725,8303-8323,9377-9382,9396-9404,12798-12816
+packages/i18n/src/locales/ar.ts
+  s_4e257b8353e4a7::t_c73a469e5b3e0f 79-104
+packages/i18n/src/locales/en.ts
+  s_c9959826314bf9::t_2f0cae734e1b6c 74-99
+packages/shared/src/birthReminders.test.ts
+  s_c9959826314bf9::t_76c68d05a587f5 1-50
+packages/shared/src/birthReminders.ts
+  s_4e257b8353e4a7::t_7b95b883feba52 1-50
+packages/shared/src/index.ts
+  s_c9959826314bf9::t_7b41ce01b8ddc3 17
+scripts/pwa.test.mjs
+  s_c9959826314bf9::t_aed181240f8d57 7,18-19,30-32,34-35,47-48,62-73,159-218
+scripts/pwa/worker.js
+  s_4e257b8353e4a7::t_2442e6c5a0379c 52-97
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "d98eec2b975b537ce6c2576b6fe3b086d0374847",
+  "prompts": {},
+  "sessions": {
+    "s_4e257b8353e4a7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14e49-20f4-7650-b2c9-4e751044b8a3",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "raslan <raslankiwan@gmail.com>"
+    },
+    "s_c9959826314bf9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ed41-6d4f-7fd1-8eef-bc4227e3e739",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "raslan <raslankiwan@gmail.com>"
+    }
+  }
+}
