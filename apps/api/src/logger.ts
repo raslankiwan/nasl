@@ -2,6 +2,10 @@ import { pino } from 'pino';
 
 /** Credentials and personal identifiers must never reach application logs. */
 const REDACTED_PATHS = [
+  'req.body.endpoint',
+  'req.body.keys',
+  'endpoint',
+  'keys',
   'req.body.email',
   'req.body.username',
   'req.body.identifier',

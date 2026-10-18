@@ -13,6 +13,7 @@
     "admin:seed": "node --env-file-if-exists=.env --experimental-strip-types scripts/seed-first-admin.ts"
   },
   "dependencies": {
+    "@nasl/i18n": "*",
     "@nasl/shared": "*",
     "cors": "^2.8.5",
     "express": "^5.1.0",
@@ -22,13 +23,14 @@
     "mongoose": "^8.9.5",
     "pino": "^9.6.0",
     "pino-http": "^10.4.0",
-    "zod": "^3.24.1",
-    "@nasl/i18n": "*"
+    "web-push": "^3.6.7",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/node": "^22.13.0",
+    "@types/web-push": "^3.6.4",
     "mongodb-memory-server": "^10.1.3",
     "typescript": "^5.7.3"
   }

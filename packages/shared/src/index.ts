@@ -14,3 +14,4 @@ export * from './dairy.ts';
 export * from './protocols.ts';
 
 export * from './auth.ts';
+export * from './birthReminders.ts';

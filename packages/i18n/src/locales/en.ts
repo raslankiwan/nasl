@@ -71,6 +71,32 @@ export const en = {
     errorTitle: 'Something went wrong',
     errorRetry: 'Check your connection and try again.',
   },
+  notifications: {
+    title: 'Birth reminders',
+    description:
+      'A morning push reminder before the expected birth window. Sheep use days 142–150. Notifications need an internet connection and synced mating records.',
+    leadLabel: 'Remind me before the window starts',
+    lead1: '1 day',
+    lead3: '3 days',
+    lead7: '7 days',
+    enable: 'Enable notifications',
+    save: 'Save reminder settings',
+    disable: 'Disable on this device',
+    enabled: 'Enabled on this device',
+    disabled: 'Not enabled on this device',
+    test: 'Send test notification',
+    testSent: 'Test sent. Check your device notifications.',
+    denied: 'Notifications are blocked. Allow them in browser or device settings, then try again.',
+    installFirst:
+      'On iPhone or iPad, add Nasl to your Home Screen, open it from there, then enable notifications.',
+    unsupported: 'Use the installed Nasl web app or a browser that supports push notifications.',
+    unavailable: 'Notifications are not available yet. Please try again later.',
+    error: 'Could not update notifications. Check your connection and permissions, then try again.',
+    pushTitle: 'Nasl · Birth approaching',
+    pushBody:
+      'Upcoming birth windows: {{count}}. Next: {{tag}}, {{start}} – {{end}}. Open Nasl to prepare.',
+    testBody: 'Notifications are working. Nasl will remind you before the expected birth window.',
+  },
   auth: {
     signIn: 'Sign in',
     register: 'Create account',

@@ -5,6 +5,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api, ApiError, clearTokens, deviceId, loadTokens, saveTokens } from '../api/client';
 import { flockCache } from '../sync/device';
 
+import { disablePush, forgetPushOwner, reconcilePushOwner } from '../notifications/push';
+
 const ME_CACHE_KEY = 'nasl.me';
 
 export interface Me {
@@ -63,11 +65,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const profile = await api.get<Me>('/v1/auth/me');
       await AsyncStorage.setItem(ME_CACHE_KEY, JSON.stringify(profile));
+      await reconcilePushOwner(profile.id).catch(() => {});
       adopt(profile);
       return;
     } catch (err) {
       // The server said no. That is the only thing that ends a session.
       if (err instanceof ApiError && err.status === 401) {
+        await forgetPushOwner().catch(() => {});
         await clearTokens();
         await AsyncStorage.removeItem(ME_CACHE_KEY);
         setMe(null);
@@ -113,12 +117,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await saveTokens(session.accessToken, session.refreshToken);
       const profile = await api.get<Me>('/v1/auth/me');
       await AsyncStorage.setItem(ME_CACHE_KEY, JSON.stringify(profile));
+      await reconcilePushOwner(profile.id).catch(() => {});
       adopt(profile);
     },
     [adopt],
   );
 
   const signOut = useCallback(async () => {
+    await disablePush().catch(() => {});
     await clearTokens();
     await AsyncStorage.removeItem(ME_CACHE_KEY);
     // The next person to sign in on this phone must not see the last one's flock.

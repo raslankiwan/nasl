@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 
 const source = await readFile(new URL('./pwa/worker.js', import.meta.url), 'utf8');
-function worker(network = async () => new Response('online')) {
+function worker(network = async () => new Response('online'), owner = 'user-one') {
   const listeners = {};
   const deleted = [],
     installed = [],
@@ -15,6 +15,8 @@ function worker(network = async () => new Response('online')) {
     assets: ['/index.html', '/assets/app.js'],
   };
   let claimed = false;
+  const notifications = [],
+    opened = [];
   const context = {
     __CONFIG__: config,
     URL,
@@ -25,7 +27,12 @@ function worker(network = async () => new Response('online')) {
       addEventListener: (type, fn) => {
         listeners[type] = fn;
       },
+      registration: {
+        showNotification: async (title, options) => notifications.push({ title, ...options }),
+      },
       clients: {
+        matchAll: async () => [],
+        openWindow: async (url) => opened.push(url),
         claim: async () => {
           claimed = true;
         },
@@ -37,6 +44,8 @@ function worker(network = async () => new Response('online')) {
         deleted.push(key);
       },
       open: async (name) => {
+        if (name === 'nasl-push-preferences')
+          return { match: async () => (owner ? new Response(owner) : undefined) };
         assert.equal(name, config.cacheName);
         return {
           addAll: async (assets) => installed.push(...assets),
@@ -50,6 +59,18 @@ function worker(network = async () => new Response('online')) {
   };
   vm.runInNewContext(source, context);
   return {
+    notifications,
+    opened,
+    event: async (type, data) => {
+      let promise;
+      listeners[type]({
+        ...data,
+        waitUntil: (value) => {
+          promise = value;
+        },
+      });
+      await promise;
+    },
     deleted,
     installed,
     reads,
@@ -134,4 +155,64 @@ test('known static assets work offline, without intercepting query-bearing reque
     'cached asset',
   );
   assert.equal(sw.request('https://app.example/assets/app.js?token=private'), undefined);
+});
+
+test('push displays a notification with a safe deep link for the opted-in user', async () => {
+  const sw = worker();
+  await sw.event('push', {
+    data: {
+      json: () => ({
+        userId: 'user-one',
+        title: 'Birth soon',
+        body: '001: Oct 21–29',
+        url: '/notification?farmId=one&animalId=ewe',
+        tag: 'pregnancy-one',
+      }),
+    },
+  });
+  assert.equal(sw.notifications.length, 1);
+  assert.equal(sw.notifications[0].body, '001: Oct 21–29');
+  assert.equal(
+    sw.notifications[0].data.url,
+    'https://app.example/notification?farmId=one&animalId=ewe',
+  );
+  let closed = false;
+  await sw.event('notificationclick', {
+    notification: {
+      data: sw.notifications[0].data,
+      close: () => {
+        closed = true;
+      },
+    },
+  });
+  assert.equal(closed, true);
+  assert.deepEqual(sw.opened, ['https://app.example/notification?farmId=one&animalId=ewe']);
+});
+test('signed-out, opted-out and different-user devices never display private reminders', async () => {
+  for (const owner of [null, 'different-user']) {
+    const sw = worker(undefined, owner);
+    await sw.event('push', {
+      data: { json: () => ({ userId: 'user-one', title: 'Private reminder' }) },
+    });
+    assert.equal(sw.notifications.length, 0);
+  }
+});
+test('malformed payloads are ignored and notification clicks cannot open another origin', async () => {
+  const sw = worker();
+  await sw.event('push', {
+    data: {
+      json: () => {
+        throw new Error('invalid JSON');
+      },
+    },
+  });
+  assert.equal(sw.notifications.length, 0);
+  await sw.event('push', {
+    data: { json: () => ({ userId: 'user-one', url: 'https://evil.test/path' }) },
+  });
+  assert.equal(sw.notifications[0].data.url, 'https://app.example/');
+  await sw.event('notificationclick', {
+    notification: { data: { url: 'https://evil.test' }, close() {} },
+  });
+  assert.deepEqual(sw.opened, ['https://app.example/']);
 });

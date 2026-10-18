@@ -204,3 +204,30 @@ servers do not generate the production service worker.
 
 - [Resend free pricing](https://resend.com/pricing)
 - [Resend test-domain restrictions](https://resend.com/docs/knowledge-base/403-error-resend-dev-domain)
+
+## Birth reminder notifications
+
+The user PWA uses standard Web Push (`web-push`), with no paid messaging provider. The API's
+`vercel.json` schedules `/v1/cron/birth-reminders` once daily at `0 6 * * *` (UTC). Vercel Hobby
+may execute anywhere within that hour: approximately 08:00–10:00 in Palestine depending on DST.
+It is a daily reminder, not an exact-time alarm. [Vercel limits](https://vercel.com/docs/cron-jobs/usage-and-pricing).
+
+Set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (an HTTPS contact URL or mailto URL),
+and `CRON_SECRET` in the API project's Production environment. Keep a stable VAPID pair: rotating
+it requires devices to subscribe again. Store the private key and cron secret as Secrets. Only the
+public key is returned by the authenticated configuration endpoint. Build the `PushSubscription`
+indexes before deploying a fresh database; no existing farm records need migration.
+
+Settings > Birth reminders offers 1, 3 or 7 days before the window and a test notification.
+Each device must grant permission. iPhone/iPad users need iOS/iPadOS 16.4+ and must open the app
+from the Home Screen. [Apple guidance](https://webkit.org/blog/13878/web-push-for-web-apps-on-ios-and-ipados/).
+The browser worker stores only the opted-in account ID in a separate local preference cache;
+API responses and credentials remain uncached. Signing out clears this preference even offline.
+Native Expo push credentials/builds remain separate; this release serves the deployed PWA.
+
+The dispatcher uses the existing MongoDB database for subscriptions, deduplication and leases.
+It checks up to 500 devices with five concurrent workers and a 45-second budget, oldest checked
+first. Failed or deferred work returns 503 and is logged; the next daily run retries while the
+pregnancy is eligible. Monitor these counts before scaling. The 60-second function limit covers
+cold-start and dispatch overhead. Stable tags replace a duplicate notification if the process
+stops after delivery but before recording success; push delivery is not an exactly-once guarantee.

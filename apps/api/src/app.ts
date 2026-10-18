@@ -24,16 +24,20 @@ import { inventoryRoutes } from './routes/inventory.routes.ts';
 import { milkRoutes } from './routes/milk.routes.ts';
 import type { InvitationMailer } from './auth/invitationEmail.ts';
 
+import { notificationRoutes, notificationCron } from './notifications/routes.ts';
+import { webPushSender, type PushSender } from './notifications/push.ts';
+
 export interface AppDeps {
   config: Config;
   logger: Logger;
   invitationMailer?: InvitationMailer;
+  pushSender?: PushSender;
 }
 
 /**
  * Build the Express app without binding a port, so tests can drive it directly.
  */
-export function createApp({ config, logger, invitationMailer }: AppDeps): Express {
+export function createApp({ config, logger, invitationMailer, pushSender }: AppDeps): Express {
   const app = express();
 
   app.disable('x-powered-by');
@@ -62,6 +66,9 @@ export function createApp({ config, logger, invitationMailer }: AppDeps): Expres
     res.json({ status: 'ok', version: '0.1.0' });
   });
 
+  const sendPush = pushSender ?? webPushSender(config);
+  app.use('/v1/notifications', notificationRoutes(config, sendPush));
+  app.use('/v1/cron', notificationCron(config, sendPush, logger));
   app.use('/v1/auth', authRoutes(config));
   app.use('/v1/reference', referenceRoutes(config));
   app.use('/v1/admin', adminRoutes(config, invitationMailer));

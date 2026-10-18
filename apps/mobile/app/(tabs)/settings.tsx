@@ -8,6 +8,7 @@ import { TabScreen } from '../../src/components/TabScreen';
 import { LanguageToggle } from '../../src/components/LanguageToggle';
 import { AppearanceChoice } from '../../src/components/AppearanceChoice';
 import { InstallApp } from '../../src/components/InstallApp';
+import { PushSettings } from '../../src/components/PushSettings';
 import { spacing } from '../../src/theme';
 
 export default function Settings() {
@@ -48,6 +49,8 @@ export default function Settings() {
             <AppearanceChoice />
             <InstallApp />
           </Card>
+          <View style={styles.gap} />
+          <PushSettings />
           <View style={styles.gap} />
           <RowGroup>
             <NavigationRow

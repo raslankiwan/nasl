@@ -13,6 +13,16 @@ const schema = z
     ACCESS_TOKEN_TTL_MINUTES: z.coerce.number().int().positive().default(15),
     REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),
     CORS_ORIGINS: z.string().default(''),
+    VAPID_PUBLIC_KEY: z
+      .string()
+      .regex(/^[A-Za-z0-9_-]{87}$/)
+      .optional(),
+    VAPID_PRIVATE_KEY: z
+      .string()
+      .regex(/^[A-Za-z0-9_-]{43}$/)
+      .optional(),
+    VAPID_SUBJECT: z.string().url().optional(),
+    CRON_SECRET: z.string().min(32).optional(),
     ADMIN_APP_URL: z.string().url().optional(),
     RESEND_API_KEY: z.string().min(1).optional(),
     ADMIN_INVITE_FROM: z.string().email().optional(),

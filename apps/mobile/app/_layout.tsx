@@ -49,6 +49,7 @@ function AuthGate() {
       </Stack.Protected>
       <Stack.Protected guard={status === 'signedIn'}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="notification" options={{ headerShown: false }} />
         <Stack.Screen name="animal/new" />
         <Stack.Screen name="animal/[id]" />
         <Stack.Screen name="animal/pedigree" />

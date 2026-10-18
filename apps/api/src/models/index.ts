@@ -22,3 +22,4 @@ export * from './rateLimit.model.ts';
 export * from './user.model.ts';
 export * from './vetProduct.model.ts';
 export * from './weight.model.ts';
+export * from './pushSubscription.model.ts';

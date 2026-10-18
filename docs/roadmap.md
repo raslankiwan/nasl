@@ -1,5 +1,26 @@
 # Delivery plan
 
+## Birth-window push reminders (18 October 2026)
+
+- [x] Opt-in Web Push in the user PWA, with 1/3/7-day lead time (default 3), Arabic/English
+      messages, per-device disable and a rate-limited test notification. iOS installation guidance
+      is shown when opened outside the Home Screen. Native Expo push remains an EAS/device task.
+- [x] One daily morning cron on the existing Vercel Hobby API sends a digest of new eligible
+      pregnancies per device. Sheep use the start of day 142, not the day-147 reference. Day 142
+      is a catch-up; later days and resolved pregnancies are excluded. Farm-local calendar dates
+      use its timezone. Provider delivery depends on network/device permissions and synced records.
+- [x] Approved users and active, unexpired farm memberships are rechecked at dispatch; animal
+      reads remain tenant-scoped. Leases prevent overlapping runs; remembered pregnancy keys and
+      stable notification tags suppress repeat alerts. Failed deliveries remain eligible for retry;
+      expired endpoints are removed. A crash after provider acceptance can still retry the same tag.
+- [x] Sign-out/opt-out removes a local notification-owner preference even offline, preventing
+      queued notifications for another account from appearing on a shared device. Notification
+      links select only a farm the signed-in account may access; other open forms are not replaced.
+- [x] Automated coverage includes timing boundaries, tenancy, account/device ownership, revocation,
+      concurrency, retries, endpoint validation, cron authorization and service-worker display/clicks.
+      Browser checks cover settings at phone widths and notification navigation. Actual OS push
+      delivery still requires permission and a test on the user's installed device.
+
 ## Manual numeric entry (18 October 2026)
 
 - [x] Tap any quantity/value to enter an exact number using the large keypad, typing or paste.
