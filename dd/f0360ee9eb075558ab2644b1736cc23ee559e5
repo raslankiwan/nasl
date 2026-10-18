@@ -1,0 +1,47 @@
+packages/i18n/src/locales/en.ts
+  s_c9959826314bf9::t_f8317f97935960 152-153,155,183
+apps/api/src/auth/registration.test.ts
+  s_c9959826314bf9::t_ef994db232ccc8 28,30,45,89,101
+packages/i18n/src/locales/ar.ts
+  s_c9959826314bf9::t_f8317f97935960 153-154,156,183
+apps/admin/src/routes/AcceptInvitation.test.tsx
+  s_c9959826314bf9::t_ef994db232ccc8 37-38,43
+docs/roadmap.md
+  s_c9959826314bf9::t_ef994db232ccc8 3-9
+packages/shared/src/auth.ts
+  s_c9959826314bf9::t_f8317f97935960 3
+apps/mobile/app/sign-in.tsx
+  s_c9959826314bf9::t_f8317f97935960 196
+apps/admin/src/components/PasswordInput.tsx
+  s_c9959826314bf9::t_f8317f97935960 1-38
+apps/admin/src/routes/Security.tsx
+  s_c9959826314bf9::t_d12342fd371093 6,74
+apps/api/src/auth/adminInvitations.test.ts
+  s_c9959826314bf9::t_ef994db232ccc8 36,71-73,76
+apps/admin/src/styles.css
+  s_c9959826314bf9::t_f8317f97935960 248-269
+apps/mobile/src/components/ui.tsx
+  s_c9959826314bf9::t_f8317f97935960 1,96,101-102,108-124,411-420
+apps/admin/src/routes/SignIn.tsx
+  s_c9959826314bf9::t_f8317f97935960 8,75
+apps/admin/src/routes/AcceptInvitation.tsx
+  s_c9959826314bf9::t_ef994db232ccc8 4,160,177
+CLAUDE.md
+  s_c9959826314bf9::t_f8317f97935960 33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "ddf0360ee9eb075558ab2644b1736cc23ee559e5",
+  "prompts": {},
+  "sessions": {
+    "s_c9959826314bf9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ed41-6d4f-7fd1-8eef-bc4227e3e739",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "raslan <raslankiwan@gmail.com>"
+    }
+  }
+}
