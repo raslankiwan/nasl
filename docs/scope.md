@@ -175,7 +175,9 @@ vaccines, diseases, medicines), investigates issues.
 
 This is the spine of the product. Every ewe carries one reproductive state; the state advances on
 recorded events, and every alert the app raises is derived from it. Days are counted from mating,
-using a per-species gestation constant — **147 days** for sheep (range 145–152), **150** for goats.
+using a per-species reference estimate — **147 days** for sheep, **150** for goats. Sheep display
+a **day 142–150 inclusive lambing window** for planning; overdue starts after day 150. The stored
+reference estimate remains available for existing records and health-protocol schedules.
 
 ```
   فارغة  →  مُلقَّحة  →  مفحوصة  →  حامل   →  قريبة الولادة →  والِدة  →  مُرضِعة →  مفطومة  ↻
@@ -205,15 +207,15 @@ stateDiagram-v2
 
 **Key intervals**
 
-|                         |                                      |
-| ----------------------- | ------------------------------------ |
-| Estrous cycle           | 16–17 days                           |
-| Puberty                 | 6–9 months, or ~65% of mature weight |
-| Pregnancy scan window   | gestation d45–70                     |
-| Pre-lambing booster     | gestation d105–119                   |
-| Gestation               | 147 days sheep · 150 days goats      |
-| Weaning                 | d60–90                               |
-| Target lambing interval | 8 months (3 lambings / 2 years)      |
+|                         |                                             |
+| ----------------------- | ------------------------------------------- |
+| Estrous cycle           | 16–17 days                                  |
+| Puberty                 | 6–9 months, or ~65% of mature weight        |
+| Pregnancy scan window   | gestation d45–70                            |
+| Pre-lambing booster     | gestation d105–119                          |
+| Gestation               | Sheep planning window d142–150 · goats d150 |
+| Weaning                 | d60–90                                      |
+| Target lambing interval | 8 months (3 lambings / 2 years)             |
 
 **Exception states:** فارغة (scan negative, returns to Open) · مُجهِضة (aborted) · عاقر (barren after
 N cycles) · مُستبعدة (culled) · نافقة (dead).

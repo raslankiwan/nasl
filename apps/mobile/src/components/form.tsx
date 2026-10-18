@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Platform, Pressable, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { formatDate, formatHijriDate, type Locale } from '@nasl/i18n';
+export { DateField } from './DateField';
 import { MIN_TOUCH, radius, spacing, type, createThemedStyles } from '../theme';
 
 function FieldLabel({ children }: { children: ReactNode }) {
@@ -58,78 +58,6 @@ export function Choice<T extends string>({
           </Pressable>
         );
       })}
-    </View>
-  );
-}
-
-/**
- * A date field built for the pen, not the office.
- *
- * Events are recorded the day they happen or the day after, so a calendar wheel is the wrong
- * instrument — it takes several taps to say "yesterday". This steps a day at a time and shows both
- * calendars.
- *
- * By default it refuses future dates, because a lamb cannot be born tomorrow. `allowFuture` is for
- * the fields where the opposite is true: a medicine's expiry is always ahead of today, and a
- * stepper that stops at the present is useless for it. The step size widens with it, because a
- * date a year out is not reached one day at a time.
- */
-export function DateField({
-  label,
-  value,
-  onChange,
-  allowFuture = false,
-}: {
-  label: string;
-  value: Date;
-  onChange: (next: Date) => void;
-  allowFuture?: boolean;
-}) {
-  const styles = useStyles();
-  const { t, i18n } = useTranslation('common');
-  const locale = (i18n.resolvedLanguage ?? 'ar') as Locale;
-
-  const startOfToday = new Date(new Date().toISOString().slice(0, 10));
-  const dayOffset = Math.round((value.getTime() - startOfToday.getTime()) / 86_400_000);
-  const stepDays = allowFuture ? 30 : 1;
-  const shift = (days: number) => onChange(new Date(value.getTime() + days * 86_400_000));
-
-  const relative = dayOffset === 0 ? t('today') : dayOffset === -1 ? t('yesterday') : null;
-
-  return (
-    <View style={styles.field}>
-      <FieldLabel>{label}</FieldLabel>
-      <View style={styles.dateRow}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="-1"
-          onPress={() => shift(-stepDays)}
-          style={({ pressed }) => [styles.step, pressed && styles.pressed]}
-        >
-          <Text style={styles.stepLabel}>−</Text>
-        </Pressable>
-
-        <View style={styles.dateValue}>
-          <Text style={styles.dateMain}>{relative ?? formatDate(value, locale)}</Text>
-          <Text style={styles.dateSub}>
-            {relative ? formatDate(value, locale) : formatHijriDate(value, locale)}
-          </Text>
-        </View>
-
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="+1"
-          onPress={() => shift(stepDays)}
-          disabled={!allowFuture && dayOffset >= 0}
-          style={({ pressed }) => [
-            styles.step,
-            !allowFuture && dayOffset >= 0 && styles.stepDisabled,
-            pressed && styles.pressed,
-          ]}
-        >
-          <Text style={styles.stepLabel}>＋</Text>
-        </Pressable>
-      </View>
     </View>
   );
 }
@@ -251,7 +179,6 @@ const useStyles = createThemedStyles((colors) => ({
     borderRadius: radius.md,
     backgroundColor: colors.surface,
   },
-  stepDisabled: { opacity: 0.35 },
   stepLabel: { fontSize: 24, fontWeight: '600', color: colors.ink },
   dateValue: {
     flex: 1,
@@ -265,5 +192,4 @@ const useStyles = createThemedStyles((colors) => ({
     paddingHorizontal: spacing.sm,
   },
   dateMain: { fontSize: type.body, fontWeight: '600', color: colors.ink },
-  dateSub: { fontSize: type.caption, color: colors.muted },
 }));

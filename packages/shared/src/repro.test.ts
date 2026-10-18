@@ -8,6 +8,7 @@ import {
   gestationDay,
   InvalidReproTransition,
   isInDueWindow,
+  lambingWindow,
   preLambingBoosterWindow,
   REPRO_STATES,
   scanWindow,
@@ -141,6 +142,19 @@ describe('reproductive state machine', () => {
 });
 
 describe('derived windows', () => {
+  test('the sheep lambing window is day 142 through day 150, including old due dates', () => {
+    const window = lambingWindow(d('2026-06-06'), 'sheep');
+    assert.equal(toDateString(window.from), '2026-06-01');
+    assert.equal(toDateString(window.to), '2026-06-09');
+    const leap = lambingWindow(expectedDueDate(d('2023-10-10'), 'sheep'), 'sheep');
+    assert.equal(toDateString(leap.from), '2024-02-29');
+    assert.equal(toDateString(leap.to), '2024-03-08');
+  });
+
+  test('the goat estimate stays at 150 days', () => {
+    const due = expectedDueDate(d('2026-01-10'), 'goat');
+    assert.deepEqual(lambingWindow(due, 'goat'), { from: due, to: due });
+  });
   test('the scan window opens at day 45 and closes at day 70', () => {
     const w = scanWindow(d('2026-01-10'), 'sheep');
     assert.equal(toDateString(w.from), '2026-02-24');

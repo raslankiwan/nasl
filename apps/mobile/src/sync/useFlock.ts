@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { useAuth } from '../auth/AuthProvider';
 import type { CachedAnimal } from './cache';
 import { flockCache, pullFlock } from './device';
@@ -69,9 +70,13 @@ export function useAnimal(id: string | undefined) {
     }
   }, [farmId, id]);
 
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
+  // Returning from a capture screen keeps the detail mounted. Refresh on focus so the newly
+  // saved mating/window (or a resolved pregnancy) is visible without reopening the app.
+  useFocusEffect(
+    useCallback(() => {
+      void refresh();
+    }, [refresh]),
+  );
 
   return { animal, loading, stale, refresh };
 }

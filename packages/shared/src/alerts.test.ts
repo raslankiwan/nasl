@@ -22,7 +22,9 @@ describe('deriving alerts', () => {
       TODAY,
     );
     assert.equal(alerts.dueSoon.length, 1);
-    assert.equal(alerts.dueSoon[0]?.days, 10);
+    assert.equal(alerts.dueSoon[0]?.days, 5);
+    assert.equal(alerts.dueSoon[0]?.windowStart, plus(5));
+    assert.equal(alerts.dueSoon[0]?.windowEnd, plus(13));
     assert.equal(alerts.overdue.length, 0);
   });
 
@@ -34,14 +36,37 @@ describe('deriving alerts', () => {
     assert.equal(alerts.dueSoon.length, 0);
   });
 
-  test('a ewe past her date is overdue, not due', () => {
+  test('a ewe past the final day of her window is overdue', () => {
     const alerts = deriveAlerts(
-      [ewe('1001', { repro: { state: 'due', dueDate: plus(-3) } })],
+      [ewe('1001', { repro: { state: 'due', dueDate: plus(-4) } })],
       TODAY,
     );
     assert.equal(alerts.overdue.length, 1);
-    assert.equal(alerts.overdue[0]?.days, -3);
+    assert.equal(alerts.overdue[0]?.days, -1);
     assert.equal(alerts.dueSoon.length, 0);
+  });
+
+  test('the entire inclusive 142–150-day window is due, never overdue', () => {
+    for (const gestation of [142, 143, 147, 148, 149, 150]) {
+      const alerts = deriveAlerts(
+        [ewe('1001', { repro: { state: 'mated', dueDate: plus(147 - gestation) } })],
+        TODAY,
+      );
+      assert.equal(alerts.overdue.length, 0, `day ${gestation}`);
+      assert.equal(alerts.dueSoon[0]?.days, 0, `day ${gestation}`);
+    }
+    const before = deriveAlerts(
+      [ewe('1001', { repro: { state: 'pregnant', dueDate: plus(6) } })],
+      TODAY,
+    );
+    assert.equal(before.dueSoon[0]?.days, 1, 'day 141: one day to the window');
+  });
+
+  test('resolved pregnancies leave both lists even if an old due date remains', () => {
+    for (const state of ['open', 'aborted', 'lambed', 'nursing', 'weaned']) {
+      const alerts = deriveAlerts([ewe('1001', { repro: { state, dueDate: plus(-1) } })], TODAY);
+      assert.equal(alerts.dueSoon.length + alerts.overdue.length, 0, state);
+    }
   });
 
   test('the soonest comes first', () => {

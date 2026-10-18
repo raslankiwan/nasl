@@ -411,6 +411,36 @@ describe('the full cycle', () => {
 });
 
 describe('alerts', () => {
+  for (const gestation of [148, 150, 151]) {
+    test(`day ${gestation} uses the full sheep window through the API`, async () => {
+      await withServer(testApp(), async (url) => {
+        const { client, farmId, damId, sireId } = await flock(url);
+        const base = `/v1/farms/${farmId}/breeding`;
+        const date = new Date(Date.now() - gestation * 86_400_000).toISOString().slice(0, 10);
+        await client.post(`${base}/matings`, { damId, sireId, startDate: date });
+        const res = await client.get<{
+          dueSoon: Array<{ days: number; windowStart: string; windowEnd: string }>;
+          overdue: Array<{ days: number }>;
+        }>(`${base}/alerts`);
+        assert.equal(res.status, 200);
+        if (gestation <= 150) {
+          assert.equal(res.body.overdue.length, 0);
+          assert.equal(res.body.dueSoon[0]?.days, 0);
+          assert.equal(
+            res.body.dueSoon[0]?.windowStart,
+            new Date(new Date(date).getTime() + 142 * 86_400_000).toISOString().slice(0, 10),
+          );
+          assert.equal(
+            res.body.dueSoon[0]?.windowEnd,
+            new Date(new Date(date).getTime() + 150 * 86_400_000).toISOString().slice(0, 10),
+          );
+        } else {
+          assert.equal(res.body.dueSoon.length, 0);
+          assert.equal(res.body.overdue[0]?.days, -1);
+        }
+      });
+    });
+  }
   test('a ewe inside the drop-pen window appears as due, and past it as overdue', async () => {
     await withServer(testApp(), async (url) => {
       const { client, farmId, damId, sireId } = await flock(url);

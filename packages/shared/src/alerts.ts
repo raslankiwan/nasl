@@ -1,5 +1,5 @@
 import { daysBetween } from './dates.ts';
-import { isInDueWindow } from './repro.ts';
+import { isInDueWindow, lambingWindow } from './repro.ts';
 import type { Species } from './species.ts';
 
 /**
@@ -28,7 +28,9 @@ export interface DueAlert {
   animalId: string;
   tagNumber: string;
   dueDate: string;
-  /** Positive while she is still carrying, negative once past her date. */
+  windowStart: string;
+  windowEnd: string;
+  /** Days to the start, zero during the window, negative only after the final day. */
   days: number;
 }
 
@@ -74,11 +76,16 @@ export function deriveAlerts(animals: readonly AlertSubject[], today: Date): Ale
     if (animal.sex === 'female' && animal.repro && CARRYING.has(animal.repro.state)) {
       const due = asDate(animal.repro.dueDate);
       if (due) {
-        const days = daysBetween(today, due);
+        const window = lambingWindow(due, animal.species as Species);
+        const toStart = daysBetween(today, window.from);
+        const toEnd = daysBetween(today, window.to);
+        const days = toEnd < 0 ? toEnd : Math.max(0, toStart);
         const entry: DueAlert = {
           animalId: animal.id,
           tagNumber: animal.tagNumber,
           dueDate: toDateString(due),
+          windowStart: toDateString(window.from),
+          windowEnd: toDateString(window.to),
           days,
         };
         if (days < 0) overdue.push(entry);

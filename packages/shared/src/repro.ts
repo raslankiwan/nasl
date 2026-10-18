@@ -149,6 +149,19 @@ export function expectedDueDate(matingDate: Date, species: Species): Date {
   return addDays(matingDate, profileFor(species).gestationDays);
 }
 
+/**
+ * Inclusive lambing window from the stored reference date. Deriving it also covers existing
+ * records and offline caches without rewriting reproductive events or health schedules.
+ */
+export function lambingWindow(dueDate: Date, species: Species): { from: Date; to: Date } {
+  const profile = profileFor(species);
+  const [from, to] = profile.gestationRangeDays ?? [profile.gestationDays, profile.gestationDays];
+  return {
+    from: addDays(dueDate, from - profile.gestationDays),
+    to: addDays(dueDate, to - profile.gestationDays),
+  };
+}
+
 /** The window in which an ultrasound scan gives a reliable result. */
 export function scanWindow(matingDate: Date, species: Species): { from: Date; to: Date } {
   const [from, to] = profileFor(species).scanWindowDays;

@@ -1,5 +1,20 @@
 # Delivery plan
 
+## Calendar selection and sheep lambing windows (18 October 2026)
+
+- [x] All twelve editable date fields use a shared offline calendar with direct month/year
+      selection, day grid, Today/Yesterday shortcuts and Done/Cancel. Event dates stop at today;
+      expiry dates allow future years. Dates remain UTC calendar days and display Gregorian/Hijri.
+- [x] Sheep show the requested inclusive day 142–150 planning window in the mating preview,
+      animal details and Today list. Overdue starts on day 151. Shared domain logic drives both
+      API and offline alerts; existing records/caches need no migration. The stored day-147
+      reference and health-protocol timing remain unchanged; goats retain their day-150 estimate.
+- [x] Returning from an event form refreshes the animal details, including its lambing window.
+- [x] Tests cover leap days, month/year boundaries, calendar bounds, window boundaries, resolved
+      pregnancies and API alerts. Browser checks cover Arabic/light and English/dark, 320px and
+      390px layouts, selecting past and future leap dates, cancel, and saving a mating date.
+      Native iOS/Android device checks are still pending; no simulator was launched.
+
 ## Mobile admin and farm provisioning on approval (October 2026)
 
 - [x] Compact mobile navigation, labeled directory cards, stacked forms, larger touch targets

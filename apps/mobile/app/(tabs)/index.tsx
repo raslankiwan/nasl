@@ -39,11 +39,25 @@ export default function Today() {
       onPress={() => router.push(`/animal/${row.animalId}`)}
       style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
     >
-      <Text style={styles.tag}>{row.tagNumber}</Text>
+      <View style={styles.rowDetail}>
+        <Text style={styles.tag}>{row.tagNumber}</Text>
+        <Text style={styles.windowDate}>
+          {formatDate(new Date(row.windowStart), locale)}
+          {row.windowStart !== row.windowEnd
+            ? ` – ${formatDate(new Date(row.windowEnd), locale)}`
+            : ''}
+        </Text>
+      </View>
       <Pill tone={tone}>
         {row.days < 0
-          ? t('breeding:overdueBy', { count: Math.abs(row.days) })
-          : t('breeding:dueIn', { count: row.days })}
+          ? t(row.windowStart === row.windowEnd ? 'breeding:overdueBy' : 'breeding:pastWindow', {
+              count: Math.abs(row.days),
+            })
+          : row.windowStart === row.windowEnd
+            ? t('breeding:dueIn', { count: row.days })
+            : row.days === 0
+              ? t('breeding:withinWindow')
+              : t('breeding:windowOpensIn', { count: row.days })}
       </Pill>
     </Pressable>
   );
@@ -126,6 +140,7 @@ const useStyles = createThemedStyles((colors) => ({
   },
   row: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: colors.surface,
@@ -139,6 +154,8 @@ const useStyles = createThemedStyles((colors) => ({
     minHeight: 56,
   },
   rowPressed: { opacity: 0.85 },
+  rowDetail: { flexShrink: 1, gap: spacing.xs },
+  windowDate: { fontSize: type.label, color: colors.muted },
   tag: { fontSize: type.heading, fontWeight: '700', color: colors.ink, writingDirection: 'ltr' },
   warning: {
     flexDirection: 'row',

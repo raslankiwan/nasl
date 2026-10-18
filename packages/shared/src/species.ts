@@ -9,8 +9,10 @@ export const SPECIES = ['sheep', 'goat'] as const;
 export type Species = (typeof SPECIES)[number];
 
 export interface SpeciesProfile {
-  /** Mean gestation length in days. Sheep 145-152, goats 145-155. */
+  /** Reference estimate used by existing records and health-protocol schedules. */
   gestationDays: number;
+  /** Optional planning range; without one, keep the existing single-date estimate. */
+  gestationRangeDays?: readonly [number, number];
   /** Length of one oestrous cycle in days — used to schedule a repeat-mating check. */
   oestrousCycleDays: number;
   /** Earliest and latest day post-mating that an ultrasound scan is reliable. */
@@ -31,6 +33,7 @@ export interface SpeciesProfile {
 export const SPECIES_PROFILES: Record<Species, SpeciesProfile> = {
   sheep: {
     gestationDays: 147,
+    gestationRangeDays: [142, 150],
     oestrousCycleDays: 17,
     scanWindowDays: [45, 70],
     preLambingBoosterDays: [105, 119],

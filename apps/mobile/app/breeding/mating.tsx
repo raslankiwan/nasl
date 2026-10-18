@@ -6,6 +6,9 @@ import { useAuth } from '../../src/auth/AuthProvider';
 import { CaptureScreen } from '../../src/components/CaptureScreen';
 import { Choice, DateField, FieldGroup } from '../../src/components/form';
 import { Body } from '../../src/components/ui';
+import { expectedDueDate, type Species } from '@nasl/shared';
+import { useAnimal } from '../../src/sync/useFlock';
+import { LambingWindow } from '../../src/components/LambingWindow';
 
 interface Ram {
   id: string;
@@ -19,6 +22,7 @@ export default function RecordMating() {
   const { damId } = useLocalSearchParams<{ damId: string }>();
   const { t } = useTranslation(['breeding', 'common']);
   const { farmId } = useAuth();
+  const { animal } = useAnimal(damId);
 
   const [date, setDate] = useState(() => new Date(new Date().toISOString().slice(0, 10)));
   const [method, setMethod] = useState<(typeof METHODS)[number]>('natural');
@@ -47,6 +51,12 @@ export default function RecordMating() {
       })}
     >
       <DateField label={t('breeding:matingDate')} value={date} onChange={setDate} />
+      {animal ? (
+        <LambingWindow
+          dueDate={expectedDueDate(date, animal.species as Species)}
+          species={animal.species as Species}
+        />
+      ) : null}
 
       <FieldGroup label={t('breeding:sire')}>
         {rams.length === 0 ? (

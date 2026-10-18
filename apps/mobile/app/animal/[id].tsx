@@ -20,7 +20,8 @@ import {
   Title,
 } from '../../src/components/ui';
 import { ACTION_LABELS, ACTION_ROUTES } from '../../src/breeding';
-import { actionsFor, can, type Role, type ReproState } from '@nasl/shared';
+import { actionsFor, can, type Role, type ReproState, type Species } from '@nasl/shared';
+import { LambingWindow } from '../../src/components/LambingWindow';
 import { AnimalNameEditor } from '../../src/components/AnimalNameEditor';
 import { spacing, type, createThemedStyles } from '../../src/theme';
 
@@ -210,9 +211,9 @@ export default function AnimalScreen() {
                       )}
                     </Pill>
                     {animal.repro?.dueDate ? (
-                      <Row
-                        label={t('breeding:dueDate')}
-                        value={formatDate(new Date(animal.repro.dueDate), locale)}
+                      <LambingWindow
+                        dueDate={animal.repro.dueDate}
+                        species={animal.species as Species}
                       />
                     ) : null}
                   </Card>
