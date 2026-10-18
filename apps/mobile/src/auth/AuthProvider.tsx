@@ -23,6 +23,8 @@ import { flockCache } from '../sync/device';
 
 import { disablePush, forgetPushOwner, reconcilePushOwner } from '../notifications/push';
 
+import { passkeySignIn } from './passkeys';
+
 const ME_CACHE_KEY = 'nasl.me';
 
 export interface Me {
@@ -38,9 +40,15 @@ interface AuthValue {
   me: Me | null;
   /** The farm currently being worked on. Most herders have exactly one. */
   farmId: string | null;
-  register: (input: RegistrationInput) => Promise<{ id: string; status: 'pending' }>;
+  register: (input: RegistrationInput) => Promise<{
+    id: string;
+    status: 'pending';
+    verificationId?: string;
+    verificationSent: boolean;
+  }>;
   signIn: (identifier: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  signInWithPasskey: () => Promise<void>;
   selectFarm: (farmId: string) => void;
   refresh: () => Promise<void>;
 }
@@ -126,16 +134,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = useCallback(
     (input: RegistrationInput) =>
-      api.post<{ id: string; status: 'pending' }>('/v1/auth/register', input),
+      api.post<{
+        id: string;
+        status: 'pending';
+        verificationId?: string;
+        verificationSent: boolean;
+      }>('/v1/auth/register', input),
     [],
   );
-  const signIn = useCallback(
-    async (identifier: string, password: string) => {
+  const authenticate = useCallback(
+    async (login: () => Promise<{ accessToken: string; refreshToken: string }>) => {
       const current = ++attempt.current;
-      const session = await api.post<{ accessToken: string; refreshToken: string }>(
-        '/v1/auth/login',
-        { identifier, password, deviceId: await deviceId() },
-      );
+      const session = await login();
       if (current !== attempt.current) return;
       await AsyncStorage.removeItem(ME_CACHE_KEY);
       setMe(null);
@@ -150,6 +160,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     [adopt],
   );
+
+  const signIn = useCallback(
+    (identifier: string, password: string) =>
+      authenticate(async () =>
+        api.post<{ accessToken: string; refreshToken: string }>('/v1/auth/login', {
+          identifier,
+          password,
+          deviceId: await deviceId(),
+        }),
+      ),
+    [authenticate],
+  );
+  const signInWithPasskey = useCallback(() => authenticate(passkeySignIn), [authenticate]);
 
   const signOut = useCallback(async () => {
     attempt.current += 1;
@@ -170,11 +193,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       farmId,
       register,
       signIn,
+      signInWithPasskey,
       signOut,
       selectFarm: setFarmId,
       refresh,
     }),
-    [status, me, farmId, register, signIn, signOut, refresh],
+    [status, me, farmId, register, signIn, signInWithPasskey, signOut, refresh],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

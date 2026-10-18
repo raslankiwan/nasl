@@ -177,6 +177,7 @@ export async function acceptInvitation(
             $set: {
               isPlatformAdmin: true,
               status: 'approved',
+              emailVerifiedAt: acceptedAt,
               adminProvisionedBy: bootstrap ? 'seed' : 'invitation',
               reviewedAt: acceptedAt,
               reviewedBy: invite.invitedBy,
@@ -198,6 +199,7 @@ export async function acceptInvitation(
               passwordHash,
               isPlatformAdmin: true,
               status: 'approved',
+              emailVerifiedAt: acceptedAt,
               adminProvisionedBy: 'invitation',
               reviewedAt: acceptedAt,
               reviewedBy: invite.invitedBy,
@@ -235,6 +237,7 @@ export async function acceptInvitation(
               $set: {
                 isPlatformAdmin: user.isPlatformAdmin,
                 status: user.status,
+                emailVerifiedAt: user.emailVerifiedAt ?? null,
                 reviewedAt: user.reviewedAt ?? null,
                 reviewedBy: user.reviewedBy ?? null,
                 adminProvisionedBy: user.adminProvisionedBy ?? null,

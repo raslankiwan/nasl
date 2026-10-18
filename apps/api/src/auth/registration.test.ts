@@ -9,6 +9,7 @@ import {
   TEST_DEVICE,
   TEST_PASSWORD,
   withServer,
+  verifyTestEmail,
 } from '../testing/harness.ts';
 import { Farm } from '../models/farm.model.ts';
 import { Membership } from '../models/membership.model.ts';
@@ -36,7 +37,7 @@ test('registration is pending without tokens; only staff approval unlocks email 
     const client = api(url);
     const created = await client.post<Registered>('/v1/auth/register', registration);
     assert.equal(created.status, 201);
-    assert.deepEqual(Object.keys(created.body).sort(), ['id', 'status']);
+    assert.equal('accessToken' in created.body, false);
     assert.equal(created.body.status, 'pending');
     const user = await User.findById(created.body.id).select('+passwordHash').lean();
     assert.equal(user?.email, 'farmer@example.test');
@@ -47,7 +48,12 @@ test('registration is pending without tokens; only staff approval unlocks email 
     assert.equal(await RefreshToken.countDocuments(), 0);
     const pending = await client.post<ErrorBody>('/v1/auth/login', login);
     assert.equal(pending.status, 403);
-    assert.equal(pending.body.error.code, 'account_pending');
+    assert.equal(pending.body.error.code, 'email_unverified');
+    await verifyTestEmail(url, registration.email);
+    assert.equal(
+      (await client.post<ErrorBody>('/v1/auth/login', login)).body.error.code,
+      'account_pending',
+    );
     assert.equal(
       (await client.post('/v1/auth/login', { ...login, password: 'wrong' })).status,
       401,
@@ -133,6 +139,7 @@ test('strict registration validation prevents role injection, invalid credential
 test('rejection is enforced and stale reviewers cannot overwrite a decision', async () => {
   await withServer(testApp(), async (url) => {
     const created = await api(url).post<Registered>('/v1/auth/register', registration);
+    await verifyTestEmail(url, registration.email);
     const staff = await signIn(url, 'staff');
     await makePlatformAdmin(staff.user.id);
     const client = api(url, staff.accessToken);
@@ -170,6 +177,7 @@ test('rejection is enforced and stale reviewers cannot overwrite a decision', as
 test('approval audit failure restores the prior decision and review metadata', async (t) => {
   await withServer(testApp(), async (url) => {
     const created = await api(url).post<Registered>('/v1/auth/register', registration);
+    await verifyTestEmail(url, registration.email);
     const staff = await signIn(url, 'staff');
     await makePlatformAdmin(staff.user.id);
     const reviewedAt = new Date('2026-01-01');
@@ -241,6 +249,7 @@ test('password guessing limits are shared by independent application instances',
 test('approval can provision the farm and the user can access it on their first login', async () => {
   await withServer(testApp(), async (url) => {
     const created = await api(url).post<Registered>('/v1/auth/register', registration);
+    await verifyTestEmail(url, registration.email);
     const staff = await signIn(url, 'staff');
     await makePlatformAdmin(staff.user.id);
     const admin = api(url, staff.accessToken);

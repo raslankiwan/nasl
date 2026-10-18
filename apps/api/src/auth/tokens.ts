@@ -3,6 +3,9 @@ import { jwtVerify, SignJWT } from 'jose';
 import { AppError } from '../errors.ts';
 import { RefreshToken } from '../models/refreshToken.model.ts';
 import { User } from '../models/user.model.ts';
+import { verifiedEmailFilter } from './accountAccess.ts';
+import type { Config } from '../config.ts';
+import { assertAccountAccess } from './accountAccess.ts';
 
 export interface AccessTokenClaims {
   sub: string;
@@ -64,6 +67,7 @@ export async function issueRefreshToken(
   deviceId: string,
   ttlDays: number,
   familyId: string = randomUUID(),
+  sessionExpiresAt = new Date(Date.now() + ttlDays * 86_400_000),
 ): Promise<{ token: string; familyId: string; id: string }> {
   const token = mintRefreshTokenValue();
   const created = await RefreshToken.create({
@@ -71,7 +75,8 @@ export async function issueRefreshToken(
     deviceId,
     tokenHash: hashRefreshToken(token),
     familyId,
-    expiresAt: new Date(Date.now() + ttlDays * 86_400_000),
+    expiresAt: sessionExpiresAt,
+    sessionExpiresAt,
   });
   return { token, familyId, id: created._id };
 }
@@ -107,12 +112,19 @@ export async function rotateRefreshToken(
     throw AppError.unauthorized('This session belongs to a different device.');
   }
 
-  if (!(await User.exists({ _id: existing.userId, status: 'approved' }))) {
+  if (!(await User.exists({ _id: existing.userId, status: 'approved', ...verifiedEmailFilter }))) {
     await revokeAllForUser(existing.userId);
     throw AppError.unauthorized('An approved account is required.');
   }
 
-  const next = await issueRefreshToken(existing.userId, deviceId, ttlDays, existing.familyId);
+  // Existing sessions upgrade on their next valid rotation; new sessions have a fixed deadline.
+  const next = await issueRefreshToken(
+    existing.userId,
+    deviceId,
+    ttlDays,
+    existing.familyId,
+    existing.sessionExpiresAt,
+  );
 
   existing.revokedAt = new Date();
   existing.replacedByTokenId = next.id;
@@ -133,4 +145,28 @@ export async function revokeAllForUser(userId: string): Promise<void> {
     { userId, revokedAt: null },
     { $set: { revokedAt: new Date() } },
   ).exec();
+}
+
+export async function createSession(userId: string, deviceId: string, config: Config) {
+  const user = await User.findById(userId);
+  if (!user) throw AppError.unauthorized();
+  assertAccountAccess(user);
+  user.lastSeenAt = new Date();
+  await user.save();
+  const [accessToken, refresh] = await Promise.all([
+    signAccessToken(userId, config.JWT_SECRET, config.ACCESS_TOKEN_TTL_MINUTES),
+    issueRefreshToken(userId, deviceId, config.REFRESH_TOKEN_TTL_DAYS),
+  ]);
+  return {
+    accessToken,
+    refreshToken: refresh.token,
+    expiresIn: config.ACCESS_TOKEN_TTL_MINUTES * 60,
+    user: {
+      id: user._id,
+      name: user.name ?? null,
+      email: user.email,
+      username: user.username,
+      locale: user.locale,
+    },
+  };
 }

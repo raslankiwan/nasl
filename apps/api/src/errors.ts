@@ -17,6 +17,9 @@ export const ERROR_CODES = [
   'push_unavailable',
   'email_not_configured',
   'email_delivery_failed',
+  'email_unverified',
+  'verification_invalid',
+  'passkey_invalid',
   'internal',
 ] as const;
 export type ErrorCode = (typeof ERROR_CODES)[number];
@@ -36,6 +39,9 @@ const STATUS: Record<ErrorCode, number> = {
   push_unavailable: 503,
   email_not_configured: 503,
   email_delivery_failed: 503,
+  email_unverified: 403,
+  verification_invalid: 400,
+  passkey_invalid: 400,
   internal: 500,
 };
 

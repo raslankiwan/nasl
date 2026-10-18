@@ -1,16 +1,23 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PASSWORD_MAX_LENGTH } from '@nasl/shared';
+import { passkeysAvailable } from '../auth/passkeys';
 import { LanguageToggle } from '../components/LanguageToggle';
 import { ApiError } from '../api/client';
 import { AppPreferences } from '../components/AppPreferences';
 
 export function SignIn({
   signIn,
+  signInWithPasskey,
 }: {
+  signInWithPasskey?: () => Promise<void>;
   signIn: (identifier: string, password: string) => Promise<void>;
 }) {
   const { t } = useTranslation(['auth', 'common', 'admin']);
+  const [available, setAvailable] = useState(false);
+  useEffect(() => {
+    void passkeysAvailable().then(setAvailable);
+  }, []);
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -80,6 +87,28 @@ export function SignIn({
             </button>
           </fieldset>
         </form>
+        {available && signInWithPasskey ? (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() =>
+              void (async () => {
+                if (busy) return;
+                setBusy(true);
+                setError(null);
+                try {
+                  await signInWithPasskey();
+                } catch {
+                  setError(t('auth:passkeyError'));
+                } finally {
+                  setBusy(false);
+                }
+              })()
+            }
+          >
+            {t('auth:passkeySignIn')}
+          </button>
+        ) : null}
         <AppPreferences />
       </div>
     </div>

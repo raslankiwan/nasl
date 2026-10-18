@@ -1,5 +1,5 @@
 import { platformLock } from '../platformLock';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { tokenStore } from '../auth/tokenStore';
 import Constants from 'expo-constants';
 import { createSessionClient } from './sessionClient';
 
@@ -12,7 +12,7 @@ const BASE = (
   'http://localhost:4000'
 ).replace(/\/$/, '');
 
-const client = createSessionClient(BASE, AsyncStorage, fetch, (work) =>
+const client = createSessionClient(BASE, tokenStore, fetch, (work) =>
   platformLock('nasl.mobile.refresh', work),
 );
 export const { request, loadTokens, saveTokens, clearTokens, deviceId, revokeSession } = client;

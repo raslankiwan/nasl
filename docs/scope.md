@@ -383,7 +383,7 @@ and adds bulk operations (§8).
 
 | ID        | Requirement                                                                                                                                                                                                                          | Phase |
 | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----- |
-| FR-ACC-01 | Register with name, email, username and password. Accounts remain pending until an administrator approves them; approved users sign in by email or username plus password.                                                           | MVP   |
+| FR-ACC-01 | Register with name, email, username and password. New accounts verify their email and remain pending until an administrator approves them; approved users sign in by password or a registered device passkey.                        | MVP   |
 | FR-ACC-02 | Roles per farm: **Owner** (everything, including billing), **Manager** (everything except billing and deletion), **Worker** (record events; cannot see finance), **Vet** (health module only, time-limited), **Viewer** (read-only). | MVP   |
 | FR-ACC-03 | Invite an approved registered account by email or username. Membership never bypasses account approval.                                                                                                                              | MVP   |
 | FR-ACC-04 | Every event records who captured it and on which device.                                                                                                                                                                             | MVP   |
@@ -541,7 +541,7 @@ POST /v1/farms/:farmId/sync/push
 
 ### Everything else
 
-- **Auth** — email/username and password with admin approval, short-lived JWT access token plus rotating refresh token bound to the device. Long offline windows mean the refresh window must be generous (30 days) and expiry must never destroy unsynced local data.
+- **Auth** — email/username and password with admin approval, short-lived JWT access token plus rotating refresh token bound to the device. Long offline windows mean the refresh window must be generous (90 days, with a fixed session deadline) and expiry must never destroy unsynced local data.
 - **Media** — presigned uploads to S3 or R2. Photos compress to ≤400 KB on device, queue locally, and upload on Wi-Fi by default.
 - **Push** — Expo Notifications, with a nightly job that computes each farm's morning digest.
 - **Jobs** — BullMQ on Redis for digests, protocol task generation, exports and report pre-computation.

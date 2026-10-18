@@ -3,10 +3,14 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { initI18n } from '../i18n';
 import { ApiError } from '../api/client';
+import * as passkeys from '../auth/passkeys';
 import { SignIn } from './SignIn';
 
 beforeEach(() => initI18n('en'));
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 test('administrator sign-in explains invitation-only access and has no registration control', () => {
   render(<SignIn signIn={vi.fn()} />);
@@ -31,4 +35,16 @@ test('email or username login retains the form and localizes pending errors', as
   );
   expect(await screen.findByRole('alert')).toHaveTextContent(/approval/);
   expect(screen.queryByText('raw error')).not.toBeInTheDocument();
+});
+
+test('supported devices offer passkey sign-in and cancellation keeps password login available', async () => {
+  vi.spyOn(passkeys, 'passkeysAvailable').mockResolvedValue(true);
+  const signInWithPasskey = vi.fn().mockRejectedValue(new Error('cancelled'));
+  const signIn = vi.fn();
+  render(<SignIn signIn={signIn} signInWithPasskey={signInWithPasskey} />);
+  await userEvent.click(await screen.findByRole('button', { name: /Face ID/ }));
+  expect(await screen.findByRole('alert')).toHaveTextContent(/use your password/);
+  expect(signInWithPasskey).toHaveBeenCalledOnce();
+  expect(signIn).not.toHaveBeenCalled();
+  expect(screen.getByLabelText('Password')).toBeEnabled();
 });

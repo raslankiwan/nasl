@@ -1,5 +1,6 @@
 import { User } from '../models/user.model.ts';
 import { hashPassword } from '../auth/passwords.ts';
+import type { VerificationMailer, VerificationMessage } from '../auth/verificationEmail.ts';
 import type { InvitationMailer } from '../auth/invitationEmail.ts';
 import type { Express } from 'express';
 import { createApp } from '../app.ts';
@@ -17,12 +18,23 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
   return { ...loadConfig({ ...TEST_CONFIG_ENV } as NodeJS.ProcessEnv), ...overrides };
 }
 
+export const verificationMessages: VerificationMessage[] = [];
+export const testVerificationMailer: VerificationMailer = async (message) => {
+  verificationMessages.push(message);
+};
+
 export function testApp(
   overrides: Partial<Config> = {},
   invitationMailer?: InvitationMailer,
+  verificationMailer: VerificationMailer = testVerificationMailer,
 ): Express {
   const config = testConfig(overrides);
-  return createApp({ config, logger: createLogger('silent', false), invitationMailer });
+  return createApp({
+    config,
+    logger: createLogger('silent', false),
+    invitationMailer,
+    verificationMailer,
+  });
 }
 
 export interface ApiResponse<T = unknown> {
@@ -139,4 +151,14 @@ export async function signInWithFarm(
 export async function makePlatformAdmin(userId: string): Promise<void> {
   const { User } = await import('../models/user.model.ts');
   await User.updateOne({ _id: userId }, { $set: { isPlatformAdmin: true } }).exec();
+}
+
+export async function verifyTestEmail(baseUrl: string, email: string) {
+  const message = verificationMessages.findLast((entry) => entry.email === email.toLowerCase());
+  if (!message) throw new Error('No verification email in test mailbox');
+  const result = await api(baseUrl).post('/v1/auth/email/verify', {
+    verificationId: message.id,
+    code: message.code,
+  });
+  if (result.status !== 200) throw new Error('Test email verification failed');
 }

@@ -30,7 +30,7 @@ npm run check                 # typecheck + eslint + prettier --check. Must pass
 npm test                      # every workspace
 ```
 
-Farm users register with email, username and a password (12-128 characters); accounts remain
+Farm users register with email, username and a password (12-128 characters); accounts verify their email and remain
 pending until approved in Admin > Users. The admin console has no self-registration.
 Administrators join only through an existing administrator's email invitation. The first admin
 is created with `apps/api/scripts/seed-first-admin.ts`, which writes a private one-use setup link

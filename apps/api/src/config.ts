@@ -11,7 +11,7 @@ const schema = z
       .default('nasl'),
     JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
     ACCESS_TOKEN_TTL_MINUTES: z.coerce.number().int().positive().default(15),
-    REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),
+    REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().max(90).default(90),
     CORS_ORIGINS: z.string().default(''),
     VAPID_PUBLIC_KEY: z
       .string()
@@ -25,6 +25,7 @@ const schema = z
     CRON_SECRET: z.string().min(32).optional(),
     ADMIN_APP_URL: z.string().url().optional(),
     RESEND_API_KEY: z.string().min(1).optional(),
+    EMAIL_FROM: z.string().email().optional(),
     ADMIN_INVITE_FROM: z.string().email().optional(),
     MONGO_MAX_POOL_SIZE: z.coerce.number().int().min(1).max(20).default(5),
     LOG_LEVEL: z

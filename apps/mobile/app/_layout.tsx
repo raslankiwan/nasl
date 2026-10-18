@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { DefaultTheme, DarkTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '../src/auth/AuthProvider';
+import { BiometricGate } from '../src/auth/BiometricGate';
 import { initI18n } from '../src/i18n';
 import { SyncProvider } from '../src/sync/SyncProvider';
 import { AppearanceProvider, useTheme } from '../src/theme';
@@ -104,7 +105,9 @@ function AppLayout() {
       <AuthProvider>
         <SyncProvider>
           <ThemeProvider value={navigationTheme}>
-            <AuthGate />
+            <BiometricGate>
+              <AuthGate />
+            </BiometricGate>
           </ThemeProvider>
         </SyncProvider>
       </AuthProvider>

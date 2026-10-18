@@ -1,5 +1,35 @@
 # Delivery plan
 
+## Device sign-in, email verification and 90-day sessions (18 October 2026)
+
+- [x] Web/PWA passkeys in both apps use the device platform authenticator (Face ID, fingerprint,
+      or screen lock). Enrollment requires the current password and approved-account access.
+      Five-minute, single-use challenges bind purpose, account where applicable, device and exact
+      allowed origin. Each app hostname has its own RP ID; no wildcard Vercel RP is trusted.
+      Verification checks signatures and user verification with SimpleWebAuthn. Users can list and
+      remove their own keys in Settings / Sign-in and security; password login remains available.
+- [x] Native sessions migrate from AsyncStorage into SecureStore. Opt-in biometric unlock covers
+      the app at startup and on backgrounding without unmounting unfinished capture forms. The OS
+      can use the device passcode fallback. This is local session unlock; after expiry/sign-out,
+      native users sign in with their password. Face ID permission is configured for native builds.
+- [x] New registrations require a six-digit emailed code (15 minutes, five guesses, one minute
+      between sends). Only an HMAC is stored. Verification never approves or signs in an account;
+      admins cannot approve until the email is verified. Public resend supports interrupted signup.
+      Delivery failure retains an unverified pending account for retry. Missing mail configuration
+      rejects new registrations instead of bypassing verification. Existing approved accounts stay
+      accessible; the preparation script marks pending/rejected non-staff accounts for verification.
+- [x] Refresh sessions have a fixed 90-day deadline. Rotation retains that deadline, while existing
+      valid legacy sessions upgrade on their next refresh. Access tokens remain short-lived, and
+      sign-out/revocation and approval checks remain in place. No expired session is revived.
+- [x] `prepare-auth-security.ts` creates credential/challenge/code indexes and TTL cleanup before
+      API deployment. Production needs `RESEND_API_KEY` and a verified `EMAIL_FROM` (or the existing
+      `ADMIN_INVITE_FROM`). No new paid service or database instance is required.
+- [x] Tests exercise actual signed WebAuthn registration/authentication, replay/tampering/origin/
+      device/expiry failures, account gates, code exhaustion/expiry/resend/delivery failure and the
+      90-day boundary. Arabic phone browser checks cover code errors, Arabic digits and the pending
+      approval outcome. Actual hardware biometric prompts and external email delivery still need
+      a permitted device and configured sender; no simulator or emulator was launched.
+
 ## Birth timing, reminder choices and animal numbers (18 October 2026)
 
 - [x] Sheep planning windows now span days 145–152 inclusive; overdue begins on day 153.

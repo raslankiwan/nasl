@@ -10,14 +10,16 @@ export function AccountReview({
   isPlatformAdmin,
   userName,
   hasFarm,
+  emailUnverified = false,
 }: {
   userId: string;
   status: AccountStatus;
   isPlatformAdmin: boolean;
   userName: string;
   hasFarm: boolean;
+  emailUnverified?: boolean;
 }) {
-  const { t } = useTranslation(['admin', 'common', 'animals']);
+  const { t } = useTranslation(['admin', 'common', 'animals', 'auth']);
   const id = useId();
   const [createFarm, setCreateFarm] = useState(!hasFarm);
   const [farmName, setFarmName] = useState(() =>
@@ -56,9 +58,11 @@ export function AccountReview({
       {review.isError ? (
         <div className="notice danger" role="alert">
           {t(
-            review.error instanceof ApiError && review.error.status === 409
-              ? 'admin:approvalConflict'
-              : 'common:errorRetry',
+            review.error instanceof ApiError && review.error.code === 'email_unverified'
+              ? 'admin:approvalNeedsEmail'
+              : review.error instanceof ApiError && review.error.status === 409
+                ? 'admin:approvalConflict'
+                : 'common:errorRetry',
           )}
         </div>
       ) : null}
@@ -68,10 +72,11 @@ export function AccountReview({
           aria-label={t('admin:accountStatus')}
           onSubmit={(event) => {
             event.preventDefault();
-            if (!review.isPending) review.mutate('approved');
+            if (!review.isPending && !emailUnverified) review.mutate('approved');
           }}
         >
           <p>{t('admin:approvalHint')}</p>
+          {emailUnverified ? <p className="notice">{t('admin:approvalNeedsEmail')}</p> : null}
           <fieldset disabled={review.isPending}>
             {hasFarm ? (
               <p className="hint">{t('admin:approvalExistingFarm')}</p>
@@ -123,7 +128,9 @@ export function AccountReview({
             <button
               className="primary"
               type="submit"
-              disabled={review.isPending || (createFarm && !hasFarm && !farmName.trim())}
+              disabled={
+                review.isPending || emailUnverified || (createFarm && !hasFarm && !farmName.trim())
+              }
             >
               {t(createFarm && !hasFarm ? 'admin:approveWithFarm' : 'admin:approveAccount')}
             </button>

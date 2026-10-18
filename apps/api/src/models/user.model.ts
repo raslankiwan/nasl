@@ -9,6 +9,8 @@ export interface UserDoc {
   email: string;
   username: string;
   passwordHash?: string;
+  emailVerificationRequired?: boolean;
+  emailVerifiedAt?: Date;
   adminProvisionedBy?: 'seed' | 'invitation';
   status: AccountStatus;
   reviewedAt?: Date;
@@ -28,6 +30,9 @@ const schema = globalSchema<UserDoc>({
   username: { type: String, required: true, trim: true, lowercase: true },
   // A seeded administrator has no password until their one-use setup link is redeemed.
   passwordHash: { type: String, select: false },
+  // Legacy accounts keep access; all public registrations explicitly require verification.
+  emailVerificationRequired: { type: Boolean, default: false },
+  emailVerifiedAt: { type: Date },
   adminProvisionedBy: { type: String, enum: ['seed', 'invitation'] },
   status: { type: String, enum: ACCOUNT_STATUSES, default: 'pending' },
   reviewedAt: { type: Date },

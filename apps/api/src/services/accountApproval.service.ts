@@ -22,6 +22,8 @@ export async function reviewAccount(input: Review, transactional: boolean) {
       .session(session ?? null)
       .lean();
     if (!user) throw AppError.notFound('User not found');
+    if (input.status === 'approved' && user.emailVerificationRequired && !user.emailVerifiedAt)
+      throw new AppError('email_unverified', 'The user must verify their email before approval.');
     if (user.isPlatformAdmin || user._id === input.actorId) {
       throw AppError.forbidden('Operator accounts cannot be reviewed here.');
     }

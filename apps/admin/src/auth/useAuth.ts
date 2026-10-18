@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { passkeySignIn } from './passkeys';
 import { apiClient, ApiError, deviceId, tokens } from '../api/client';
 
 export interface StaffUser {
@@ -75,6 +76,12 @@ export function useAuth() {
     [loadMe],
   );
 
+  const signInWithPasskey = useCallback(async () => {
+    const session = await passkeySignIn();
+    tokens.set(session.accessToken, session.refreshToken);
+    await loadMe();
+  }, [loadMe]);
+
   const signOut = useCallback(async () => {
     const refresh = tokens.refresh();
     attempt.current += 1;
@@ -86,5 +93,5 @@ export function useAuth() {
     }
   }, []);
 
-  return { state, signIn, signOut, reload: loadMe };
+  return { state, signIn, signInWithPasskey, signOut, reload: loadMe };
 }

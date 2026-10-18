@@ -104,6 +104,44 @@ export const en = {
     testBody: 'Notifications are working. Nasl will remind you before the expected birth window.',
   },
   auth: {
+    verifyEmail: 'Verify your email',
+    verificationHint: 'Enter the 6-digit code emailed to {{email}}. It expires in 15 minutes.',
+    verificationCode: 'Verification code',
+    verifyCode: 'Verify email',
+    resendCode: 'Send a new code',
+    resendHint:
+      'If an account needs verification, we will email a code. Check your spam folder too.',
+    verificationHelp: 'Verify email / resend code',
+    emailVerified: 'Email verified',
+    emailUnverified: 'Email not verified',
+    emailLegacy: 'Existing account — verification not required',
+    verificationFailedDelivery:
+      'Your account was saved, but the email could not be sent. Try sending a new code.',
+    verificationCooldown: 'Send again in {{seconds}} seconds',
+    security: 'Sign-in and security',
+    passkeySignIn: 'Sign in with Face ID / fingerprint',
+    passkeyHint:
+      'Use a passkey with Face ID, fingerprint, or your device screen lock. Your device chooses the available method.',
+    passkeyAdd: 'Add a passkey',
+    passkeyName: 'Device name',
+    thisDevice: 'My device',
+    passkeyPasswordHint: 'Confirm your current password to add a passkey.',
+    passkeyUnsupported:
+      'Biometric sign-in is not supported by this browser or device. You can still sign in with your password.',
+    passkeyError: 'The device could not complete sign-in. Try again, or use your password.',
+    passkeySaved: 'Passkey added. You can use it next time you sign in.',
+    passkeyRemove: 'Remove {{name}}',
+    passkeyNone: 'No passkeys added for this app yet.',
+    session90: 'Your session stays signed in for up to 90 days. Signing out ends it sooner.',
+    biometricEnable: 'Enable biometric unlock',
+    biometricDisable: 'Disable biometric unlock',
+    biometricHint: 'Unlock Nasl using Face ID, fingerprint, or your device screen lock.',
+    biometricEnabled: 'Biometric unlock is enabled on this device.',
+    biometricDisabled: 'Biometric unlock is off.',
+    appLocked: 'Nasl is locked',
+    unlock: 'Unlock Nasl',
+    usePassword: 'Sign out and use password',
+
     signIn: 'Sign in',
     register: 'Create account',
     fullName: 'Full name',
@@ -114,7 +152,8 @@ export const en = {
     confirmPassword: 'Confirm password',
     passwordHint: 'Use 12–128 characters.',
     usernameHint: '3–32 letters (a–z), numbers, dots, underscores or hyphens.',
-    registrationHint: 'New accounts need administrator approval before signing in.',
+    registrationHint:
+      'New accounts need email verification and administrator approval before signing in.',
     registrationSubmitted: 'Registration received',
     pendingApproval:
       'Your account is pending. An administrator must approve it before you can sign in.',
@@ -125,12 +164,18 @@ export const en = {
     signInOnlineHint: 'An internet connection is required to sign in or register.',
     signOut: 'Sign out',
     errors: {
+      email_unverified: 'Verify your email before signing in or receiving administrator approval.',
+      verification_invalid:
+        'This code is incorrect, expired, or already used. Request a new code after five unsuccessful attempts.',
+      passkey_invalid: 'The passkey could not be verified. Try again or use your password.',
+
       invitation_invalid:
         'This invitation is invalid, expired, revoked or already used. Ask an administrator for a new email invitation.',
       invitation_existing_password:
         'This email already has an account. Enter its current password to accept the invitation.',
-      email_not_configured: 'The invitation email sender has not been configured yet.',
-      email_delivery_failed: 'The invitation could not be emailed. Please try again later.',
+      email_not_configured:
+        'Email delivery is not configured yet. Please contact the administrator.',
+      email_delivery_failed: 'The email could not be sent. Please try again later.',
       unauthorized: 'Incorrect email, username or password.',
       bad_request:
         'Check your details. Use a valid email, a username of 3–32 characters, and a password of 12–128 characters.',
@@ -375,6 +420,7 @@ export const en = {
     },
   },
   admin: {
+    approvalNeedsEmail: 'This user must verify their email before you can approve the account.',
     inviteOnly:
       'Administrator access is by email invitation only. Contact an existing administrator for access.',
     adminInvitations: 'Administrator invitations',

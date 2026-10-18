@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -9,12 +9,23 @@ import { Body, Button, Card, Field, Notice, Title } from '../src/components/ui';
 import { LanguageToggle } from '../src/components/LanguageToggle';
 import { AppearanceChoice } from '../src/components/AppearanceChoice';
 import { InstallApp } from '../src/components/InstallApp';
+import { VerifyEmail } from '../src/components/VerifyEmail';
+import { passkeysAvailable } from '../src/auth/passkeys';
 import { spacing, createThemedStyles } from '../src/theme';
 
 export default function SignIn() {
   const styles = useStyles();
   const { t, i18n } = useTranslation(['auth', 'common']);
-  const { signIn, register } = useAuth();
+  const { signIn, register, signInWithPasskey } = useAuth();
+  const [passkeys, setPasskeys] = useState(false);
+  const [verification, setVerification] = useState<{
+    email: string;
+    id?: string;
+    failed?: boolean;
+  } | null>(null);
+  useEffect(() => {
+    void passkeysAvailable().then(setPasskeys);
+  }, []);
   const insets = useSafeAreaInsets();
   const [registering, setRegistering] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -46,7 +57,7 @@ export default function SignIn() {
     setBusy(true);
     try {
       if (registering) {
-        await register({
+        const result = await register({
           name,
           email,
           username,
@@ -56,11 +67,19 @@ export default function SignIn() {
         setIdentifier(email.trim());
         setPassword('');
         setConfirmation('');
-        setSubmitted(true);
+        setVerification({
+          email: email.trim(),
+          id: result.verificationId,
+          failed: !result.verificationSent,
+        });
       } else {
         await signIn(identifier.trim(), password);
       }
     } catch (err) {
+      if (err instanceof ApiError && err.code === 'email_unverified') {
+        setVerification({ email: identifier.includes('@') ? identifier.trim() : '' });
+        setPassword('');
+      }
       setError(
         err instanceof ApiError
           ? t(`auth:errors.${err.code}`, { defaultValue: t('common:errorRetry') })
@@ -74,6 +93,7 @@ export default function SignIn() {
   const changeMode = (next: boolean) => {
     setRegistering(next);
     setSubmitted(false);
+    setVerification(null);
     setError(null);
     setPassword('');
     setConfirmation('');
@@ -89,18 +109,32 @@ export default function SignIn() {
           <View style={styles.header}>
             <Title>
               {t(
-                submitted
-                  ? 'auth:registrationSubmitted'
-                  : registering
-                    ? 'auth:register'
-                    : 'auth:signIn',
+                verification
+                  ? 'auth:verifyEmail'
+                  : submitted
+                    ? 'auth:emailVerified'
+                    : registering
+                      ? 'auth:register'
+                      : 'auth:signIn',
               )}
             </Title>
             <LanguageToggle compact />
           </View>
           {error ? <Notice tone="danger">{error}</Notice> : null}
           <Card>
-            {submitted ? (
+            {verification ? (
+              <VerifyEmail
+                initialEmail={verification.email}
+                initialId={verification.id}
+                deliveryFailed={verification.failed}
+                onBack={() => changeMode(false)}
+                onVerified={() => {
+                  setVerification(null);
+                  setSubmitted(true);
+                  setError(null);
+                }}
+              />
+            ) : submitted ? (
               <>
                 <Notice>{t('auth:pendingApproval')}</Notice>
                 <Button label={t('auth:backToSignIn')} onPress={() => changeMode(false)} />
@@ -201,6 +235,38 @@ export default function SignIn() {
                   disabled={busy}
                   onPress={() => changeMode(!registering)}
                 />
+                {!registering && passkeys ? (
+                  <Button
+                    variant="secondary"
+                    label={t('auth:passkeySignIn')}
+                    disabled={busy}
+                    onPress={() =>
+                      void (async () => {
+                        if (busy) return;
+                        setBusy(true);
+                        setError(null);
+                        try {
+                          await signInWithPasskey();
+                        } catch {
+                          setError(t('auth:passkeyError'));
+                        } finally {
+                          setBusy(false);
+                        }
+                      })()
+                    }
+                  />
+                ) : null}
+                {!registering ? (
+                  <Button
+                    variant="text"
+                    label={t('auth:verificationHelp')}
+                    disabled={busy}
+                    onPress={() => {
+                      setError(null);
+                      setVerification({ email: identifier.includes('@') ? identifier.trim() : '' });
+                    }}
+                  />
+                ) : null}
               </>
             )}
           </Card>

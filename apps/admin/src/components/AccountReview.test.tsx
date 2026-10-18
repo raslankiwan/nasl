@@ -11,7 +11,7 @@ afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
 });
-function mount(hasFarm = false) {
+function mount(hasFarm = false, emailUnverified = false) {
   const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
   const invalidate = vi.spyOn(client, 'invalidateQueries');
   render(
@@ -22,6 +22,7 @@ function mount(hasFarm = false) {
         isPlatformAdmin={false}
         userName="Farmer"
         hasFarm={hasFarm}
+        emailUnverified={emailUnverified}
       />
     </QueryClientProvider>,
   );
@@ -93,4 +94,18 @@ test('an existing farm is preserved instead of offering another automatic farm',
     status: 'approved',
     expectedStatus: 'pending',
   });
+});
+
+test('an unverified email blocks approval but still permits rejecting registration', async () => {
+  const patch = vi.spyOn(apiClient, 'patch').mockResolvedValue({});
+  mount(false, true);
+  expect(screen.getByRole('button', { name: 'Approve and create farm' })).toBeDisabled();
+  expect(screen.getByText(/This user must verify/)).toBeInTheDocument();
+  await userEvent.click(screen.getByRole('button', { name: 'Reject registration' }));
+  await waitFor(() =>
+    expect(patch).toHaveBeenCalledWith(expect.any(String), {
+      status: 'rejected',
+      expectedStatus: 'pending',
+    }),
+  );
 });

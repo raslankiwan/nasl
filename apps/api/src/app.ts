@@ -22,6 +22,7 @@ import { exportRoutes } from './routes/export.routes.ts';
 import { financeRoutes } from './routes/finance.routes.ts';
 import { inventoryRoutes } from './routes/inventory.routes.ts';
 import { milkRoutes } from './routes/milk.routes.ts';
+import type { VerificationMailer } from './auth/verificationEmail.ts';
 import type { InvitationMailer } from './auth/invitationEmail.ts';
 
 import { notificationRoutes, notificationCron } from './notifications/routes.ts';
@@ -32,12 +33,19 @@ export interface AppDeps {
   logger: Logger;
   invitationMailer?: InvitationMailer;
   pushSender?: PushSender;
+  verificationMailer?: VerificationMailer;
 }
 
 /**
  * Build the Express app without binding a port, so tests can drive it directly.
  */
-export function createApp({ config, logger, invitationMailer, pushSender }: AppDeps): Express {
+export function createApp({
+  config,
+  logger,
+  invitationMailer,
+  verificationMailer,
+  pushSender,
+}: AppDeps): Express {
   const app = express();
 
   app.disable('x-powered-by');
@@ -69,7 +77,7 @@ export function createApp({ config, logger, invitationMailer, pushSender }: AppD
   const sendPush = pushSender ?? webPushSender(config);
   app.use('/v1/notifications', notificationRoutes(config, sendPush));
   app.use('/v1/cron', notificationCron(config, sendPush, logger));
-  app.use('/v1/auth', authRoutes(config));
+  app.use('/v1/auth', authRoutes(config, verificationMailer));
   app.use('/v1/reference', referenceRoutes(config));
   app.use('/v1/admin', adminRoutes(config, invitationMailer));
   app.use('/v1/farms', farmRoutes(config));

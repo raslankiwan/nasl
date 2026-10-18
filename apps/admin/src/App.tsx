@@ -19,6 +19,7 @@ import { Audit } from './routes/Audit';
 import { Users } from './routes/Users';
 import { UserDetail } from './routes/UserDetail';
 import { AcceptInvitation } from './routes/AcceptInvitation';
+import { Security } from './routes/Security';
 import { AppearanceProvider } from './appearance';
 
 interface RouterContext {
@@ -41,6 +42,7 @@ const routeTree = rootRoute.addChildren([
   createRoute({ getParentRoute: () => rootRoute, path: '/users/$userId', component: UserDetail }),
   createRoute({ getParentRoute: () => rootRoute, path: '/products', component: Products }),
   createRoute({ getParentRoute: () => rootRoute, path: '/audit', component: Audit }),
+  createRoute({ getParentRoute: () => rootRoute, path: '/security', component: Security }),
 ]);
 
 const queryClient = new QueryClient({
@@ -79,7 +81,7 @@ export function App() {
 
 function AppContent() {
   const { t } = useTranslation(['common', 'auth']);
-  const { state, signIn, signOut, reload } = useAuth();
+  const { state, signIn, signInWithPasskey, signOut, reload } = useAuth();
 
   // Stable across renders, so nothing downstream treats it as a changed dependency.
   const handleSignOut = useCallback(() => void signOut(), [signOut]);
@@ -90,7 +92,7 @@ function AppContent() {
     case 'loading':
       return <div className="loading">{t('loading')}</div>;
     case 'signedOut':
-      return <SignIn signIn={signIn} />;
+      return <SignIn signIn={signIn} signInWithPasskey={signInWithPasskey} />;
     case 'unavailable':
       return (
         <div className="signin">

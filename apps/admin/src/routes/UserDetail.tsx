@@ -13,6 +13,8 @@ import { AssignOwnerForm, type OwnershipFarm } from '../components/AssignOwnerFo
 interface UserDetails extends UserSummary {
   email: string;
   username: string;
+  emailVerificationRequired?: boolean;
+  emailVerifiedAt?: string | null;
   status: AccountStatus;
   locale: string;
   isPlatformAdmin: boolean;
@@ -68,6 +70,7 @@ export function UserDetail() {
         key={userId}
         userId={userId}
         status={data.status}
+        emailUnverified={data.emailVerificationRequired === true && !data.emailVerifiedAt}
         isPlatformAdmin={data.isPlatformAdmin}
         userName={data.name || data.username}
         hasFarm={data.farms.some(
@@ -77,6 +80,15 @@ export function UserDetail() {
               (!farm.expiresAt || new Date(farm.expiresAt).getTime() > Date.now())),
         )}
       />
+      <p className="notice">
+        {t(
+          data.emailVerifiedAt
+            ? 'auth:emailVerified'
+            : data.emailVerificationRequired
+              ? 'auth:emailUnverified'
+              : 'auth:emailLegacy',
+        )}
+      </p>
       <dl className="card detail-grid section">
         <div>
           <dt>{t('auth:username')}</dt>

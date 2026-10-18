@@ -15,6 +15,7 @@ export interface RefreshTokenDoc {
   /** All tokens descended from one sign-in share a family. */
   familyId: string;
   expiresAt: Date;
+  sessionExpiresAt?: Date;
   revokedAt?: Date | null;
   replacedByTokenId?: string | null;
   createdAt: Date;
@@ -29,6 +30,7 @@ const schema = new Schema(
     tokenHash: { type: String, required: true, unique: true },
     familyId: { type: String, required: true, index: true },
     expiresAt: { type: Date, required: true },
+    sessionExpiresAt: { type: Date },
     revokedAt: { type: Date, default: null },
     replacedByTokenId: { type: String, default: null },
   },

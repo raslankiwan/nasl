@@ -11,7 +11,7 @@ import { invitationAuthRoutes } from './invitation.routes.ts';
 import { hashPassword, verifyPassword } from './passwords.ts';
 import {
   hashRefreshToken,
-  issueRefreshToken,
+  createSession,
   revokeAllForUser,
   rotateRefreshToken,
   signAccessToken,
@@ -20,6 +20,13 @@ import { RefreshToken } from '../models/refreshToken.model.ts';
 import { mongoRateLimitStore } from './rateLimitStore.ts';
 import { requireAuth } from '../middleware/requireAuth.ts';
 import { parse } from '../http/validate.ts';
+import { verificationMailer, type VerificationMailer } from './verificationEmail.ts';
+import {
+  emailVerificationRoutes,
+  requireVerificationMailer,
+  sendVerification,
+} from './emailVerification.ts';
+import { passkeyRoutes } from './passkeys.ts';
 
 const loginSchema = z
   .object({
@@ -33,13 +40,16 @@ const refreshSchema = z.object({
   deviceId: z.string().min(8).max(128),
 });
 
-export function authRoutes(config: Config): Router {
+export function authRoutes(config: Config, injectedMailer?: VerificationMailer): Router {
+  const sendEmail = injectedMailer ?? verificationMailer(config);
   const router = Router();
   router.use((_req, res, next) => {
     res.set('Cache-Control', 'no-store');
     next();
   });
   router.use('/admin-invitations', invitationAuthRoutes(config));
+  router.use('/email', emailVerificationRoutes(config, sendEmail));
+  router.use('/passkeys', passkeyRoutes(config));
 
   const limitOptions: Partial<Options> = {
     windowMs: 15 * 60_000,
@@ -78,15 +88,28 @@ export function authRoutes(config: Config): Router {
     if (await User.exists({ $or: [{ email: profile.email }, { username: profile.username }] })) {
       throw conflict();
     }
+    requireVerificationMailer(sendEmail);
     try {
       const user = await User.create({
         ...profile,
         passwordHash: await hashPassword(password),
         status: 'pending',
+        emailVerificationRequired: true,
         isPlatformAdmin: false,
       });
       // Registration never issues credentials, even for the first account.
-      res.status(201).json({ id: user._id, status: 'pending' });
+      let verificationId: string | undefined;
+      try {
+        verificationId = await sendVerification(user, config, sendEmail);
+      } catch {
+        /* The pending account can retry delivery without losing its registration. */
+      }
+      res.status(201).json({
+        id: user._id,
+        status: 'pending',
+        verificationId,
+        verificationSent: Boolean(verificationId),
+      });
     } catch (error) {
       if ((error as { code?: number }).code === 11000) throw conflict();
       throw error;
@@ -103,35 +126,7 @@ export function authRoutes(config: Config): Router {
     if (!(await verifyPassword(password, user?.passwordHash)) || !user) {
       throw AppError.unauthorized('Incorrect email, username or password.');
     }
-    if (user.status === 'rejected') {
-      throw new AppError(
-        'account_rejected',
-        'Your registration was not approved. Contact the administrator.',
-      );
-    }
-    if (user.status !== 'approved') {
-      throw new AppError('account_pending', 'Your account is awaiting administrator approval.');
-    }
-    user.lastSeenAt = new Date();
-    await user.save();
-
-    const [accessToken, refresh] = await Promise.all([
-      signAccessToken(user._id, config.JWT_SECRET, config.ACCESS_TOKEN_TTL_MINUTES),
-      issueRefreshToken(user._id, deviceId, config.REFRESH_TOKEN_TTL_DAYS),
-    ]);
-
-    res.status(200).json({
-      accessToken,
-      refreshToken: refresh.token,
-      expiresIn: config.ACCESS_TOKEN_TTL_MINUTES * 60,
-      user: {
-        id: user._id,
-        name: user.name ?? null,
-        email: user.email,
-        username: user.username,
-        locale: user.locale,
-      },
-    });
+    res.status(200).json(await createSession(user._id, deviceId, config));
   });
 
   router.post('/refresh', async (req, res) => {

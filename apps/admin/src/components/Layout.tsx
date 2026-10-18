@@ -103,6 +103,13 @@ export function Layout({ user, onSignOut }: Props) {
           >
             {t('admin:auditLog')}
           </Link>
+          <Link
+            to="/security"
+            onClick={() => setMenuOpen(false)}
+            activeProps={{ className: 'active' }}
+          >
+            {t('auth:security')}
+          </Link>
         </nav>
 
         <div className="sidebar-foot">

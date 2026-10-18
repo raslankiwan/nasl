@@ -51,6 +51,6 @@ test('delivery failure is reported without claiming the email was sent', async (
   await mount(true);
   await userEvent.type(screen.getByLabelText('Email address'), 'invited@example.test');
   await userEvent.click(screen.getByRole('button', { name: 'Send email invitation' }));
-  expect(await screen.findByRole('alert')).toHaveTextContent('could not be emailed');
+  expect(await screen.findByRole('alert')).toHaveTextContent('could not be sent');
   expect(screen.queryByRole('status')).not.toBeInTheDocument();
 });
