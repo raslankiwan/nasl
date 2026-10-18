@@ -1,0 +1,21 @@
+apps/api/src/notifications/push.test.ts
+  s_c9959826314bf9::t_cf0b9a46a9597a 16,214-235
+apps/api/src/notifications/push.ts
+  s_c9959826314bf9::t_31ec29ab4eb613 141,200
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "0324aaf5ab8233698019e1c1581894f2bb6024c3",
+  "prompts": {},
+  "sessions": {
+    "s_c9959826314bf9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ed41-6d4f-7fd1-8eef-bc4227e3e739",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "raslan <raslankiwan@gmail.com>"
+    }
+  }
+}
