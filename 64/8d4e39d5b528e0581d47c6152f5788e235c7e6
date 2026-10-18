@@ -1,0 +1,98 @@
+apps/api/src/models/animalNumber.model.ts
+  s_c9959826314bf9::t_6c210c786d5f48 1-11
+docs/roadmap.md
+  s_c9959826314bf9::t_42e92974d46790 3-33
+apps/mobile/src/sync/SyncProvider.tsx
+  s_c9959826314bf9::t_ddfcdd32b12d05 16,68-82,102-105
+apps/api/src/repositories/animalNumber.repository.ts
+  s_c9959826314bf9::t_6c210c786d5f48 1-34
+  s_c9959826314bf9::t_62538b963ed199 35-42
+apps/api/scripts/prepare-animal-numbers.ts
+  s_c9959826314bf9::t_ba3d9dea0803aa 1-44
+apps/api/src/models/animal.model.ts
+  s_c9959826314bf9::t_28a72666ecee58 70-71,73
+apps/api/src/models/index.ts
+  s_c9959826314bf9::t_e70667bfff8141 8
+apps/api/src/models/pushSubscription.model.ts
+  s_c9959826314bf9::t_d9b371378d062f 12-13,28-29
+apps/api/src/notifications/push.test.ts
+  s_c9959826314bf9::t_75f88b8edea0e4 52,126,199,236-279
+apps/api/src/notifications/push.ts
+  s_c9959826314bf9::t_b9eb6622ebab02 3,98,106,138,171-174
+apps/api/src/notifications/routes.ts
+  s_c9959826314bf9::t_96193bf3b408bf 5,29-35,50-55,60-61,75-76,86
+apps/api/src/repositories/animal.repository.ts
+  s_c9959826314bf9::t_06f069c912333d 1-2,43-44,48-50,60-63,65-69,71-111,113-139,143-147
+apps/api/src/repositories/tenantRepository.ts
+  s_c9959826314bf9::t_3af0043242edb2 1-8,67-70,160,169,180,184-187,191-193,206,218,222-225,237,244,256,268,276
+apps/api/src/routes/animals.routes.ts
+  s_c9959826314bf9::t_a7df65415bb2ee 24,71,155
+apps/api/src/routes/animals.test.ts
+  s_c9959826314bf9::t_c5fa2cacafa305 171,183,483-517
+apps/api/src/routes/breeding.routes.ts
+  s_c9959826314bf9::t_5f02923ca346f7 72,125
+apps/api/src/routes/breeding.test.ts
+  s_c9959826314bf9::t_bc37b39328daec 239-240,414,426,431,435
+apps/api/src/services/birth.transaction.test.ts
+  s_c9959826314bf9::t_44b0ae46c6a083 1-103
+apps/api/src/services/breeding.service.ts
+  s_c9959826314bf9::t_39333c875d1d06 1-2,40-58,233-254,266-273,277,282,295,304
+apps/api/src/services/milk.service.ts
+  s_c9959826314bf9::t_ceb81a8dedba09 1,53-65
+apps/mobile/app/(tabs)/flock.tsx
+  s_c9959826314bf9::t_03f35e789a491b 26,111-120
+apps/mobile/app/animal/[id].tsx
+  s_c9959826314bf9::t_1de6c11b668e71 81,232-243
+apps/mobile/app/animal/new.tsx
+  s_c9959826314bf9::t_e7bd389b2f94c4 2-11,19-20,82-85,95-96,102-108,111-112,116-122,124,127,194-199,201-227,244-248
+apps/mobile/app/breeding/birth.tsx
+  s_c9959826314bf9::t_2a29807fb38210 6-7,37-38,47,55-63,67,83-86,150-151,155
+apps/mobile/src/components/PushSettings.tsx
+  s_c9959826314bf9::t_4408db76703011 7-8,23,35,52-53,79-94,100
+apps/mobile/src/components/form.tsx
+  s_c9959826314bf9::t_519ea5f8076404 66-97
+apps/mobile/src/notifications/push.ts
+  s_c9959826314bf9::t_de6f68df871a6e 6,12,17
+apps/mobile/src/notifications/push.web.ts
+  s_c9959826314bf9::t_d532388590fc92 31-37,66-70,92
+apps/mobile/src/sync/cache.ts
+  s_c9959826314bf9::t_08ec6ac71bdb33 159,162
+apps/mobile/src/sync/pull.test.ts
+  s_c9959826314bf9::t_3c6166a35cdc24 39-87
+apps/mobile/src/sync/pull.ts
+  s_c9959826314bf9::t_0f655d4f83120c 9,11-12,14-19,42
+apps/mobile/src/sync/useFlock.ts
+  s_c9959826314bf9::t_c1fe2743661e54 1,50,53-62
+docs/scope.md
+  s_c9959826314bf9::t_7d8c1526a7efcb 179,216
+packages/i18n/src/locales/ar.ts
+  s_c9959826314bf9::t_69ac4ba4dc66fd 85-90,159-162
+packages/i18n/src/locales/en.ts
+  s_c9959826314bf9::t_e1a3b44a3f7860 82-87,158-161
+packages/shared/src/alerts.test.ts
+  s_c9959826314bf9::t_448e72c5fd7272 25-27,41,49-50,59,62
+packages/shared/src/birthReminders.test.ts
+  s_c9959826314bf9::t_c5a78c3ce584fc 3,16-36,38,40,46-55,60,69
+packages/shared/src/birthReminders.ts
+  s_c9959826314bf9::t_5c71307037bf8d 6-14,22,25-27,31,46-48,56
+packages/shared/src/repro.test.ts
+  s_c9959826314bf9::t_c32076523086f6 145,147-148,150-151
+packages/shared/src/species.ts
+  s_c9959826314bf9::t_5f0499f8cfbd5c 36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "648d4e39d5b528e0581d47c6152f5788e235c7e6",
+  "prompts": {},
+  "sessions": {
+    "s_c9959826314bf9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ed41-6d4f-7fd1-8eef-bc4227e3e739",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "raslan <raslankiwan@gmail.com>"
+    }
+  }
+}
