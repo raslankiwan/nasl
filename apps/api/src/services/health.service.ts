@@ -1,12 +1,12 @@
+import type { AnimalDoc } from '../models/animal.model.ts';
 import { randomUUID } from 'node:crypto';
-import { mergeWithdrawal, withdrawalFor, type WithdrawalWindow } from '@nasl/shared';
+import { withdrawalFor, type WithdrawalWindow } from '@nasl/shared';
 import { AppError } from '../errors.ts';
 import { AnimalRepository } from '../repositories/animal.repository.ts';
 import { TenantRepository } from '../repositories/tenantRepository.ts';
 import { HealthEvent, type HealthEventDoc } from '../models/health.model.ts';
 import { VetProduct } from '../models/vetProduct.model.ts';
 import { InventoryService } from './inventory.service.ts';
-import type { AnimalDoc } from '../models/animal.model.ts';
 
 export interface TreatmentInput {
   /** Minted by the device. Only meaningful for a single-animal treatment. */
@@ -39,6 +39,23 @@ export class HealthService {
   private readonly inventory = new InventoryService();
 
   async recordTreatment(farmId: string, input: TreatmentInput, recordedBy: string) {
+    const previous =
+      input.id && input.animalIds.length === 1
+        ? await this.events.findById(farmId, input.id)
+        : null;
+    if (previous) {
+      const withdrawal = {
+        ...(previous.withholdMeatUntil
+          ? { meatUntil: previous.withholdMeatUntil.toISOString().slice(0, 10) }
+          : {}),
+        ...(previous.withholdMilkUntil
+          ? { milkUntil: previous.withholdMilkUntil.toISOString().slice(0, 10) }
+          : {}),
+      };
+      // A retry also repairs a hold if the original process stopped after saving the event.
+      await this.applyWithdrawal(farmId, previous.animalId, withdrawal);
+      return { events: [previous], groupBatchId: previous.groupBatchId ?? null, withdrawal };
+    }
     if (input.animalIds.length === 0) {
       throw AppError.badRequest('Choose at least one animal.');
     }
@@ -84,7 +101,7 @@ export class HealthService {
       } as Partial<HealthEventDoc>);
 
       created.push(event);
-      await this.applyWithdrawal(farmId, animal, window);
+      await this.applyWithdrawal(farmId, animal._id, window);
     }
 
     if (created.length === 0) throw AppError.badRequest('None of those animals are in this flock.');
@@ -109,27 +126,16 @@ export class HealthService {
    */
   private async applyWithdrawal(
     farmId: string,
-    animal: AnimalDoc,
+    animalId: string,
     window: WithdrawalWindow,
   ): Promise<void> {
     if (!window.meatUntil && !window.milkUntil) return;
-
-    const merged = mergeWithdrawal(
-      {
-        ...(animal.withholdMeatUntil
-          ? { meatUntil: animal.withholdMeatUntil.toISOString().slice(0, 10) }
-          : {}),
-        ...(animal.withholdMilkUntil
-          ? { milkUntil: animal.withholdMilkUntil.toISOString().slice(0, 10) }
-          : {}),
-      },
-      window,
-    );
-
-    await this.animals.updateById(farmId, animal._id, {
-      $set: {
-        withholdMeatUntil: merged.meatUntil ? new Date(merged.meatUntil) : null,
-        withholdMilkUntil: merged.milkUntil ? new Date(merged.milkUntil) : null,
+    // MongoDB takes the maximum atomically. Merging an earlier read and then $setting it can
+    // shorten a concurrent treatment's longer restriction.
+    await this.animals.updateById(farmId, animalId, {
+      $max: {
+        ...(window.meatUntil ? { withholdMeatUntil: new Date(window.meatUntil) } : {}),
+        ...(window.milkUntil ? { withholdMilkUntil: new Date(window.milkUntil) } : {}),
       },
     });
   }

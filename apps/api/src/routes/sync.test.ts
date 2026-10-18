@@ -2,30 +2,26 @@ import { after, before, beforeEach, describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { Animal } from '../models/animal.model.ts';
+import { Membership } from '../models/membership.model.ts';
+import { Transaction } from '../models/finance.model.ts';
+import type { PullPage } from '../services/sync.service.ts';
 import { Mating } from '../models/breeding.model.ts';
 import { clearDatabase, startTestMongo, stopTestMongo } from '../testing/mongo.ts';
 import { api, signInWithFarm, testApp, withServer } from '../testing/harness.ts';
 
 interface PullBody {
   timestamp: string;
+  nextPage: PullPage | null;
   changes: Record<
     string,
     { created: Array<Record<string, unknown>>; updated: unknown[]; deleted: string[] }
   >;
-}
-interface PushBody {
-  applied: number;
-  rejected: Array<{ collection: string; id: string; reason: string }>;
-  recomputed: number;
-  timestamp: string;
 }
 interface AnimalBody {
   id: string;
   tagNumber: string;
   repro: { state: string; dueDate: string | null } | null;
 }
-
-const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000);
 
 async function farm(url: string, phone = '+966501111111') {
   const { session, farmId } = await signInWithFarm(url, phone);
@@ -123,340 +119,111 @@ describe('pull', () => {
   });
 });
 
-describe('push', () => {
-  test('a device that has been away pushes records the server has never seen', async () => {
+describe('safe sync boundaries', () => {
+  test('pages through tied timestamps without skipping animals or advancing early', async () => {
     await withServer(testApp(), async (url) => {
       const { client, farmId } = await farm(url);
-      const id = randomUUID();
-
-      const res = await client.post<PushBody>(`/v1/farms/${farmId}/sync/push`, {
-        changes: {
-          animals: {
-            created: [
-              {
-                _id: id,
-                tagNumber: '5001',
-                species: 'sheep',
-                sex: 'female',
-                origin: 'born',
-                status: 'active',
-                dobIsEstimate: false,
-                photoKeys: [],
-              },
-            ],
-            updated: [],
-            deleted: [],
-          },
-        },
-      });
-
-      assert.equal(res.status, 200);
-      assert.equal(res.body.applied, 1);
-      assert.deepEqual(res.body.rejected, []);
-
-      const fetched = await client.get<AnimalBody>(`/v1/farms/${farmId}/animals/${id}`);
-      assert.equal(fetched.body.tagNumber, '5001');
-    });
-  });
-
-  test('re-pushing the same event twice is a no-op, so a dropped connection is safe to retry', async () => {
-    await withServer(testApp(), async (url) => {
-      const { client, farmId } = await farm(url);
-      const dam = await client.post<AnimalBody>(`/v1/farms/${farmId}/animals`, {
-        tagNumber: '1001',
-        species: 'sheep',
-        sex: 'female',
-      });
-
-      const matingId = randomUUID();
-      const payload = {
-        changes: {
-          matings: {
-            created: [
-              {
-                _id: matingId,
-                damId: dam.body.id,
-                method: 'natural',
-                startDate: daysAgo(10).toISOString(),
-                expectedDueDate: new Date().toISOString(),
-                sireUncertain: false,
-                recordedBy: 'device',
-              },
-            ],
-            updated: [],
-            deleted: [],
-          },
-        },
-      };
-
-      await client.post<PushBody>(`/v1/farms/${farmId}/sync/push`, payload);
-      await client.post<PushBody>(`/v1/farms/${farmId}/sync/push`, payload);
-
-      assert.equal(await Mating.countDocuments({ farmId, damId: dam.body.id }), 1);
-    });
-  });
-
-  test('a client cannot write the fields the server owns', async () => {
-    await withServer(testApp(), async (url) => {
-      const a = await farm(url, '+966501111111');
-      const b = await farm(url, '+966502222222');
-      const id = randomUUID();
-
-      await a.client.post<PushBody>(`/v1/farms/${a.farmId}/sync/push`, {
-        changes: {
-          animals: {
-            created: [
-              {
-                _id: id,
-                farmId: b.farmId,
-                tagNumber: '7001',
-                species: 'sheep',
-                sex: 'female',
-                origin: 'born',
-                status: 'active',
-                dobIsEstimate: false,
-                photoKeys: [],
-                // A device must not be able to declare itself clear of a withdrawal.
-                withholdMeatUntil: null,
-                repro: { state: 'pregnant', sinceDate: new Date().toISOString() },
-              },
-            ],
-            updated: [],
-            deleted: [],
-          },
-        },
-      });
-
-      const stored = await Animal.findById(id).lean();
-      assert.equal(stored?.farmId, a.farmId, 'farmId comes from the verified membership');
-      assert.equal(stored?.repro, null, 'derived state is not the client’s to set');
-    });
-  });
-
-  test('an event cannot be deleted by a client — it is evidence, not a draft', async () => {
-    await withServer(testApp(), async (url) => {
-      const { client, farmId } = await farm(url);
-      const res = await client.post<PushBody>(`/v1/farms/${farmId}/sync/push`, {
-        changes: {
-          births: { created: [], updated: [], deleted: [randomUUID()] },
-        },
-      });
-      assert.equal(res.body.rejected.length, 1);
-      assert.match(res.body.rejected[0]!.reason, /cannot be deleted/);
-    });
-  });
-
-  test('one malformed row does not strand the rest of the batch', async () => {
-    await withServer(testApp(), async (url) => {
-      const { client, farmId } = await farm(url);
-      const good = randomUUID();
-
-      const res = await client.post<PushBody>(`/v1/farms/${farmId}/sync/push`, {
-        changes: {
-          animals: {
-            created: [
-              { tagNumber: 'no-id-here', species: 'sheep', sex: 'female' },
-              {
-                _id: good,
-                tagNumber: '8001',
-                species: 'sheep',
-                sex: 'female',
-                origin: 'born',
-                status: 'active',
-                dobIsEstimate: false,
-                photoKeys: [],
-              },
-            ],
-            updated: [],
-            deleted: [],
-          },
-        },
-      });
-
-      assert.equal(res.body.applied, 1, 'the good row landed');
-      assert.equal(res.body.rejected.length, 1);
-      assert.equal(res.body.rejected[0]?.reason, 'no id');
-    });
-  });
-
-  test('an unknown collection is refused rather than silently dropped', async () => {
-    await withServer(testApp(), async (url) => {
-      const { client, farmId } = await farm(url);
-      const res = await client.post<{ error: { message: string } }>(
-        `/v1/farms/${farmId}/sync/push`,
-        { changes: { sheepThoughts: { created: [], updated: [], deleted: [] } } },
+      const at = new Date('2026-01-01T00:00:00Z');
+      await Animal.collection.insertMany(
+        Array.from({ length: 7 }, (_, n) => ({
+          _id: randomUUID(),
+          farmId,
+          tagNumber: String(n),
+          species: 'sheep',
+          sex: 'female',
+          status: 'active',
+          deletedAt: null,
+          createdAt: at,
+          updatedAt: at,
+        })),
       );
-      assert.equal(res.status, 400);
-      assert.match(res.body.error.message, /Unknown collection/);
-    });
-  });
-});
-
-describe('derived state is rebuilt from the events, not trusted from the device', () => {
-  test('a fortnight of offline breeding replays into the right state', async () => {
-    await withServer(testApp(), async (url) => {
-      const { client, farmId } = await farm(url);
-      const dam = await client.post<AnimalBody>(`/v1/farms/${farmId}/animals`, {
-        tagNumber: '1001',
-        species: 'sheep',
-        sex: 'female',
-      });
-
-      // The phone was off-grid: a mating, then a scan, recorded days apart and pushed together.
-      const res = await client.post<PushBody>(`/v1/farms/${farmId}/sync/push`, {
-        changes: {
-          matings: {
-            created: [
-              {
-                _id: randomUUID(),
-                damId: dam.body.id,
-                method: 'natural',
-                startDate: daysAgo(60).toISOString(),
-                expectedDueDate: new Date(Date.now() + 87 * 86_400_000).toISOString(),
-                sireUncertain: false,
-                recordedBy: 'device',
-              },
-            ],
-            updated: [],
-            deleted: [],
-          },
-          pregnancyChecks: {
-            created: [
-              {
-                _id: randomUUID(),
-                damId: dam.body.id,
-                matingId: randomUUID(),
-                date: daysAgo(10).toISOString(),
-                method: 'ultrasound',
-                result: 'pregnant',
-                recordedBy: 'device',
-              },
-            ],
-            updated: [],
-            deleted: [],
-          },
-        },
-      });
-
-      assert.equal(res.body.recomputed, 1);
-      const animal = await client.get<AnimalBody>(`/v1/farms/${farmId}/animals/${dam.body.id}`);
-      assert.equal(animal.body.repro?.state, 'pregnant');
+      const seen: string[] = [];
+      let page: PullPage | undefined;
+      for (let n = 0; n < 5; n++) {
+        const res = await client.post<PullBody>(`/v1/farms/${farmId}/sync/pull`, {
+          limit: 2,
+          page,
+        });
+        assert.equal(res.status, 200);
+        seen.push(...res.body.changes.animals!.created.map((d) => String(d._id)));
+        if (!res.body.nextPage) {
+          assert.ok(res.body.timestamp > at.toISOString());
+          break;
+        }
+        assert.equal(res.body.timestamp, new Date(0).toISOString());
+        page = res.body.nextPage;
+      }
+      assert.equal(seen.length, 7);
+      assert.equal(new Set(seen).size, 7);
     });
   });
 
-  test('events arriving out of order still replay in the order they happened', async () => {
+  test('worker sync cannot read financial collections or advertise them', async () => {
     await withServer(testApp(), async (url) => {
       const { client, farmId } = await farm(url);
-      const dam = await client.post<AnimalBody>(`/v1/farms/${farmId}/animals`, {
-        tagNumber: '1001',
-        species: 'sheep',
-        sex: 'female',
-      });
-
-      // The birth is pushed before the mating it descends from.
-      await client.post<PushBody>(`/v1/farms/${farmId}/sync/push`, {
-        changes: {
-          births: {
-            created: [
-              {
-                _id: randomUUID(),
-                damId: dam.body.id,
-                date: daysAgo(5).toISOString(),
-                birthType: 'single',
-                assisted: false,
-                difficulty: 1,
-                offspring: [{ sex: 'female', outcome: 'live' }],
-                recordedBy: 'device',
-              },
-            ],
-            updated: [],
-            deleted: [],
-          },
-          matings: {
-            created: [
-              {
-                _id: randomUUID(),
-                damId: dam.body.id,
-                method: 'natural',
-                startDate: daysAgo(152).toISOString(),
-                expectedDueDate: daysAgo(5).toISOString(),
-                sireUncertain: false,
-                recordedBy: 'device',
-              },
-            ],
-            updated: [],
-            deleted: [],
-          },
-        },
-      });
-
-      const animal = await client.get<AnimalBody>(`/v1/farms/${farmId}/animals/${dam.body.id}`);
-      assert.equal(
-        animal.body.repro?.state,
-        'nursing',
-        'mating then birth, whatever the push order',
-      );
-    });
-  });
-
-  test('a replay is total: an impossible event is skipped, not fatal', async () => {
-    await withServer(testApp(), async (url) => {
-      const { client, farmId } = await farm(url);
-      const dam = await client.post<AnimalBody>(`/v1/farms/${farmId}/animals`, {
-        tagNumber: '1001',
-        species: 'sheep',
-        sex: 'female',
-      });
-
-      // Two matings with no intervening birth — the second cannot apply.
-      const mating = (days: number) => ({
+      await Transaction.collection.insertOne({
         _id: randomUUID(),
-        damId: dam.body.id,
-        method: 'natural',
-        startDate: daysAgo(days).toISOString(),
-        expectedDueDate: new Date().toISOString(),
-        sireUncertain: false,
-        recordedBy: 'device',
+        farmId,
+        amount: 900,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        deletedAt: null,
       });
-
-      const res = await client.post<PushBody>(`/v1/farms/${farmId}/sync/push`, {
-        changes: {
-          matings: { created: [mating(40), mating(20)], updated: [], deleted: [] },
-        },
-      });
-
-      assert.equal(res.body.applied, 2, 'both events are stored — they were observed');
-      const animal = await client.get<AnimalBody>(`/v1/farms/${farmId}/animals/${dam.body.id}`);
-      assert.equal(animal.body.repro?.state, 'mated', 'the first one wins; the second is skipped');
+      const owner = await client.post<PullBody>(`/v1/farms/${farmId}/sync/pull`, {});
+      assert.equal(owner.body.changes.transactions?.created.length, 1);
+      await Membership.updateOne({ farmId }, { $set: { role: 'worker' } });
+      const worker = await client.post<PullBody>(`/v1/farms/${farmId}/sync/pull`, {});
+      assert.equal(worker.body.changes.transactions, undefined);
+      assert.equal(worker.body.changes.feedLogs, undefined);
+      const meta = await client.get<{ collections: string[] }>(`/v1/farms/${farmId}/sync/meta`);
+      assert.equal(meta.body.collections.includes('transactions'), false);
     });
   });
 
-  test('a stale device cannot undo a withdrawal the server applied', async () => {
+  test('legacy raw writes are explicitly refused without changing farm records', async () => {
     await withServer(testApp(), async (url) => {
       const { client, farmId } = await farm(url);
-      const animal = await client.post<AnimalBody>(`/v1/farms/${farmId}/animals`, {
+      const created = await client.post<AnimalBody>(`/v1/farms/${farmId}/animals`, {
         tagNumber: '1001',
         species: 'sheep',
         sex: 'female',
       });
-      const until = new Date(Date.now() + 20 * 86_400_000);
-      await Animal.updateOne({ _id: animal.body.id }, { $set: { withholdMeatUntil: until } });
-
-      await client.post<PushBody>(`/v1/farms/${farmId}/sync/push`, {
-        changes: {
-          animals: {
-            created: [],
-            updated: [
-              { _id: animal.body.id, tagNumber: '1001', name: 'غزال', withholdMeatUntil: null },
-            ],
-            deleted: [],
+      await Animal.updateOne(
+        { _id: created.body.id },
+        { $set: { withholdMeatUntil: new Date('2099-01-01') } },
+      );
+      for (const schemaVersion of [1, 999]) {
+        const result = await client.post<{ error: { code: string } }>(
+          `/v1/farms/${farmId}/sync/push`,
+          {
+            schemaVersion,
+            changes: {
+              animals: {
+                updated: [{ _id: created.body.id, status: 'sold', withholdMeatUntil: null }],
+                deleted: [created.body.id],
+              },
+              matings: { created: [{ _id: randomUUID(), damId: created.body.id }] },
+            },
           },
-        },
-      });
+        );
+        assert.equal(result.status, 426);
+        assert.equal(result.body.error.code, 'sync_upgrade_required');
+      }
+      const animal = await Animal.findById(created.body.id).lean();
+      assert.equal(animal?.status, 'active');
+      assert.equal(animal?.deletedAt, null);
+      assert.ok(animal?.withholdMeatUntil);
+      assert.equal(await Mating.countDocuments({ farmId }), 0);
+    });
+  });
 
-      const stored = await Animal.findById(animal.body.id).lean();
-      assert.ok(stored?.withholdMeatUntil, 'the hold survives');
-      assert.equal(stored?.name, 'غزال', 'the rest of the update still applies');
+  test('a future read schema is refused rather than silently misunderstood', async () => {
+    await withServer(testApp(), async (url) => {
+      const { client, farmId } = await farm(url);
+      assert.equal(
+        (await client.post(`/v1/farms/${farmId}/sync/pull`, { schemaVersion: 999 })).status,
+        426,
+      );
     });
   });
 });

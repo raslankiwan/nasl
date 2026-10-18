@@ -1,8 +1,24 @@
 import type { RegistrationInput } from '@nasl/shared';
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import type { ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { api, ApiError, clearTokens, deviceId, loadTokens, saveTokens } from '../api/client';
+import {
+  api,
+  ApiError,
+  clearTokens,
+  deviceId,
+  loadTokens,
+  saveTokens,
+  revokeSession,
+} from '../api/client';
 import { flockCache } from '../sync/device';
 
 import { disablePush, forgetPushOwner, reconcilePushOwner } from '../notifications/push';
@@ -32,6 +48,7 @@ interface AuthValue {
 const AuthContext = createContext<AuthValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const attempt = useRef(0);
   const [status, setStatus] = useState<AuthValue['status']>('loading');
   const [me, setMe] = useState<Me | null>(null);
   const [farmId, setFarmId] = useState<string | null>(null);
@@ -55,7 +72,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * cached on the device, and the app comes up ready to record.
    */
   const refresh = useCallback(async () => {
-    if (!(await loadTokens())) {
+    const current = ++attempt.current;
+    const hasTokens = await loadTokens();
+    if (current !== attempt.current) return;
+    if (!hasTokens) {
       setMe(null);
       setFarmId(null);
       setStatus('signedOut');
@@ -64,11 +84,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const profile = await api.get<Me>('/v1/auth/me');
+      if (current !== attempt.current) return;
       await AsyncStorage.setItem(ME_CACHE_KEY, JSON.stringify(profile));
       await reconcilePushOwner(profile.id).catch(() => {});
+      if (current !== attempt.current) return;
       adopt(profile);
       return;
     } catch (err) {
+      if (current !== attempt.current) return;
       // The server said no. That is the only thing that ends a session.
       if (err instanceof ApiError && err.status === 401) {
         await forgetPushOwner().catch(() => {});
@@ -83,6 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const cached = await AsyncStorage.getItem(ME_CACHE_KEY);
+      if (current !== attempt.current) return;
       if (cached) {
         adopt(JSON.parse(cached) as Me);
         return;
@@ -107,32 +131,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
   const signIn = useCallback(
     async (identifier: string, password: string) => {
+      const current = ++attempt.current;
       const session = await api.post<{ accessToken: string; refreshToken: string }>(
         '/v1/auth/login',
         { identifier, password, deviceId: await deviceId() },
       );
+      if (current !== attempt.current) return;
       await AsyncStorage.removeItem(ME_CACHE_KEY);
       setMe(null);
       setFarmId(null);
       await saveTokens(session.accessToken, session.refreshToken);
       const profile = await api.get<Me>('/v1/auth/me');
+      if (current !== attempt.current) return;
       await AsyncStorage.setItem(ME_CACHE_KEY, JSON.stringify(profile));
       await reconcilePushOwner(profile.id).catch(() => {});
+      if (current !== attempt.current) return;
       adopt(profile);
     },
     [adopt],
   );
 
   const signOut = useCallback(async () => {
+    attempt.current += 1;
     await disablePush().catch(() => {});
-    await clearTokens();
+    await revokeSession();
     await AsyncStorage.removeItem(ME_CACHE_KEY);
     // The next person to sign in on this phone must not see the last one's flock.
-    if (farmId) await flockCache.forget(farmId);
+    await Promise.all(me?.farms.map((farm) => flockCache.forget(farm.farmId)) ?? []);
     setMe(null);
     setFarmId(null);
     setStatus('signedOut');
-  }, [farmId]);
+  }, [me]);
 
   const value = useMemo<AuthValue>(
     () => ({

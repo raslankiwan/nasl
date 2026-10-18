@@ -1,5 +1,6 @@
+import { OutboxStorageError } from '../sync/outbox';
 import { useHeaderHeight } from 'expo-router/react-navigation';
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -37,6 +38,8 @@ export function CaptureScreen({
   const headerHeight = useHeaderHeight();
   const insets = useSafeAreaInsets();
   const { send } = useSync();
+  const recordId = useRef(globalThis.crypto.randomUUID());
+  const saving = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -51,13 +54,15 @@ export function CaptureScreen({
   };
 
   const save = async () => {
+    if (saving.current) return;
+    saving.current = true;
     setBusy(true);
     setError(null);
     /**
      * The id is minted here, before anything is attempted, and travels with the record whether it
      * goes over the network now or waits in the outbox for days. That is what makes a retry safe.
      */
-    const id = globalThis.crypto.randomUUID();
+    const id = recordId.current;
     try {
       // `send` resolves false when the write was queued rather than delivered; either way the
       // record is safe, so the herder moves on. The banner shows what is still waiting.
@@ -65,8 +70,15 @@ export function CaptureScreen({
       leave();
     } catch (err) {
       // Only a refusal reaches here — a network failure was queued, not thrown.
-      setError(err instanceof ApiError ? err.message : t('errorRetry'));
+      setError(
+        err instanceof OutboxStorageError
+          ? t('storageError')
+          : err instanceof ApiError
+            ? err.message
+            : t('errorRetry'),
+      );
     } finally {
+      saving.current = false;
       setBusy(false);
     }
   };

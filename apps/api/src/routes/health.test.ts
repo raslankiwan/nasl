@@ -1,4 +1,5 @@
-import { after, before, beforeEach, describe, test } from 'node:test';
+import { AnimalRepository } from '../repositories/animal.repository.ts';
+import { after, before, beforeEach, describe, test, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { Animal } from '../models/animal.model.ts';
 import { VetProduct } from '../models/vetProduct.model.ts';
@@ -385,5 +386,91 @@ describe('treatment history', () => {
       });
       assert.equal(attempt.status, 404);
     });
+  });
+});
+
+test('a completed treatment retry repairs its saved hold without adding an event', async () => {
+  await withServer(testApp(), async (url) => {
+    const { client, farmId, animals } = await flock(url);
+    const product = await seedAntibiotic();
+    const body = {
+      id: globalThis.crypto.randomUUID(),
+      animalIds: [animals[0]!.id],
+      date: iso(new Date()),
+      type: 'treatment',
+      productId: product._id,
+      administeredBy: 'Test',
+    };
+    const first = await client.post<TreatmentBody>(`/v1/farms/${farmId}/health/treatments`, body);
+    assert.equal(first.status, 201);
+    await Animal.updateOne(
+      { _id: animals[0]!.id },
+      { $set: { withholdMeatUntil: null, withholdMilkUntil: null } },
+    );
+    const again = await client.post<TreatmentBody>(`/v1/farms/${farmId}/health/treatments`, body);
+    assert.equal(again.status, 201);
+    assert.deepEqual(again.body, first.body);
+    const animal = await client.get<AnimalBody>(`/v1/farms/${farmId}/animals/${animals[0]!.id}`);
+    assert.equal(animal.body.withholdMeatUntil, first.body.withdrawal.meatUntil);
+    const history = await client.get<{ events: unknown[] }>(
+      `/v1/farms/${farmId}/health/animals/${animals[0]!.id}`,
+    );
+    assert.equal(history.body.events.length, 1);
+  });
+});
+
+test('concurrent treatments cannot shorten a longer withdrawal using a stale animal read', async () => {
+  await withServer(testApp(), async (url) => {
+    const { client, farmId, animals } = await flock(url);
+    const product = await seedAntibiotic();
+    const body = {
+      animalIds: [animals[0]!.id],
+      type: 'treatment',
+      productId: product._id,
+      administeredBy: 'Test',
+    };
+    const original = AnimalRepository.prototype.findById;
+    let firstRead!: () => void;
+    const ready = new Promise<void>((resolve) => {
+      firstRead = resolve;
+    });
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let reads = 0;
+    const spy = mock.method(AnimalRepository.prototype, 'findById', async function (...args) {
+      const animal = await original.apply(this, args);
+      const order = ++reads;
+      if (order === 1) firstRead();
+      else release();
+      await gate;
+      if (order === 2) await new Promise((resolve) => setTimeout(resolve, 40));
+      return animal;
+    });
+    try {
+      const longer = client.post<TreatmentBody>(`/v1/farms/${farmId}/health/treatments`, {
+        ...body,
+        date: daysFromNow(0),
+      });
+      await ready;
+      const shorter = client.post<TreatmentBody>(`/v1/farms/${farmId}/health/treatments`, {
+        ...body,
+        date: daysFromNow(-2),
+      });
+      const results = await Promise.all([longer, shorter]);
+      assert.ok(results.every((r) => r.status === 201));
+      const animal = await Animal.findById(animals[0]!.id).lean();
+      assert.equal(
+        animal?.withholdMeatUntil?.toISOString().slice(0, 10),
+        results[0]!.body.withdrawal.meatUntil,
+      );
+      assert.equal(
+        animal?.withholdMilkUntil?.toISOString().slice(0, 10),
+        results[0]!.body.withdrawal.milkUntil,
+      );
+    } finally {
+      spy.mock.restore();
+    }
   });
 });

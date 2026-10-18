@@ -1,98 +1,124 @@
 import type { KeyValueStore } from './storage.ts';
 
 const OUTBOX_KEY = 'nasl.outbox';
-const MAX_ATTEMPTS = 8;
-/** Enough failures that a person should look at it, but not yet enough to give up. */
 const STUCK_AFTER = 3;
 
-/**
- * A durable queue of writes that have not reached the server yet.
- *
- * Grazing land has no signal. A birth recorded at the back of a pen must survive the walk home,
- * the app being closed, and the phone going flat — so the record goes to disk before anything is
- * attempted over the network, and is only removed once the server has acknowledged it.
- */
+export class OutboxStorageError extends Error {
+  constructor(cause: unknown) {
+    super(cause instanceof Error ? cause.message : 'Device storage unavailable', { cause });
+    this.name = 'OutboxStorageError';
+  }
+}
 
 export interface OutboxEntry {
-  /** Client-minted, and reused as the document id, so a retry cannot create a duplicate. */
   id: string;
+  /** Older releases did not record ownership. Those entries require explicit recovery. */
+  userId?: string;
   path: string;
   body: unknown;
   createdAt: string;
   attempts: number;
   lastError?: string;
+  blocked?: boolean;
 }
 
 type Listener = (entries: OutboxEntry[]) => void;
+type Lock = <T>(work: () => Promise<T>) => Promise<T>;
 
+/** Durable writes are serialized. Failures never evict a record or update memory ahead of disk. */
 export class Outbox {
   private readonly store: KeyValueStore;
+  private readonly lock: Lock;
   private readonly listeners = new Set<Listener>();
-  private cache: OutboxEntry[] | null = null;
+  private writes: Promise<unknown> = Promise.resolve();
 
-  constructor(store: KeyValueStore) {
+  constructor(store: KeyValueStore, lock: Lock = (work) => work()) {
     this.store = store;
+    this.lock = lock;
   }
 
   private async read(): Promise<OutboxEntry[]> {
-    if (this.cache) return this.cache;
     const raw = await this.store.get(OUTBOX_KEY);
-    try {
-      this.cache = raw ? (JSON.parse(raw) as OutboxEntry[]) : [];
-    } catch {
-      // A corrupt outbox is only worse than an empty one if it blocks every future write.
-      this.cache = [];
+    if (!raw) return [];
+    // Never silently overwrite unreadable work with an empty queue.
+    const parsed: unknown = JSON.parse(raw);
+    if (
+      !Array.isArray(parsed) ||
+      parsed.some(
+        (e) =>
+          !e ||
+          typeof e.id !== 'string' ||
+          typeof e.path !== 'string' ||
+          typeof e.attempts !== 'number',
+      )
+    ) {
+      throw new Error('Saved records could not be read');
     }
-    return this.cache;
+    return parsed as OutboxEntry[];
   }
 
-  private async write(entries: OutboxEntry[]): Promise<void> {
-    this.cache = entries;
-    await this.store.set(OUTBOX_KEY, JSON.stringify(entries));
-    for (const listener of this.listeners) listener(entries);
+  private change(update: (entries: OutboxEntry[]) => OutboxEntry[]): Promise<void> {
+    const result = this.writes.then(() =>
+      this.lock(async () => {
+        const entries = update(await this.read());
+        await this.store.set(OUTBOX_KEY, JSON.stringify(entries));
+        for (const listener of this.listeners) listener(entries);
+      }),
+    );
+    const saved = result.catch((error) => {
+      throw new OutboxStorageError(error);
+    });
+    this.writes = saved.catch(() => {});
+    return saved;
   }
 
-  async enqueue(entry: Pick<OutboxEntry, 'id' | 'path' | 'body'>): Promise<void> {
-    const entries = await this.read();
-    // Re-queuing the same id replaces rather than duplicates: the id is the record's identity.
-    const next = entries.filter((e) => e.id !== entry.id);
-    next.push({ ...entry, attempts: 0, createdAt: new Date().toISOString() });
-    await this.write(next);
+  enqueue(entry: Pick<OutboxEntry, 'id' | 'path' | 'body' | 'userId'>): Promise<void> {
+    return this.change((entries) => [
+      ...entries.filter((e) => e.id !== entry.id),
+      { ...entry, attempts: 0, createdAt: new Date().toISOString() },
+    ]);
   }
 
   async pending(): Promise<OutboxEntry[]> {
+    await this.writes;
     return this.read();
   }
 
-  async remove(id: string): Promise<void> {
-    await this.write((await this.read()).filter((e) => e.id !== id));
+  remove(id: string): Promise<void> {
+    return this.change((entries) => entries.filter((e) => e.id !== id));
   }
 
-  /**
-   * Note a failure. Past `MAX_ATTEMPTS` the entry is dropped: a request the server keeps refusing
-   * is not a network problem, and retrying it forever blocks everything queued behind it.
-   */
-  async recordFailure(id: string, message: string): Promise<void> {
-    const entries = await this.read();
-    await this.write(
-      entries
-        .map((e) => (e.id === id ? { ...e, attempts: e.attempts + 1, lastError: message } : e))
-        .filter((e) => e.attempts < MAX_ATTEMPTS),
+  recordFailure(id: string, message: string, blocked = false): Promise<void> {
+    return this.change((entries) =>
+      entries.map((e) =>
+        e.id === id ? { ...e, attempts: e.attempts + 1, lastError: message, blocked } : e,
+      ),
     );
   }
 
-  async clear(): Promise<void> {
-    await this.write([]);
+  claimLegacy(userId: string, acceptsPath: (path: string) => boolean): Promise<void> {
+    return this.change((entries) =>
+      entries.map((e) => (!e.userId && acceptsPath(e.path) ? { ...e, userId } : e)),
+    );
+  }
+
+  clear(): Promise<void> {
+    return this.change(() => []);
   }
 
   subscribe(listener: Listener): () => void {
     this.listeners.add(listener);
-    void this.read().then((entries) => listener(entries));
-    return () => this.listeners.delete(listener);
+    void this.pending()
+      .then((entries) => {
+        if (this.listeners.has(listener)) listener(entries);
+      })
+      .catch(() => {});
+    return () => {
+      this.listeners.delete(listener);
+    };
   }
 }
 
-/** Entries that have failed enough times to need a person to look at them. */
 export function isStuck(entry: OutboxEntry): boolean {
-  return entry.attempts >= STUCK_AFTER;
+  return entry.blocked === true || entry.attempts >= STUCK_AFTER;
 }

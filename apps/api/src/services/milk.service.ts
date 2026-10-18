@@ -169,6 +169,9 @@ export class MilkService {
     input: { id?: string; date: Date; session: string; qtyKg: number; note?: string },
     recordedBy: string,
   ) {
+    const previous = input.id ? await this.collections.findById(farmId, input.id) : null;
+    if (previous) return previous;
+
     return this.collections.create(farmId, {
       ...(input.id ? { _id: input.id } : {}),
       date: input.date,
@@ -302,6 +305,17 @@ export class MilkService {
     },
     recordedBy: string,
   ) {
+    const previous = input.id ? await this.dispositions.findById(farmId, input.id) : null;
+    if (previous)
+      return {
+        disposition: previous,
+        plausibility: outputPlausibility(
+          previous.route as MilkRoute,
+          previous.milkKg,
+          previous.outputKg ?? undefined,
+        ),
+      };
+
     const farm = await Farm.findById(farmId).select('currency').lean().exec();
 
     const saved = await this.dispositions.create(farmId, {

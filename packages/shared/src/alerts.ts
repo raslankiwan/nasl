@@ -1,3 +1,4 @@
+import { isWithdrawalActive } from './health.ts';
 import { daysBetween } from './dates.ts';
 import { isInDueWindow, lambingWindow } from './repro.ts';
 import type { Species } from './species.ts';
@@ -99,7 +100,7 @@ export function deriveAlerts(animals: readonly AlertSubject[], today: Date): Ale
     ] as const) {
       const until = asDate(value);
       // The final day of a withholding period is still restricted.
-      if (until && daysBetween(today, until) >= 0) {
+      if (until && isWithdrawalActive(until, today)) {
         bucket.push({
           animalId: animal.id,
           tagNumber: animal.tagNumber,

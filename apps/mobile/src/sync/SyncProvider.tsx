@@ -9,100 +9,126 @@ import {
 } from 'react';
 import type { ReactNode } from 'react';
 import { AppState } from 'react-native';
-import { ApiError, request } from '../api/client';
+import { request } from '../api/client';
+import { useAuth } from '../auth/AuthProvider';
 import { isStuck, type OutboxEntry } from './outbox';
+import { Delivery } from './delivery';
 import { outbox } from './device';
 
 interface SyncValue {
-  /** Writes waiting to reach the server. */
   pending: number;
   stuck: number;
-  /** False once a write has failed on the network and not yet succeeded. */
+  legacy: number;
+  error: string | null;
   online: boolean;
   flushing: boolean;
-  /** Post now if possible, queue durably if not. Returns true when it reached the server. */
   send: (id: string, path: string, body: unknown) => Promise<boolean>;
   flush: () => Promise<void>;
+  recoverLegacy: () => Promise<void>;
 }
 
 const SyncContext = createContext<SyncValue | null>(null);
-
-/** A refused request is a problem with the record; a thrown one is a problem with the network. */
-function isNetworkFailure(error: unknown): boolean {
-  return !(error instanceof ApiError);
-}
-
 const RETRY_INTERVAL_MS = 30_000;
 
 export function SyncProvider({ children }: { children: ReactNode }) {
+  const { me, status } = useAuth();
+  const current = useRef({ me, status });
+  current.current = { me, status };
   const [entries, setEntries] = useState<OutboxEntry[]>([]);
   const [online, setOnline] = useState(true);
   const [flushing, setFlushing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const flushingRef = useRef(false);
+  const acceptsPath = useCallback(
+    (path: string) =>
+      current.current.me?.farms.some((farm) => path.startsWith(`/v1/farms/${farm.farmId}/`)) ??
+      false,
+    [],
+  );
+  const [delivery] = useState(
+    () =>
+      new Delivery(
+        outbox,
+        (entry) => request(entry.path, { method: 'POST', body: entry.body }),
+        (entry) =>
+          current.current.status === 'signedIn' &&
+          entry.userId === current.current.me?.id &&
+          acceptsPath(entry.path),
+      ),
+  );
 
   useEffect(() => outbox.subscribe(setEntries), []);
 
-  const flush = useCallback(async () => {
-    if (flushingRef.current) return;
-    flushingRef.current = true;
-    setFlushing(true);
-    try {
-      for (const entry of await outbox.pending()) {
-        try {
-          await request(entry.path, { method: 'POST', body: entry.body });
-          await outbox.remove(entry.id);
-          setOnline(true);
-        } catch (err) {
-          await outbox.recordFailure(entry.id, err instanceof Error ? err.message : 'failed');
-          if (isNetworkFailure(err)) {
-            setOnline(false);
-            // No point walking the rest of the queue while the network is down.
-            break;
-          }
-        }
+  const runFlush = useCallback(
+    async (retryBlocked = false) => {
+      if (flushingRef.current || current.current.status !== 'signedIn') return;
+      flushingRef.current = true;
+      setFlushing(true);
+      try {
+        setOnline(await delivery.flush(retryBlocked));
+        setError(null);
+      } catch {
+        setError('storage');
+      } finally {
+        flushingRef.current = false;
+        setFlushing(false);
       }
-    } finally {
-      flushingRef.current = false;
-      setFlushing(false);
-    }
-  }, []);
+    },
+    [delivery],
+  );
+  const flush = useCallback(() => runFlush(true), [runFlush]);
 
-  const send = useCallback(async (id: string, path: string, body: unknown) => {
+  const send = useCallback(
+    async (id: string, path: string, body: unknown) => {
+      const userId = current.current.me?.id;
+      if (current.current.status !== 'signedIn' || !userId || !acceptsPath(path))
+        throw new Error('Sign in to this farm before saving');
+      const sent = await delivery.send({ id, path, body, userId });
+      setOnline(sent);
+      return sent;
+    },
+    [delivery, acceptsPath],
+  );
+
+  const recoverLegacy = useCallback(async () => {
+    const userId = current.current.me?.id;
+    if (!userId) return;
     try {
-      await request(path, { method: 'POST', body });
-      setOnline(true);
-      return true;
-    } catch (err) {
-      if (!isNetworkFailure(err)) throw err; // the server refused it; the user must see why
-      await outbox.enqueue({ id, path, body });
-      setOnline(false);
-      return false;
+      await outbox.claimLegacy(userId, acceptsPath);
+      await runFlush(true);
+    } catch {
+      setError('storage');
     }
-  }, []);
+  }, [acceptsPath, runFlush]);
 
-  // Try again when the herder comes back to the app, and periodically while it is open.
   useEffect(() => {
+    if (status !== 'signedIn') return;
     const subscription = AppState.addEventListener('change', (state) => {
-      if (state === 'active') void flush();
+      if (state === 'active') void runFlush();
     });
-    const timer = setInterval(() => void flush(), RETRY_INTERVAL_MS);
-    void flush();
+    const timer = setInterval(() => void runFlush(), RETRY_INTERVAL_MS);
+    void runFlush();
     return () => {
       subscription.remove();
       clearInterval(timer);
     };
-  }, [flush]);
+  }, [runFlush, status, me?.id]);
 
+  const ownEntries = entries.filter((entry) => entry.userId === me?.id && entry.userId);
+  const legacy = entries.filter((entry) => !entry.userId && acceptsPath(entry.path)).length;
   const value = useMemo<SyncValue>(
     () => ({
-      pending: entries.length,
-      stuck: entries.filter(isStuck).length,
+      pending: ownEntries.length,
+      stuck: ownEntries.filter(isStuck).length,
+      legacy,
+      error,
       online,
       flushing,
       send,
       flush,
+      recoverLegacy,
     }),
-    [entries, online, flushing, send, flush],
+    [ownEntries, legacy, error, online, flushing, send, flush, recoverLegacy],
   );
 
   return <SyncContext.Provider value={value}>{children}</SyncContext.Provider>;

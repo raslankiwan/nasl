@@ -1,3 +1,4 @@
+import { can, isWithdrawalActive, type Role } from '@nasl/shared';
 import { TabScreen } from '../../src/components/TabScreen';
 import { useCallback, useState } from 'react';
 import { Pressable, RefreshControl, Text, View } from 'react-native';
@@ -18,8 +19,10 @@ import { MIN_TOUCH, radius, spacing, type, createThemedStyles } from '../../src/
 export default function Flock() {
   const styles = useStyles();
   const { t } = useTranslation(['animals', 'breeding', 'common', 'health']);
-  const { farmId } = useAuth();
+  const { farmId, me } = useAuth();
   const router = useRouter();
+  const role = me?.farms.find((farm) => farm.farmId === farmId)?.role;
+  const canWrite = role && can(role as Role, 'animals:write');
   const { animals, loading, stale, refresh } = useFlock();
   const [query, setQuery] = useState('');
   const search = query.trim().toLocaleLowerCase();
@@ -55,11 +58,13 @@ export default function Flock() {
         <Title>{t('animals:title')}</Title>
         <View style={styles.headerActions}>
           <Text style={styles.count}>{t('animals:headCount', { count: animals.length })}</Text>
-          <IconButton
-            label={t('animals:addAnimal')}
-            icon="plus"
-            onPress={() => router.push('/animal/new')}
-          />
+          {canWrite ? (
+            <IconButton
+              label={t('animals:addAnimal')}
+              icon="plus"
+              onPress={() => router.push('/animal/new')}
+            />
+          ) : null}
         </View>
       </View>
 
@@ -107,9 +112,9 @@ export default function Flock() {
 
             <View style={styles.rowMeta}>
               {/* A milk hold outranks everything else: it is the question asked at milking. */}
-              {item.withholdMilkUntil ? (
+              {isWithdrawalActive(item.withholdMilkUntil) ? (
                 <Pill tone="accent">{t('health:doNotMilk')}</Pill>
-              ) : item.withholdMeatUntil ? (
+              ) : isWithdrawalActive(item.withholdMeatUntil) ? (
                 <Pill tone="accent">{t('health:doNotSell')}</Pill>
               ) : item.repro ? (
                 <Pill tone={item.repro.state === 'due' ? 'accent' : 'good'}>

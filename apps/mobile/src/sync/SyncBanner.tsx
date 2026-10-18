@@ -13,29 +13,37 @@ import { radius, spacing, type, createThemedStyles } from '../theme';
 export function SyncBanner() {
   const styles = useStyles();
   const { t } = useTranslation('common');
-  const { pending, stuck, online, flushing, flush } = useSync();
+  const { pending, stuck, legacy, error, online, flushing, flush, recoverLegacy } = useSync();
 
-  if (pending === 0 && online) return null;
+  if (pending === 0 && legacy === 0 && !error && online) return null;
 
   const offline = !online;
 
   return (
     <View style={[styles.bar, offline && styles.barOffline]}>
-      <Text style={[styles.text, offline && styles.textOffline]} numberOfLines={2}>
-        {offline ? t('offline') : null}
+      <Text style={[styles.text, offline && styles.textOffline]}>
+        {error
+          ? t('storageError')
+          : legacy
+            ? t('legacyWrites', { count: legacy })
+            : offline
+              ? t('offline')
+              : null}
         {offline && pending > 0 ? ' · ' : null}
         {pending > 0 ? t('waitingToSend', { count: pending }) : null}
         {stuck > 0 ? ` · ${t('stuckWrites', { count: stuck })}` : null}
       </Text>
 
-      {pending > 0 ? (
+      {pending > 0 || legacy > 0 ? (
         <Pressable
           accessibilityRole="button"
-          onPress={() => void flush()}
+          onPress={() => void (legacy ? recoverLegacy() : flush())}
           disabled={flushing}
           style={({ pressed }) => [styles.action, pressed && styles.pressed]}
         >
-          <Text style={styles.actionLabel}>{flushing ? t('syncing') : t('sendNow')}</Text>
+          <Text style={styles.actionLabel}>
+            {flushing ? t('syncing') : legacy ? t('recoverWrites') : t('sendNow')}
+          </Text>
         </Pressable>
       ) : null}
     </View>
@@ -59,7 +67,9 @@ const useStyles = createThemedStyles((colors) => ({
   textOffline: { color: colors.inkSoft },
   action: {
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
+    paddingVertical: spacing.sm,
+    minHeight: 48,
+    justifyContent: 'center',
     borderRadius: radius.pill,
     borderWidth: 1,
     borderColor: colors.accent,

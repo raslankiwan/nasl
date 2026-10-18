@@ -1,4 +1,4 @@
-import { addDays, toDateString } from './dates.ts';
+import { addDays, daysBetween, toDateString } from './dates.ts';
 
 export const HEALTH_EVENT_TYPES = [
   'vaccination',
@@ -70,3 +70,11 @@ export const SEED_DISEASES = [
   { id: 'mastitis', nameAr: 'التهاب الضرع', nameEn: 'Mastitis' },
   { id: 'foot-rot', nameAr: 'تعفن الحوافر', nameEn: 'Foot rot' },
 ] as const;
+
+/** The final calendar day is still restricted; historical dates remain on the record. */
+export function isWithdrawalActive(
+  until: string | Date | null | undefined,
+  today = new Date(),
+): boolean {
+  return Boolean(until && daysBetween(today, new Date(until)) >= 0);
+}

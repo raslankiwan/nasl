@@ -111,6 +111,9 @@ export class BreedingService {
     },
     recordedBy: string,
   ) {
+    const previous = input.id ? await this.matings.findById(farmId, input.id) : null;
+    if (previous) return previous;
+
     const dam = await this.loadDam(farmId, input.damId);
 
     if (input.sireId) {
@@ -158,6 +161,9 @@ export class BreedingService {
     },
     recordedBy: string,
   ) {
+    const previous = input.id ? await this.checks.findById(farmId, input.id) : null;
+    if (previous) return previous;
+
     const dam = await this.loadDam(farmId, input.damId);
     const current = this.currentStatus(dam);
 
@@ -223,6 +229,9 @@ export class BreedingService {
     },
     recordedBy: string,
   ) {
+    const previous = input.id ? await this.births.findById(farmId, input.id) : null;
+    if (previous) return previous;
+
     const dam = await this.loadDam(farmId, input.damId);
     const current = this.currentStatus(dam);
     const next = this.advance(current, { type: 'birth', date: input.date });
@@ -303,6 +312,9 @@ export class BreedingService {
     input: { id?: string; damId: string; date: Date; weightsKg?: Record<string, number> },
     recordedBy: string,
   ) {
+    const previous = input.id ? await this.weanings.findById(farmId, input.id) : null;
+    if (previous) return previous;
+
     const dam = await this.loadDam(farmId, input.damId);
     const next = this.advance(this.currentStatus(dam), { type: 'weaning', date: input.date });
 
@@ -336,6 +348,9 @@ export class BreedingService {
     input: { id?: string; damId: string; date: Date; suspectedCause?: string },
     recordedBy: string,
   ) {
+    const previous = input.id ? await this.abortions.findById(farmId, input.id) : null;
+    if (previous) return previous;
+
     const dam = await this.loadDam(farmId, input.damId);
     const current = this.currentStatus(dam);
     const next = this.advance(current, { type: 'abortion', date: input.date });

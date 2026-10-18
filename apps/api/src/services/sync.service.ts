@@ -1,5 +1,5 @@
-import type { Model, UpdateQuery } from 'mongoose';
-import { AppError } from '../errors.ts';
+import type { Model } from 'mongoose';
+import { can, type Permission, type Role } from '@nasl/shared';
 import { Animal } from '../models/animal.model.ts';
 import { Group } from '../models/group.model.ts';
 import { Movement } from '../models/movement.model.ts';
@@ -9,60 +9,29 @@ import { FeedLog, Transaction } from '../models/finance.model.ts';
 import { MilkCollection, MilkTestDay } from '../models/milk.model.ts';
 import { Abortion, Birth, Mating, PregnancyCheck, Weaning } from '../models/breeding.model.ts';
 import type { TenantDocument } from '../models/base.ts';
-import { BreedingService } from './breeding.service.ts';
+import { TenantRepository } from '../repositories/tenantRepository.ts';
 
-/**
- * The sync protocol (scope §10).
- *
- * Two rules do the heavy lifting:
- *
- *  1. **Most collections are append-only.** Two shepherds recording two treatments on the same ewe
- *     from two phones produce two documents, not a conflict. Only `animals` and `groups` carry
- *     mutable fields, and those resolve last-write-wins per field against the server clock.
- *  2. **Derived state is never trusted from the client.** After a push, every affected female's
- *     reproductive state is recomputed from her full event stream. A device that has been offline
- *     for weeks can contribute events; it cannot dictate conclusions.
- */
-
-export type SyncMode = 'append-only' | 'mutable';
-
-/**
- * Every syncable collection shares the tenant document shape, which is all this service needs to
- * know about them: an id, a farm, timestamps and a soft-delete marker.
- */
 type SyncModel = Model<TenantDocument>;
-
-interface Syncable {
-  name: string;
-  model: SyncModel;
-  mode: SyncMode;
-}
-
-/** Fields the server owns. A client may not write them, whatever it sends. */
-const SERVER_OWNED = new Set([
-  'farmId',
-  'createdAt',
-  'updatedAt',
-  'repro',
-  'withholdMeatUntil',
-  'withholdMilkUntil',
-]);
-
-const COLLECTIONS: readonly Syncable[] = [
-  { name: 'animals', model: Animal as unknown as SyncModel, mode: 'mutable' },
-  { name: 'groups', model: Group as unknown as SyncModel, mode: 'mutable' },
-  { name: 'movements', model: Movement as unknown as SyncModel, mode: 'append-only' },
-  { name: 'matings', model: Mating as unknown as SyncModel, mode: 'append-only' },
-  { name: 'pregnancyChecks', model: PregnancyCheck as unknown as SyncModel, mode: 'append-only' },
-  { name: 'births', model: Birth as unknown as SyncModel, mode: 'append-only' },
-  { name: 'weanings', model: Weaning as unknown as SyncModel, mode: 'append-only' },
-  { name: 'abortions', model: Abortion as unknown as SyncModel, mode: 'append-only' },
-  { name: 'healthEvents', model: HealthEvent as unknown as SyncModel, mode: 'append-only' },
-  { name: 'weights', model: Weight as unknown as SyncModel, mode: 'append-only' },
-  { name: 'transactions', model: Transaction as unknown as SyncModel, mode: 'append-only' },
-  { name: 'feedLogs', model: FeedLog as unknown as SyncModel, mode: 'append-only' },
-  { name: 'milkTestDays', model: MilkTestDay as unknown as SyncModel, mode: 'append-only' },
-  { name: 'milkCollections', model: MilkCollection as unknown as SyncModel, mode: 'append-only' },
+const collection = (name: string, model: unknown, permission: Permission = 'animals:read') => ({
+  name,
+  repository: new TenantRepository(model as SyncModel),
+  permission,
+});
+const COLLECTIONS = [
+  collection('animals', Animal),
+  collection('groups', Group),
+  collection('movements', Movement),
+  collection('matings', Mating),
+  collection('pregnancyChecks', PregnancyCheck),
+  collection('births', Birth),
+  collection('weanings', Weaning),
+  collection('abortions', Abortion),
+  collection('healthEvents', HealthEvent, 'health:read'),
+  collection('weights', Weight),
+  collection('transactions', Transaction, 'finance:read'),
+  collection('feedLogs', FeedLog, 'finance:read'),
+  collection('milkTestDays', MilkTestDay),
+  collection('milkCollections', MilkCollection),
 ];
 
 export interface ChangeSet {
@@ -70,42 +39,59 @@ export interface ChangeSet {
   updated: Record<string, unknown>[];
   deleted: string[];
 }
-
 export type Changes = Record<string, ChangeSet>;
-
-export interface PushResult {
-  applied: number;
-  rejected: Array<{ collection: string; id: string; reason: string }>;
-  recomputed: string[];
+export interface PullPage {
+  until: string;
+  /** null marks a completed collection; the tuple handles identical update timestamps. */
+  after: Record<string, { at: string; id: string } | null>;
 }
 
-/** Collections whose writes can change a female's derived reproductive state. */
-const REPRO_SOURCES = new Set(['matings', 'pregnancyChecks', 'births', 'weanings', 'abortions']);
-
+/** Bounded, tenant-scoped read sync. Writes use the same validated routes as online capture. */
 export class SyncService {
-  private readonly breeding = new BreedingService();
-
-  /** Everything in this farm that changed at or after `since`. */
   async pull(
     farmId: string,
     since: Date,
     limit = 500,
-  ): Promise<{ timestamp: Date; changes: Changes }> {
-    // Taken before reading, so a document written mid-pull is picked up next time rather than
-    // falling into the gap between the read and the cursor.
-    const timestamp = new Date();
+    role: Role = 'owner',
+    page?: PullPage,
+  ): Promise<{
+    timestamp: Date;
+    changes: Changes;
+    nextPage: PullPage | null;
+  }> {
+    const until = page ? new Date(page.until) : new Date();
     const changes: Changes = {};
-
-    for (const { name, model } of COLLECTIONS) {
-      const docs = await model
-        .find({ farmId, updatedAt: { $gte: since } })
-        .sort({ updatedAt: 1 })
-        .limit(limit)
-        .lean<TenantDocument[]>()
-        .exec();
-
+    const after: PullPage['after'] = {};
+    let more = false;
+    for (const { name, repository, permission } of COLLECTIONS) {
+      if (!can(role, permission)) continue;
+      if (page && page.after[name] === null) {
+        after[name] = null;
+        continue;
+      }
+      const cursor = page?.after[name];
+      const docs = await repository.find(
+        farmId,
+        {
+          updatedAt: { $gte: since, $lte: until },
+          ...(cursor
+            ? {
+                $or: [
+                  { updatedAt: { $gt: new Date(cursor.at) } },
+                  { updatedAt: new Date(cursor.at), _id: { $gt: cursor.id } },
+                ],
+              }
+            : {}),
+        },
+        { includeDeleted: true, sort: { updatedAt: 1, _id: 1 }, limit: limit + 1 },
+      );
+      const batch = docs.slice(0, limit);
+      const last = batch.at(-1);
+      after[name] =
+        docs.length > limit && last ? { at: last.updatedAt.toISOString(), id: last._id } : null;
+      more ||= after[name] !== null;
       const set: ChangeSet = { created: [], updated: [], deleted: [] };
-      for (const doc of docs) {
+      for (const doc of batch) {
         if (doc.deletedAt) set.deleted.push(doc._id);
         else if (doc.createdAt >= since)
           set.created.push(doc as unknown as Record<string, unknown>);
@@ -113,100 +99,16 @@ export class SyncService {
       }
       changes[name] = set;
     }
-
-    return { timestamp, changes };
+    // Older clients must not advance past unread records. New clients follow nextPage and
+    // commit the final timestamp only after every page has arrived.
+    return {
+      timestamp: more ? since : until,
+      changes,
+      nextPage: more ? { until: until.toISOString(), after } : null,
+    };
   }
 
-  /**
-   * Apply a device's change set.
-   *
-   * Nothing here throws on a single bad row: a device that has been offline for a fortnight may be
-   * carrying hundreds of records, and rejecting the batch because one of them is malformed would
-   * strand all of them. Bad rows come back named so the client can surface or drop them.
-   */
-  async push(farmId: string, changes: Changes): Promise<PushResult> {
-    const rejected: PushResult['rejected'] = [];
-    const touchedDams = new Set<string>();
-    let applied = 0;
-
-    for (const { name, model, mode } of COLLECTIONS) {
-      const set = changes[name];
-      if (!set) continue;
-
-      for (const raw of [...(set.created ?? []), ...(set.updated ?? [])]) {
-        const id = typeof raw._id === 'string' ? raw._id : null;
-        if (!id) {
-          rejected.push({ collection: name, id: '(missing)', reason: 'no id' });
-          continue;
-        }
-
-        const payload: Record<string, unknown> = {};
-        for (const [key, value] of Object.entries(raw)) {
-          if (key === '_id' || SERVER_OWNED.has(key)) continue;
-          payload[key] = value;
-        }
-
-        try {
-          if (mode === 'append-only') {
-            // Idempotent: re-pushing an event the server already has is a no-op, which is what
-            // makes a retry after a dropped connection safe.
-            await model.updateOne(
-              { _id: id, farmId },
-              { $setOnInsert: { ...payload, _id: id, farmId } } as UpdateQuery<TenantDocument>,
-              { upsert: true },
-            );
-          } else {
-            await model.updateOne(
-              { _id: id, farmId },
-              { $set: payload } as UpdateQuery<TenantDocument>,
-              { upsert: true },
-            );
-          }
-          applied += 1;
-
-          if (REPRO_SOURCES.has(name) && typeof raw.damId === 'string') touchedDams.add(raw.damId);
-        } catch (err) {
-          rejected.push({
-            collection: name,
-            id,
-            reason: err instanceof Error ? err.message : 'write failed',
-          });
-        }
-      }
-
-      for (const id of set.deleted ?? []) {
-        if (mode === 'append-only') {
-          // An event is evidence of something that happened. It is not the client's to retract.
-          rejected.push({ collection: name, id, reason: 'events cannot be deleted' });
-          continue;
-        }
-        await model.updateOne({ _id: id, farmId }, { $set: { deletedAt: new Date() } });
-        applied += 1;
-      }
-    }
-
-    // Derive state from the events rather than believing whatever the device thought it was.
-    const recomputed: string[] = [];
-    for (const damId of touchedDams) {
-      try {
-        await this.breeding.recomputeRepro(farmId, damId);
-        recomputed.push(damId);
-      } catch {
-        // The dam may not exist on this farm; the events were still recorded.
-      }
-    }
-
-    return { applied, rejected, recomputed };
-  }
-
-  static assertKnownCollections(changes: Changes): void {
-    const known = new Set(COLLECTIONS.map((c) => c.name));
-    for (const name of Object.keys(changes)) {
-      if (!known.has(name)) throw AppError.badRequest(`Unknown collection "${name}"`);
-    }
-  }
-
-  static get collectionNames(): string[] {
-    return COLLECTIONS.map((c) => c.name);
+  static collectionsFor(role: Role): string[] {
+    return COLLECTIONS.filter((c) => can(role, c.permission)).map((c) => c.name);
   }
 }

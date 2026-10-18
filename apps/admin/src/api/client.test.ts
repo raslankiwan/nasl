@@ -129,3 +129,11 @@ describe('persistent session refresh', () => {
     expect(tokens.refresh()).toBeNull();
   });
 });
+
+test('an HTML gateway error preserves the HTTP error instead of throwing a JSON parser error', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => new Response('<html>Unavailable</html>', { status: 503 })),
+  );
+  await expect(apiClient.get('/v1/admin/stats')).rejects.toMatchObject({ status: 503 });
+});

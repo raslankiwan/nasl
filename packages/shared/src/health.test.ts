@@ -31,3 +31,12 @@ describe('withdrawal periods', () => {
     assert.equal(isUnderMeatWithdrawal(animal, d('2026-03-30')), false);
   });
 });
+
+test('withdrawal badges expire only after the inclusive final calendar day', async () => {
+  const { isWithdrawalActive } = await import('./health.ts');
+  const today = new Date('2026-10-18T21:00:00Z');
+  assert.equal(isWithdrawalActive('2026-10-17', today), false);
+  assert.equal(isWithdrawalActive('2026-10-18', today), true);
+  assert.equal(isWithdrawalActive('2026-10-19', today), true);
+  assert.equal(isWithdrawalActive(null, today), false);
+});

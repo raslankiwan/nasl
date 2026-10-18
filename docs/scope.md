@@ -523,13 +523,15 @@ feature in §7. Three decisions contain it:
 // two endpoints carry the entire sync protocol
 POST /v1/sync/pull
   → { lastPulledAt, schemaVersion, farmId }
-  ← { timestamp, changes: { animals: { created[], updated[], deleted[] },
+  ← { timestamp, nextPage, changes: { animals: { created[], updated[], deleted[] },
                             births:  { … }, healthEvents: { … }, … } }
 
-POST /v1/sync/push
-  → { lastPulledAt, changes: { … } }
-  ← 200            // accepted, client advances its cursor
-  ← 409            // server moved on — client pulls, then re-pushes
+POST /v1/farms/:farmId/<capture-route>
+  → { id, ...validated event fields } // queued locally, then replayed with the same id
+  ← 201                             // accepted through the normal domain/permission checks
+
+POST /v1/farms/:farmId/sync/push
+  ← 426 // legacy raw upserts retired; upgrade without discarding saved records
 ```
 
 > 🛑 **Do not plan around Atlas Device Sync.** MongoDB deprecated Atlas Device Sync and the Realm SDKs,

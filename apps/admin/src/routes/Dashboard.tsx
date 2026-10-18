@@ -16,7 +16,7 @@ export function Dashboard() {
   const { t, i18n } = useTranslation(['admin', 'common']);
   const locale = (i18n.resolvedLanguage ?? 'ar') as Locale;
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin', 'stats'],
     queryFn: () => apiClient.get<Stats>('/v1/admin/stats'),
   });
@@ -29,6 +29,13 @@ export function Dashboard() {
 
       {isLoading ? (
         <div className="loading">{t('common:loading')}</div>
+      ) : isError ? (
+        <div className="notice danger" role="alert">
+          {t('common:errorRetry')}{' '}
+          <button type="button" onClick={() => void refetch()}>
+            {t('common:retry')}
+          </button>
+        </div>
       ) : (
         <>
           <div className="stat-row">

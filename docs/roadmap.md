@@ -1,5 +1,30 @@
 # Delivery plan
 
+## Repository refactor and reliability audit (18 October 2026)
+
+- [x] Mobile refresh propagates network, 429 and server failures without converting them to a
+      rejected session. Browser tabs coordinate token rotation; delayed refreshes cannot undo
+      sign-out. Sign-out revokes the refresh session and forgets every accessible farm cache.
+- [x] Capture writes reach durable storage before HTTP. Serialized queue mutations prevent lost
+      concurrent saves; retry counts never delete records. Permanent rejections pause automatic
+      retries, and unsent work is bound to its author. Older unowned records require explicit
+      recovery by a user with access to the farm. Full/unreadable storage reports failure.
+- [x] Read sync pages by timestamp and id, preserves the cursor until the complete response, and
+      filters financial collections by permission. The unused generic `/sync/push` model-upsert
+      endpoint now responds 426 without modifying records: the shipped app already sends its
+      outbox through validated capture routes. Legacy clients must upgrade, not discard work.
+- [x] Retrying completed single-record breeding, weight, treatment and milk captures returns the
+      saved record. Capture forms keep their id across retries. This does not claim atomic recovery
+      of a server crash halfway through a multi-document operation; that remains separate work.
+- [x] Treatment withdrawal updates use an atomic maximum so concurrent captures cannot shorten
+      an existing hold. A single-treatment retry repairs any hold missing after an interrupted save.
+- [x] Animal histories reload after capture; same-day weights use the latest entry. Read-only roles no longer see animal add/edit,
+      breeding, weighing, movement or treatment actions on the roster/detail. Expired withdrawal
+      badges use the shared inclusive-day rule; stored history and API enforcement are unchanged.
+- [x] Weighing methods and veterinary product categories are translated and correctly labeled. Admin dashboard, products and audit
+      show retryable failures instead of fabricated zero totals/empty lists. Veterinary withdrawal
+      inputs start blank so each curated value, including zero, must be entered deliberately.
+
 ## Birth-window push reminders (18 October 2026)
 
 - [x] Opt-in Web Push in the user PWA, with 1/3/7-day lead time (default 3), Arabic/English

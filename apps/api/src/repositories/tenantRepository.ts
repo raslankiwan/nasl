@@ -40,6 +40,8 @@ const UPDATE_OPERATORS = [
   '$unset',
   '$rename',
   '$inc',
+  '$max',
+  '$min',
   '$push',
   '$addToSet',
 ];

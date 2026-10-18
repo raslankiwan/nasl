@@ -21,7 +21,7 @@ export function Audit() {
   const { t, i18n } = useTranslation(['admin', 'common']);
   const locale = (i18n.resolvedLanguage ?? 'ar') as Locale;
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin', 'audit'],
     queryFn: () => apiClient.get<{ entries: Entry[] }>('/v1/admin/audit'),
   });
@@ -33,6 +33,13 @@ export function Audit() {
       <div className="table-wrap">
         {isLoading ? (
           <div className="loading">{t('common:loading')}</div>
+        ) : isError ? (
+          <div className="notice danger" role="alert">
+            {t('common:errorRetry')}{' '}
+            <button type="button" onClick={() => void refetch()}>
+              {t('common:retry')}
+            </button>
+          </div>
         ) : data && data.entries.length > 0 ? (
           <table className="responsive-table" role="table">
             <thead>

@@ -46,12 +46,12 @@ export default function RecordWeight() {
         optional
       />
 
-      <FieldGroup label={t('common:none')}>
+      <FieldGroup label={t('animals:weightMethod')}>
         <Choice
           options={METHODS}
           value={method}
           onChange={setMethod}
-          labelFor={(m) => (m === 'scale' ? 'ميزان' : m === 'tape' ? 'شريط' : 'تقدير')}
+          labelFor={(m) => t(`animals:weightMethods.${m}`)}
         />
       </FieldGroup>
     </CaptureScreen>

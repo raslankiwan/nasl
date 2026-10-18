@@ -529,12 +529,44 @@ describe('idempotency', () => {
 
       // The same request again — which is exactly what a retry after a dropped connection sends.
       const again = await client.post<ErrorBody>(`/v1/farms/${farmId}/breeding/matings`, body);
-      assert.equal(again.status, 409, 'she is already mated, so the second is refused');
+      assert.equal(again.status, 201, 'the saved event is acknowledged on retry');
+      assert.deepEqual(again.body, first.body);
 
       const history = await client.get<{ matings: unknown[] }>(
         `/v1/farms/${farmId}/breeding/history/${damId}`,
       );
       assert.equal(history.body.matings.length, 1, 'and no duplicate was written');
     });
+  });
+});
+
+test('replaying a completed breeding cycle does not repeat transitions or create extra lambs', async () => {
+  await withServer(testApp(), async (url) => {
+    const { client, farmId, damId, sireId } = await flock(url);
+    const steps = [
+      ['matings', { id: randomUUID(), damId, sireId, startDate: '2026-01-01' }],
+      [
+        'pregnancy-checks',
+        { id: randomUUID(), damId, date: '2026-03-01', method: 'ultrasound', result: 'pregnant' },
+      ],
+      [
+        'births',
+        {
+          id: randomUUID(),
+          damId,
+          date: '2026-05-28',
+          offspring: [{ sex: 'female', outcome: 'live' }],
+        },
+      ],
+      ['weanings', { id: randomUUID(), damId, date: '2026-08-01' }],
+    ] as const;
+    for (const [route, input] of steps) {
+      const first = await client.post(`/v1/farms/${farmId}/breeding/${route}`, input);
+      assert.equal(first.status, 201, JSON.stringify(first.body));
+      const repeat = await client.post(`/v1/farms/${farmId}/breeding/${route}`, input);
+      assert.equal(repeat.status, 201, JSON.stringify(repeat.body));
+      assert.deepEqual(repeat.body, first.body);
+    }
+    assert.equal(await Animal.countDocuments({ farmId, damId }), 1);
   });
 });

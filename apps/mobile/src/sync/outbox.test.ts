@@ -72,7 +72,7 @@ describe('failure handling', () => {
     assert.equal(isStuck(first!), true);
   });
 
-  test('an entry the server keeps refusing is eventually dropped', async () => {
+  test('even prolonged failures retain the original record', async () => {
     await outbox.enqueue(entry('a'));
     await outbox.enqueue(entry('b'));
 
@@ -81,8 +81,8 @@ describe('failure handling', () => {
     const pending = await outbox.pending();
     assert.deepEqual(
       pending.map((e) => e.id),
-      ['b'],
-      'retrying it forever would block everything queued behind it',
+      ['a', 'b'],
+      'failed records remain available for recovery',
     );
   });
 
@@ -97,13 +97,27 @@ describe('failure handling', () => {
 });
 
 describe('resilience', () => {
-  test('a corrupt outbox does not block future writes', async () => {
+  test('a corrupt outbox is never overwritten silently', async () => {
     const corrupt = memoryStore({ 'nasl.outbox': '{not json' });
     const recovered = new Outbox(corrupt);
+    await assert.rejects(recovered.enqueue(entry('a')));
+    assert.equal(await corrupt.get('nasl.outbox'), '{not json');
+  });
 
-    assert.deepEqual(await recovered.pending(), []);
-    await recovered.enqueue(entry('a'));
-    assert.equal((await recovered.pending()).length, 1);
+  test('concurrent saves cannot overwrite one another', async () => {
+    await Promise.all(Array.from({ length: 20 }, (_, i) => outbox.enqueue(entry(String(i)))));
+    assert.equal((await new Outbox(store).pending()).length, 20);
+  });
+
+  test('failed storage writes are not presented as saved', async () => {
+    const failing = new Outbox({
+      ...store,
+      set: async () => {
+        throw new Error('disk full');
+      },
+    });
+    await assert.rejects(failing.enqueue(entry('a')), /disk full/);
+    assert.equal((await failing.pending()).length, 0);
   });
 
   test('subscribers are told when the queue changes', async () => {

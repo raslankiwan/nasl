@@ -20,6 +20,9 @@ export class WeightsService {
     input: { id?: string; animalId: string; date: Date; kg: number; method: string },
     recordedBy: string,
   ) {
+    const previous = input.id ? await this.weights.findById(farmId, input.id) : null;
+    if (previous) return previous;
+
     const animal = await this.animals.findById(farmId, input.animalId);
     if (!animal) throw AppError.notFound('That animal is not in this flock.');
 
@@ -35,7 +38,7 @@ export class WeightsService {
     // `lastWeightKg` is a convenience for the roster, so it must reflect the latest weighing by
     // date — not simply the most recently entered one, which may be a backfill.
     const latest = await this.weights.findOne(farmId, { animalId: input.animalId } as never, {
-      sort: { date: -1 },
+      sort: { date: -1, createdAt: -1, _id: -1 },
     });
     if (latest) {
       await this.animals.updateById(farmId, input.animalId, {
@@ -75,7 +78,7 @@ export class WeightsService {
     if (!animal) throw AppError.notFound('That animal is not in this flock.');
 
     const weighings = await this.weights.find(farmId, { animalId } as never, {
-      sort: { date: 1 },
+      sort: { date: 1, createdAt: 1, _id: 1 },
     });
 
     const points: WeightPoint[] = weighings.map((w) => ({ date: w.date, kg: w.kg }));

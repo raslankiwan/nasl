@@ -1,8 +1,8 @@
 import { useHeaderHeight } from 'expo-router/react-navigation';
 import { ScreenHeader } from '../../src/components/ScreenHeader';
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { formatDate, formatHijriDate, type Locale } from '@nasl/i18n';
 import { api } from '../../src/api/client';
@@ -20,7 +20,14 @@ import {
   Title,
 } from '../../src/components/ui';
 import { ACTION_LABELS, ACTION_ROUTES } from '../../src/breeding';
-import { actionsFor, can, type Role, type ReproState, type Species } from '@nasl/shared';
+import {
+  actionsFor,
+  can,
+  isWithdrawalActive,
+  type Role,
+  type ReproState,
+  type Species,
+} from '@nasl/shared';
 import { LambingWindow } from '../../src/components/LambingWindow';
 import { AnimalNameEditor } from '../../src/components/AnimalNameEditor';
 import { spacing, type, createThemedStyles } from '../../src/theme';
@@ -78,28 +85,50 @@ export default function AnimalScreen() {
   const [weights, setWeights] = useState<WeightHistory | null>(null);
   const [lactations, setLactations] = useState<LactationRow[]>([]);
 
-  useEffect(() => {
-    if (!farmId || !id) return;
-    // Treatment history is still network-only; an empty list is the honest offline answer.
-    api
-      .get<{ events: TreatmentRow[] }>(`/v1/farms/${farmId}/health/animals/${id}`)
-      .then((res) => setTreatments(res.events))
-      .catch(() => setTreatments([]));
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      if (!farmId || !id) return;
+      // Treatment history is still network-only; an empty list is the honest offline answer.
+      api
+        .get<{ events: TreatmentRow[] }>(`/v1/farms/${farmId}/health/animals/${id}`)
+        .then((res) => {
+          if (active) setTreatments(res.events);
+        })
+        .catch(() => {
+          if (active) setTreatments([]);
+        });
 
-    api
-      .get<WeightHistory>(`/v1/farms/${farmId}/weights/${id}`)
-      .then(setWeights)
-      .catch(() => setWeights(null));
+      api
+        .get<WeightHistory>(`/v1/farms/${farmId}/weights/${id}`)
+        .then((result) => {
+          if (active) setWeights(result);
+        })
+        .catch(() => {
+          if (active) setWeights(null);
+        });
 
-    api
-      .get<{ lactations: LactationRow[] }>(`/v1/farms/${farmId}/milk/animals/${id}`)
-      .then((res) => setLactations(res.lactations))
-      .catch(() => setLactations([]));
-  }, [farmId, id]);
+      api
+        .get<{ lactations: LactationRow[] }>(`/v1/farms/${farmId}/milk/animals/${id}`)
+        .then((res) => {
+          if (active) setLactations(res.lactations);
+        })
+        .catch(() => {
+          if (active) setLactations([]);
+        });
+      return () => {
+        active = false;
+      };
+    }, [farmId, id]),
+  );
 
   const dash = '—';
   const actions =
-    animal && animal.sex === 'female' && animal.status === 'active'
+    role &&
+    can(role as Role, 'breeding:write') &&
+    animal &&
+    animal.sex === 'female' &&
+    animal.status === 'active'
       ? actionsFor(animal.repro?.state as ReproState | undefined)
       : [];
 
@@ -153,14 +182,14 @@ export default function AnimalScreen() {
                 Both restrictions, and milk first. For a dairy flock the milk hold is the one that
                 bites twice a day; the meat hold only matters on the day she leaves.
               */}
-              {animal.withholdMilkUntil ? (
+              {animal.withholdMilkUntil && isWithdrawalActive(animal.withholdMilkUntil) ? (
                 <Notice tone="danger">
                   {t('health:milkWithholdUntil', {
                     date: formatDate(new Date(animal.withholdMilkUntil), locale),
                   })}
                 </Notice>
               ) : null}
-              {animal.withholdMeatUntil ? (
+              {animal.withholdMeatUntil && isWithdrawalActive(animal.withholdMeatUntil) ? (
                 <Notice tone="danger">
                   {t('health:meatWithholdUntil', {
                     date: formatDate(new Date(animal.withholdMeatUntil), locale),
@@ -270,22 +299,26 @@ export default function AnimalScreen() {
               ) : null}
 
               <View style={styles.gap} />
-              <NavigationRow
-                label={t('pens:moveTo')}
-                icon="home-switch-outline"
-                onPress={() =>
-                  router.push({ pathname: '/animal/move', params: { animalId: animal.id } })
-                }
-              />
+              {canEdit ? (
+                <NavigationRow
+                  label={t('pens:moveTo')}
+                  icon="home-switch-outline"
+                  onPress={() =>
+                    router.push({ pathname: '/animal/move', params: { animalId: animal.id } })
+                  }
+                />
+              ) : null}
 
               <View style={styles.gap} />
-              <NavigationRow
-                label={t('animals:recordWeight')}
-                icon="scale"
-                onPress={() =>
-                  router.push({ pathname: '/animal/weigh', params: { animalId: animal.id } })
-                }
-              />
+              {canEdit ? (
+                <NavigationRow
+                  label={t('animals:recordWeight')}
+                  icon="scale"
+                  onPress={() =>
+                    router.push({ pathname: '/animal/weigh', params: { animalId: animal.id } })
+                  }
+                />
+              ) : null}
 
               {weights && weights.entries.length > 0 ? (
                 <>
@@ -329,7 +362,7 @@ export default function AnimalScreen() {
               />
 
               {/* Health applies to every animal, not only the breeding females. */}
-              {animal.status === 'active' ? (
+              {animal.status === 'active' && role && can(role as Role, 'health:write') ? (
                 <>
                   <View style={styles.gap} />
                   <NavigationRow

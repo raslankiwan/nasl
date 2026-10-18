@@ -23,7 +23,11 @@ export function farmRoutes(config: Config): Router {
   });
 
   router.get('/', async (req, res) => {
-    const memberships = await Membership.find({ userId: req.auth!.userId, status: 'active' })
+    const memberships = await Membership.find({
+      userId: req.auth!.userId,
+      status: 'active',
+      $or: [{ expiresAt: null }, { expiresAt: { $gt: new Date() } }],
+    })
       .lean()
       .exec();
     const farms = await Farm.find({ _id: { $in: memberships.map((m) => m.farmId) } })

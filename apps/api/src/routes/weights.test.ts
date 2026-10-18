@@ -196,3 +196,30 @@ describe('growth history', () => {
     });
   });
 });
+
+test('retrying a saved weighing returns the original record without duplication', async () => {
+  await withServer(testApp(), async (url) => {
+    const { client, farmId, animalId } = await flock(url);
+    const id = globalThis.crypto.randomUUID();
+    const input = { id, animalId, date: '2026-03-01', kg: 42.35 };
+    const first = await client.post(`/v1/farms/${farmId}/weights`, input);
+    const retry = await client.post(`/v1/farms/${farmId}/weights`, input);
+    assert.equal(first.status, 201);
+    assert.equal(retry.status, 201);
+    assert.deepEqual(retry.body, first.body);
+    const history = await client.get<{ entries: unknown[] }>(
+      `/v1/farms/${farmId}/weights/${animalId}`,
+    );
+    assert.equal(history.body.entries.length, 1);
+  });
+});
+
+test('two weighings on one day use the latest recorded measurement', async () => {
+  await withServer(testApp(), async (url) => {
+    const { client, farmId, animalId } = await flock(url);
+    await client.post(`/v1/farms/${farmId}/weights`, { animalId, date: '2026-03-01', kg: 42.35 });
+    await client.post(`/v1/farms/${farmId}/weights`, { animalId, date: '2026-03-01', kg: 43.5 });
+    const animal = await client.get<AnimalBody>(`/v1/farms/${farmId}/animals/${animalId}`);
+    assert.equal(animal.body.lastWeightKg, 43.5);
+  });
+});

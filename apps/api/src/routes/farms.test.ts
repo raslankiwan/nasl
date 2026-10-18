@@ -125,3 +125,21 @@ describe('farm access control', () => {
     });
   });
 });
+
+test('the farm directory excludes expired memberships', async () => {
+  await withServer(testApp(), async (url) => {
+    const session = await signIn(url, '+970590000001');
+    const client = api(url, session.accessToken);
+    const created = await client.post<FarmBody>('/v1/farms', { name: 'Temporary access' });
+    assert.equal(created.status, 201);
+    await Membership.updateOne(
+      { farmId: created.body.id, userId: session.user.id },
+      {
+        $set: { expiresAt: new Date(Date.now() - 60_000) },
+      },
+    );
+    const response = await client.get<{ farms: FarmBody[] }>('/v1/farms');
+    assert.equal(response.status, 200);
+    assert.deepEqual(response.body.farms, []);
+  });
+});

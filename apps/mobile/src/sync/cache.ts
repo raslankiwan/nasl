@@ -42,6 +42,7 @@ interface CacheShape {
 }
 
 export interface PullResponse {
+  nextPage?: unknown;
   timestamp: string;
   changes: Record<
     string,

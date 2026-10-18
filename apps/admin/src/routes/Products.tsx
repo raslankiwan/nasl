@@ -9,7 +9,7 @@ interface Product {
   _id: string;
   nameAr: string;
   nameEn: string;
-  kind: string;
+  kind: (typeof KINDS)[number];
   activeIngredient: string | null;
   withdrawalMeatDays: number;
   withdrawalMilkDays: number;
@@ -24,8 +24,8 @@ const BLANK = {
   nameEn: '',
   kind: 'antibiotic',
   activeIngredient: '',
-  withdrawalMeatDays: 0,
-  withdrawalMilkDays: 0,
+  withdrawalMeatDays: '',
+  withdrawalMilkDays: '',
   manufacturer: '',
   source: '',
 };
@@ -39,7 +39,7 @@ export function Products() {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin', 'products'],
     queryFn: () => apiClient.get<{ products: Product[] }>('/v1/admin/products'),
   });
@@ -110,7 +110,7 @@ export function Products() {
               <select id="kind" value={form.kind} onChange={(e) => set('kind')(e.target.value)}>
                 {KINDS.map((k) => (
                   <option key={k} value={k}>
-                    {k}
+                    {t(`admin:productKinds.${k}`)}
                   </option>
                 ))}
               </select>
@@ -178,6 +178,13 @@ export function Products() {
       <div className="table-wrap">
         {isLoading ? (
           <div className="loading">{t('common:loading')}</div>
+        ) : isError ? (
+          <div className="notice danger" role="alert">
+            {t('common:errorRetry')}{' '}
+            <button type="button" onClick={() => void refetch()}>
+              {t('common:retry')}
+            </button>
+          </div>
         ) : data && data.products.length > 0 ? (
           <table className="responsive-table" role="table">
             <thead>
@@ -199,7 +206,7 @@ export function Products() {
                     </div>
                   </td>
                   <td data-label={t('admin:kind')}>
-                    <span className="pill">{p.kind}</span>
+                    <span className="pill">{t(`admin:productKinds.${p.kind}`)}</span>
                   </td>
                   <td data-label={t('admin:withdrawalMeat')} className="num">
                     {formatNumber(p.withdrawalMeatDays, locale)}

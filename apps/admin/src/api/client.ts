@@ -129,7 +129,12 @@ export async function request<T>(
   }
 
   const text = await res.text();
-  const parsed = text ? JSON.parse(text) : null;
+  let parsed: unknown = null;
+  try {
+    parsed = text ? JSON.parse(text) : null;
+  } catch {
+    if (res.ok) throw new Error('Invalid server response');
+  }
 
   if (!res.ok) throw new ApiError(res.status, parsed as ApiErrorBody);
   return parsed as T;

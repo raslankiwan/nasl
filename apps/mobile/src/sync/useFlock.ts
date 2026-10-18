@@ -1,82 +1,75 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { useAuth } from '../auth/AuthProvider';
+import { useSync } from './SyncProvider';
 import type { CachedAnimal } from './cache';
 import { flockCache, pullFlock } from './device';
 
-/**
- * Read the flock from the device first, then refresh from the server if it can be reached.
- *
- * Cache-first rather than network-first is the whole point: the pen is where the signal is not,
- * and a herder looking up a tag number should see it immediately whether or not there is a bar of
- * coverage. A failed refresh is not an error — it just means what is on screen is what was last
- * known, and `stale` says so.
- */
-export function useFlock() {
-  const { farmId } = useAuth();
-  const [animals, setAnimals] = useState<CachedAnimal[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [stale, setStale] = useState(false);
-
+/** A farm change hides the old snapshot immediately and ignores late responses from it. */
+function useCachedRead<T>(key: string, farmId: string | null, read: () => Promise<T>, empty: T) {
+  const current = useRef(key);
+  current.current = key;
+  const { pending, online } = useSync();
+  const [snapshot, setSnapshot] = useState({ key, data: empty, loading: true, stale: false });
   const refresh = useCallback(
     async (fromNetwork = true) => {
+      const update = (data: T, stale = false) => {
+        if (current.current === key) setSnapshot({ key, data, loading: false, stale });
+      };
       if (!farmId) {
-        setLoading(false);
+        update(empty);
         return;
       }
-      setAnimals(await flockCache.listAnimals(farmId));
-      setLoading(false);
-
+      const cached = await read();
+      update(cached);
       if (!fromNetwork) return;
       try {
         await pullFlock(farmId);
-        setAnimals(await flockCache.listAnimals(farmId));
-        setStale(false);
+        update(await read());
       } catch {
-        // Unreachable. What is on screen is still the best we have.
-        setStale(true);
+        update(cached, true);
       }
     },
-    [farmId],
+    [key, farmId, read, empty],
   );
 
+  // A successful outbox flush also refreshes a screen that stayed open during the outage.
   useEffect(() => {
     void refresh();
-  }, [refresh]);
+  }, [refresh, pending, online]);
+  return {
+    ...(snapshot.key === key ? snapshot : { data: empty, loading: true, stale: false }),
+    refresh,
+  };
+}
 
-  return { animals, loading, stale, refresh };
+const EMPTY_FLOCK: CachedAnimal[] = [];
+export function useFlock() {
+  const { farmId } = useAuth();
+  const read = useCallback(
+    () => (farmId ? flockCache.listAnimals(farmId) : Promise.resolve(EMPTY_FLOCK)),
+    [farmId],
+  );
+  const { data: animals, ...rest } = useCachedRead(farmId ?? '', farmId, read, EMPTY_FLOCK);
+  return { animals, ...rest };
 }
 
 export function useAnimal(id: string | undefined) {
   const { farmId } = useAuth();
-  const [animal, setAnimal] = useState<CachedAnimal | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [stale, setStale] = useState(false);
-
-  const refresh = useCallback(async () => {
-    if (!farmId || !id) {
-      setLoading(false);
-      return;
-    }
-    setAnimal(await flockCache.getAnimal(farmId, id));
-    setLoading(false);
-
-    try {
-      await pullFlock(farmId);
-      setAnimal(await flockCache.getAnimal(farmId, id));
-      setStale(false);
-    } catch {
-      setStale(true);
-    }
-  }, [farmId, id]);
-
-  // Returning from a capture screen keeps the detail mounted. Refresh on focus so the newly
-  // saved mating/window (or a resolved pregnancy) is visible without reopening the app.
+  const read = useCallback(
+    () => (farmId && id ? flockCache.getAnimal(farmId, id) : Promise.resolve(null)),
+    [farmId, id],
+  );
+  const { data: animal, ...rest } = useCachedRead(
+    `${farmId ?? ''}/${id ?? ''}`,
+    id ? farmId : null,
+    read,
+    null,
+  );
   useFocusEffect(
     useCallback(() => {
-      void refresh();
-    }, [refresh]),
+      void rest.refresh();
+    }, [rest.refresh]),
   );
-
-  return { animal, loading, stale, refresh };
+  return { animal, ...rest };
 }
