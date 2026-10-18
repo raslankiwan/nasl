@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { apiClient, ApiError } from '../api/client';
 import { addPasskey, passkeysAvailable } from '../auth/passkeys';
 import { PageHead } from '../components/Layout';
+import { PasswordInput } from '../components/PasswordInput';
 
 export function Security() {
   const { t } = useTranslation(['auth', 'common']);
@@ -70,9 +71,8 @@ export function Security() {
               </div>
               <div className="field">
                 <label htmlFor="passkey-password">{t('auth:password')}</label>
-                <input
+                <PasswordInput
                   id="passkey-password"
-                  type="password"
                   autoComplete="current-password"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}

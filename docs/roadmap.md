@@ -1,5 +1,12 @@
 # Delivery plan
 
+## Password visibility and minimum length (18 October 2026)
+
+- [x] Both login pages provide accessible show/hide password buttons, hidden by default. The
+      same controls cover mobile registration and administrator invitation/setup fields.
+- [x] New passwords require 8–128 characters through the shared credential policy. Arabic and
+      English hints match; registration and first-admin setup tests cover the 7/8-character boundary.
+
 ## Device sign-in, email verification and 90-day sessions (18 October 2026)
 
 - [x] Web/PWA passkeys in both apps use the device platform authenticator (Face ID, fingerprint,

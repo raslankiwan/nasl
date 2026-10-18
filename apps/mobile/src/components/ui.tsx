@@ -1,4 +1,4 @@
-import type { ComponentProps, ReactNode } from 'react';
+import { useState, type ComponentProps, type ReactNode } from 'react';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -93,22 +93,35 @@ export function Button({
 export function Field({
   label,
   hint,
+  secureTextEntry,
   ...props
 }: TextInputProps & { label: string; hint?: string }) {
   const styles = useStyles();
   const { colors } = useTheme();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation('auth');
+  const [passwordVisible, setPasswordVisible] = useState(false);
   // Native text alignment already follows I18nManager; web follows the active locale.
   const textAlign = Platform.OS === 'web' && i18n.dir() === 'rtl' ? 'right' : 'left';
   return (
     <View style={styles.field}>
       <Text style={[styles.fieldLabel, { textAlign }]}>{label}</Text>
-      <TextInput
-        accessibilityLabel={label}
-        placeholderTextColor={colors.muted}
-        {...props}
-        style={[styles.input, { textAlign }, props.style]}
-      />
+      <View style={secureTextEntry ? styles.passwordInput : undefined}>
+        <TextInput
+          accessibilityLabel={label}
+          placeholderTextColor={colors.muted}
+          {...props}
+          secureTextEntry={secureTextEntry && !passwordVisible}
+          style={[styles.input, secureTextEntry && styles.passwordText, { textAlign }, props.style]}
+        />
+        {secureTextEntry ? (
+          <IconButton
+            label={t(passwordVisible ? 'hidePassword' : 'showPassword')}
+            icon={passwordVisible ? 'eye-off-outline' : 'eye-outline'}
+            disabled={props.editable === false}
+            onPress={() => setPasswordVisible((visible) => !visible)}
+          />
+        ) : null}
+      </View>
       {hint ? <Text style={[styles.hint, { textAlign }]}>{hint}</Text> : null}
     </View>
   );
@@ -395,6 +408,16 @@ const useStyles = createThemedStyles((colors) => ({
     color: colors.ink,
     textAlign: 'left',
   },
+  passwordInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    paddingEnd: spacing.xs,
+  },
+  passwordText: { flex: 1, minWidth: 0, borderWidth: 0 },
   hint: { fontSize: type.caption, color: colors.muted, marginTop: spacing.xs, textAlign: 'left' },
   notice: {
     backgroundColor: colors.accentSoft,

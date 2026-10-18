@@ -245,6 +245,28 @@ textarea {
   color: var(--muted);
 }
 
+.password-input {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+}
+.password-input input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+}
+.password-toggle {
+  display: grid;
+  place-items: center;
+  flex: 0 0 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  color: var(--accent);
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

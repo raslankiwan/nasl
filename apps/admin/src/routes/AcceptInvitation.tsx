@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH } from '@nasl/shared';
+import { PasswordInput } from '../components/PasswordInput';
 import { apiClient, ApiError } from '../api/client';
 import { LanguageToggle } from '../components/LanguageToggle';
 import { AppPreferences } from '../components/AppPreferences';
@@ -156,9 +157,8 @@ export function AcceptInvitation() {
               </div>
               <div className="field">
                 <label htmlFor="invite-password">{t('auth:password')}</label>
-                <input
+                <PasswordInput
                   id="invite-password"
-                  type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete={invitation.existingAccount ? 'current-password' : 'new-password'}
@@ -174,9 +174,8 @@ export function AcceptInvitation() {
               {!invitation.existingAccount ? (
                 <div className="field">
                   <label htmlFor="invite-confirm">{t('auth:confirmPassword')}</label>
-                  <input
+                  <PasswordInput
                     id="invite-confirm"
-                    type="password"
                     value={confirmation}
                     onChange={(e) => setConfirmation(e.target.value)}
                     autoComplete="new-password"

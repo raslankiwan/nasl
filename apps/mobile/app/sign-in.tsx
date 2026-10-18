@@ -193,6 +193,7 @@ export default function SignIn() {
                   />
                 )}
                 <Field
+                  key={registering ? 'register-password' : 'login-password'}
                   label={t('auth:password')}
                   hint={registering ? t('auth:passwordHint') : undefined}
                   value={password}

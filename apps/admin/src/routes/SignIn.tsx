@@ -5,6 +5,7 @@ import { passkeysAvailable } from '../auth/passkeys';
 import { LanguageToggle } from '../components/LanguageToggle';
 import { ApiError } from '../api/client';
 import { AppPreferences } from '../components/AppPreferences';
+import { PasswordInput } from '../components/PasswordInput';
 
 export function SignIn({
   signIn,
@@ -71,9 +72,8 @@ export function SignIn({
             </div>
             <div className="field">
               <label htmlFor="password">{t('auth:password')}</label>
-              <input
+              <PasswordInput
                 id="password"
-                type="password"
                 dir="ltr"
                 autoComplete="current-password"
                 value={password}

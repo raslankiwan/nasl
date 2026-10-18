@@ -34,13 +34,13 @@ test('seeded identity is prefilled and locked; setup submits only a password and
   expect(screen.getByLabelText('Username')).toHaveAttribute('readonly');
   expect(screen.getByLabelText('Full name')).toHaveValue('Operator');
   const user = userEvent.setup();
-  await user.type(screen.getByLabelText('Password', { exact: true }), 'test-password-123');
-  await user.type(screen.getByLabelText('Confirm password'), 'test-password-123');
+  await user.type(screen.getByLabelText('Password', { exact: true }), 'testpass');
+  await user.type(screen.getByLabelText('Confirm password'), 'testpass');
   await user.click(screen.getByRole('button', { name: 'Save password' }));
   expect(await screen.findByRole('status')).toHaveTextContent('You can now sign in');
   expect(post).toHaveBeenLastCalledWith('/v1/auth/admin-invitations/accept', {
     token,
-    password: 'test-password-123',
+    password: 'testpass',
   });
   expect(window.location.hash).toBe('');
   expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();

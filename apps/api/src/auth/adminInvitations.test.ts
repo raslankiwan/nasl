@@ -33,6 +33,7 @@ const tokenOf = (url: string) => new URLSearchParams(new URL(url).hash.slice(1))
 type InvitationResult = { id: string; email: string; state: string };
 
 test('seed creates the first approved admin directly, has no default password, and only the one-use setup activates it', async () => {
+  const setupPassword = 'testpass';
   const seeded = await seedFirstAdmin(first, origin, true);
   assert.ok(seeded.setupUrl);
   const user = await User.findById(seeded.id).select('+passwordHash').lean();
@@ -67,12 +68,12 @@ test('seed creates the first approved admin directly, has no default password, a
     assert.equal(info.body.seeded, true);
     assert.equal(info.body.email, first.email);
     assert.equal(info.body.username, first.username);
-    assert.equal((await client.post(acceptPath, { token, password: 'short' })).status, 400);
-    assert.equal((await client.post(acceptPath, { token, password: TEST_PASSWORD })).status, 200);
-    assert.equal((await client.post(acceptPath, { token, password: TEST_PASSWORD })).status, 400);
+    assert.equal((await client.post(acceptPath, { token, password: '1234567' })).status, 400);
+    assert.equal((await client.post(acceptPath, { token, password: setupPassword })).status, 200);
+    assert.equal((await client.post(acceptPath, { token, password: setupPassword })).status, 400);
     const session = await client.post<{ accessToken: string }>('/v1/auth/login', {
       identifier: first.username,
-      password: TEST_PASSWORD,
+      password: setupPassword,
       deviceId: TEST_DEVICE,
     });
     assert.equal(session.status, 200);

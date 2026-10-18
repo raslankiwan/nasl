@@ -149,8 +149,10 @@ export const en = {
     username: 'Username',
     identifier: 'Email or username',
     password: 'Password',
+    showPassword: 'Show password',
+    hidePassword: 'Hide password',
     confirmPassword: 'Confirm password',
-    passwordHint: 'Use 12–128 characters.',
+    passwordHint: 'Use 8–128 characters.',
     usernameHint: '3–32 letters (a–z), numbers, dots, underscores or hyphens.',
     registrationHint:
       'New accounts need email verification and administrator approval before signing in.',
@@ -178,7 +180,7 @@ export const en = {
       email_delivery_failed: 'The email could not be sent. Please try again later.',
       unauthorized: 'Incorrect email, username or password.',
       bad_request:
-        'Check your details. Use a valid email, a username of 3–32 characters, and a password of 12–128 characters.',
+        'Check your details. Use a valid email, a username of 3–32 characters, and a password of 8–128 characters.',
       account_pending:
         'Your account is awaiting administrator approval. Please try again after it has been approved.',
       account_rejected: 'Your registration was not approved. Contact the administrator.',

@@ -7,7 +7,6 @@ import {
   signIn,
   testApp,
   TEST_DEVICE,
-  TEST_PASSWORD,
   withServer,
   verifyTestEmail,
 } from '../testing/harness.ts';
@@ -26,9 +25,9 @@ const registration = {
   name: 'Farmer',
   email: 'Farmer@Example.test',
   username: 'Farmer_1',
-  password: TEST_PASSWORD,
+  password: 'testpass',
 };
-const login = { identifier: 'FARMER_1', password: TEST_PASSWORD, deviceId: TEST_DEVICE };
+const login = { identifier: 'FARMER_1', password: registration.password, deviceId: TEST_DEVICE };
 type Registered = { id: string; status: string };
 type ErrorBody = { error: { code: string } };
 
@@ -43,7 +42,7 @@ test('registration is pending without tokens; only staff approval unlocks email 
     assert.equal(user?.email, 'farmer@example.test');
     assert.equal(user?.username, 'farmer_1');
     assert.equal(user?.isPlatformAdmin, false);
-    assert.ok(await verifyPassword(TEST_PASSWORD, user?.passwordHash));
+    assert.ok(await verifyPassword(registration.password, user?.passwordHash));
     assert.equal((await User.findById(created.body.id).lean())?.passwordHash, undefined);
     assert.equal(await RefreshToken.countDocuments(), 0);
     const pending = await client.post<ErrorBody>('/v1/auth/login', login);
@@ -87,7 +86,7 @@ test('registration is pending without tokens; only staff approval unlocks email 
     assert.deepEqual(audit?.before, { status: 'pending' });
     assert.deepEqual(audit?.after, { status: 'approved' });
     assert.equal(audit?.actorId, staff.user.id);
-    assert.equal(JSON.stringify(audit).includes(TEST_PASSWORD), false);
+    assert.equal(JSON.stringify(audit).includes(registration.password), false);
   });
 });
 
@@ -99,7 +98,7 @@ test('strict registration validation prevents role injection, invalid credential
       { isPlatformAdmin: true },
       { email: 'invalid' },
       { username: 'has@at' },
-      { password: 'short' },
+      { password: '1234567' },
       { password: 'x'.repeat(129) },
     ]) {
       assert.equal(
