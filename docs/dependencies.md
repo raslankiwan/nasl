@@ -25,19 +25,32 @@ workspace runs its own compiler, so this is fine — but it does constrain depen
 alongside TypeScript 6. The whole workspace is therefore on `i18next` 26 / `react-i18next` 17,
 whose peer range is `^5 || ^6 || ^7`.
 
-## Known audit findings we are not "fixing"
+## Security updates and scoped overrides (18 October 2026)
 
-`npm audit` reports two moderate advisories, both reached through the Expo toolchain. In both
-cases `npm audit fix --force` is a **downgrade**, not an upgrade, and would be far more dangerous
-than the advisory:
+The lockfile updates `shell-quote` to 1.12.0, `compression` to 1.8.2, `source-map-js` to 1.2.2,
+and both `brace-expansion` branches to 1.1.21 / 5.0.12. These are compatible releases fixing
+the advisories reported by the audit without changing the Expo or React Native versions.
 
-| Advisory                                                                | Reached via                          | What `--force` would do             |
-| ----------------------------------------------------------------------- | ------------------------------------ | ----------------------------------- |
-| `decode-uri-component` — DoS on malformed input                         | `query-string`, inside `expo-router` | Downgrade `expo-router` 57 → 5.1.11 |
-| `uuid` — missing buffer bounds check in v3/v5/v6 when `buf` is supplied | `xcode`, an iOS build-time tool      | Downgrade `expo` 57 → 46.0.21       |
+Only `xcode` overrides `uuid` to 11.1.1. This fixes
+[missing buffer bounds checks](https://github.com/advisories/GHSA-w5hq-g745-h8pq) while retaining
+the CommonJS `uuid.v4()` API used by its project writer. The dependency compatibility test runs
+through the actual Xcode project ID generator. Remove this override when the upstream `xcode`
+dependency range includes a patched release; do not move to an ESM-only UUID major blindly.
+Application identifiers continue to use `crypto.randomUUID()`.
 
-Neither is reachable from code we wrote: we mint identifiers with `crypto.randomUUID()`, not the
-`uuid` package's buffer API, and `xcode` never ships inside the app. The `decode-uri-component`
-path is in the router and would need an attacker-supplied deep link to reach.
+## Remaining upstream advisories
 
-Re-check these when the Expo SDK next moves; they should clear on their own.
+The audit is **not clean**. It reports dependent packages as well as the following three root
+advisories, so its package count is larger than this table. Recheck these before an Expo SDK
+upgrade and whenever upstream patched releases become available.
+
+| Package                                                                     | Path / impact                                                                     | Why it remains                                                                                                                                                           |
+| --------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [`decode-uri-component`](https://github.com/advisories/GHSA-vcc3-ghjq-m6fr) | `query-string` in Expo Router; malformed external URLs can stall decoding         | The patched 0.5.0 is ESM-only, but `query-string` 7 calls it as a CommonJS function. A direct override breaks that API. Resolve through a compatible router/SDK upgrade. |
+| [`braces`](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm)               | Metro/micromatch build tooling; deeply nested glob patterns can exhaust the stack | No patched release is published. The app does not accept user-supplied build patterns.                                                                                   |
+| [`node-forge`](https://github.com/advisories/GHSA-86w9-cpqp-85rv)           | Expo CLI and code-signing tooling; RSA signature validation flaw                  | No patched release is published. Application authentication uses Node crypto, not this dependency.                                                                       |
+
+Do not apply `npm audit fix --force` indiscriminately: it proposes an Expo downgrade for the
+unpatched tooling dependencies and a different Expo Router major for the decoder. This audit
+does not establish that every transitive dependency is safe or that these issues are unreachable
+in every native/update configuration.

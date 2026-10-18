@@ -24,6 +24,8 @@
 - [x] Weighing methods and veterinary product categories are translated and correctly labeled. Admin dashboard, products and audit
       show retryable failures instead of fabricated zero totals/empty lists. Veterinary withdrawal
       inputs start blank so each curated value, including zero, must be entered deliberately.
+- [x] Compatible dependency security updates and a scoped, tested Xcode UUID override; remaining
+      Expo/router advisories and upgrade constraints are documented in `docs/dependencies.md`.
 
 ## Birth-window push reminders (18 October 2026)
 

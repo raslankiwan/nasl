@@ -27,7 +27,7 @@ nasl/
 └── docs/
 ```
 
-npm workspaces. Node 22+.
+npm workspaces. Use Node 22.x (`nvm use`) and its bundled npm, matching CI and Vercel.
 
 ## Commands
 

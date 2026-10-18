@@ -14,7 +14,7 @@
   "scripts": {
     "build": "npm run build --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present && npm run test:pwa",
+    "test": "npm run test --workspaces --if-present && npm run test:pwa && npm run test:dependencies",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -23,7 +23,8 @@
     "pretest": "npm run build:packages",
     "pretypecheck": "npm run build:packages",
     "prepare": "git config core.hooksPath .githooks || true",
-    "test:pwa": "node --test scripts/pwa.test.mjs"
+    "test:pwa": "node --test scripts/pwa.test.mjs",
+    "test:dependencies": "node --test scripts/dependencies.test.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.20.0",
@@ -36,6 +37,9 @@
   },
   "overrides": {
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "xcode": {
+      "uuid": "11.1.1"
+    }
   }
 }
