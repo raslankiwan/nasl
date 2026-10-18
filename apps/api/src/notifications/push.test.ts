@@ -13,6 +13,7 @@ import { User } from '../models/user.model.ts';
 import { PushSubscription } from '../models/pushSubscription.model.ts';
 import {
   allowedPushEndpoint,
+  endpointHash,
   dispatchBirthReminders,
   remindersFor,
   type PushMessage,
@@ -208,5 +209,27 @@ test('test messages are rate limited and cron rejects missing or incorrect secre
     assert.equal((await api(url).get('/v1/cron/birth-reminders')).status, 401);
     assert.equal((await api(url, 'wrong').get('/v1/cron/birth-reminders')).status, 401);
     assert.equal((await api(url, config.CRON_SECRET).get('/v1/cron/birth-reminders')).status, 200);
+  });
+});
+
+test('a full dispatch batch reports deferred devices even when expired endpoints were deleted', async () => {
+  await withServer(app(), async (url) => {
+    const { userId } = await fixture(url);
+    await PushSubscription.insertMany(
+      Array.from({ length: 500 }, (_, index) => {
+        const data = input(`expired-${index}`);
+        return { ...data, userId, endpointHash: endpointHash(data.endpoint) };
+      }),
+    );
+    const result = await dispatchBirthReminders(
+      async () => {
+        throw { statusCode: 410 };
+      },
+      logger,
+      now,
+    );
+    assert.equal(result.expired, 500);
+    assert.equal(result.deferred, 1);
+    assert.equal(await PushSubscription.countDocuments(), 1);
   });
 });

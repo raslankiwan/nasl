@@ -138,6 +138,7 @@ export function reminderMessage(
 /** One digest per device, only new pregnancies. Leases exclude overlapping cron invocations. */
 export async function dispatchBirthReminders(send: PushSender, logger: Logger, now = new Date()) {
   const stats = { sent: 0, failed: 0, expired: 0, checked: 0, deferred: 0 };
+  const total = await PushSubscription.countDocuments({ enabled: true });
   const subscriptions = await PushSubscription.find({ enabled: true })
     .sort({ lastCheckedAt: 1 })
     .limit(500)
@@ -196,6 +197,6 @@ export async function dispatchBirthReminders(send: PushSender, logger: Logger, n
       }
     }),
   );
-  stats.deferred = Math.max(0, (await PushSubscription.countDocuments({ enabled: true })) - cursor);
+  stats.deferred = Math.max(0, total - cursor);
   return stats;
 }
