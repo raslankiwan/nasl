@@ -1,0 +1,61 @@
+apps/mobile/app/breeding/mating.tsx
+  s_c9959826314bf9::t_fdb693b5ce1601 9-11,25,54-59
+packages/shared/src/alerts.test.ts
+  s_c9959826314bf9::t_62344bd1c7c353 25-27,39,41,45,49-67
+  s_c9959826314bf9::t_30da279e5af917 68-71
+apps/mobile/src/calendar.test.ts
+  s_c9959826314bf9::t_8a8ace79d0b660 1-29
+  s_c9959826314bf9::t_2233ddb55d2e72 30-48
+apps/mobile/src/components/DateField.tsx
+  s_c9959826314bf9::t_413e1a9a1f78d7 1-229
+  s_c9959826314bf9::t_fd7a9db3f58351 230-384
+apps/mobile/app/animal/[id].tsx
+  s_c9959826314bf9::t_fdb693b5ce1601 23-24,214-216
+apps/mobile/src/sync/useFlock.ts
+  s_c9959826314bf9::t_801fd63b03ef1a 2,73-79
+packages/shared/src/species.ts
+  s_c9959826314bf9::t_60d34461f60282 12,14-15,36
+apps/mobile/src/components/LambingWindow.tsx
+  s_c9959826314bf9::t_fdb693b5ce1601 1-32
+  s_c9959826314bf9::t_d234822b120778 33-38
+packages/shared/src/alerts.ts
+  s_c9959826314bf9::t_60d34461f60282 2,31-33,79-82,87-88
+packages/shared/src/repro.test.ts
+  s_c9959826314bf9::t_62344bd1c7c353 11,145-157
+apps/mobile/app/(tabs)/index.tsx
+  s_c9959826314bf9::t_fdb693b5ce1601 42-48
+  s_c9959826314bf9::t_c79f657dbfe066 49-50,53-60,143,157-158
+apps/mobile/src/calendar.ts
+  s_c9959826314bf9::t_8a8ace79d0b660 1-25
+packages/shared/src/repro.ts
+  s_c9959826314bf9::t_60d34461f60282 152-164
+apps/api/src/routes/breeding.test.ts
+  s_c9959826314bf9::t_62344bd1c7c353 414-437
+  s_c9959826314bf9::t_adc07686591c55 438-443
+apps/mobile/src/components/form.tsx
+  s_c9959826314bf9::t_5b50d43680bdfe 4
+docs/roadmap.md
+  s_c9959826314bf9::t_62f4f04b8a4309 3-17
+docs/scope.md
+  s_c9959826314bf9::t_554423fd806f3e 178-180,210-218
+packages/i18n/src/locales/ar.ts
+  s_c9959826314bf9::t_a3bda739fc293c 50-56,177-181
+packages/i18n/src/locales/en.ts
+  s_c9959826314bf9::t_d86c81e8e14c0d 45-51,174-178
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "f549e3183fa2fd27c1a4ca6b4ce5c61a022d3045",
+  "prompts": {},
+  "sessions": {
+    "s_c9959826314bf9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ed41-6d4f-7fd1-8eef-bc4227e3e739",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "raslan <raslankiwan@gmail.com>"
+    }
+  }
+}
