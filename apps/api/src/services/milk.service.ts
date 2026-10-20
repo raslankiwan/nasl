@@ -126,7 +126,12 @@ export class MilkService {
 
     for (const entry of input.entries) {
       const animal = await this.animals.findById(farmId, entry.animalId);
-      if (!animal) {
+      if (
+        !animal ||
+        animal.status !== 'active' ||
+        animal.sex !== 'female' ||
+        (animal.classification && animal.classification !== 'mother')
+      ) {
         skipped.push(entry.animalId);
         continue;
       }
@@ -258,12 +263,22 @@ export class MilkService {
 
     const animalIds = lactations.map((l) => l.animalId);
     const [animals, tests] = await Promise.all([
-      this.animals.find(farmId, { _id: { $in: animalIds } } as never, { limit: 500 }),
+      this.animals.find(
+        farmId,
+        {
+          _id: { $in: animalIds },
+          status: 'active',
+          sex: 'female',
+          classification: { $in: ['mother', null] },
+        } as never,
+        { limit: 500 },
+      ),
       this.testDays.find(farmId, { animalId: { $in: animalIds } } as never, { limit: 5000 }),
     ]);
     const byId = new Map(animals.map((a) => [a._id, a]));
 
     return lactations
+      .filter((lactation) => byId.has(lactation.animalId))
       .map((lactation) => {
         const animal = byId.get(lactation.animalId);
         return this.summarise(

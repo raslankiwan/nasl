@@ -151,6 +151,66 @@ describe('lactations', () => {
 });
 
 describe('test days', () => {
+  for (const status of ['sold', 'dead']) {
+    test(`${status} mothers leave the active milking list while retaining their milk history`, async () => {
+      await withServer(testApp(), async (url) => {
+        const { client, farmId, damId } = await milkingEwe(url);
+        const path = `/v1/farms/${farmId}/milk`;
+        await client.post(`${path}/test-days`, {
+          date: daysAgo(1),
+          entries: [{ animalId: damId, kg: 2 }],
+        });
+        const departure = await client.post(`/v1/farms/${farmId}/animals/${damId}/status`, {
+          status,
+          date: iso(new Date()),
+        });
+        assert.equal(departure.status, 200);
+
+        const flock = await client.get<{ lactations: Lactation[] }>(`${path}/milking`);
+        assert.deepEqual(flock.body.lactations, []);
+        const measurement = await client.post<TestDayResult>(`${path}/test-days`, {
+          date: iso(new Date()),
+          entries: [{ animalId: damId, kg: 3 }],
+        });
+        assert.equal(measurement.body.recorded, 0);
+        assert.deepEqual(measurement.body.skipped, [damId]);
+        const history = await client.get<{ lactations: Lactation[] }>(`${path}/animals/${damId}`);
+        assert.equal(history.body.lactations[0]?.testDays, 1);
+        assert.equal(history.body.lactations[0]?.peakKg, 2);
+      });
+    });
+  }
+
+  test('children and adult males cannot acquire a lactation through milk recording', async () => {
+    await withServer(testApp(), async (url) => {
+      const { client, farmId, damId } = await milkingEwe(url);
+      const child = await client.post<AnimalBody>(`/v1/farms/${farmId}/animals`, {
+        species: 'sheep',
+        sex: 'female',
+        classification: 'child',
+        dateOfBirth: iso(new Date()),
+      });
+      const male = await client.post<AnimalBody>(`/v1/farms/${farmId}/animals`, {
+        species: 'sheep',
+        sex: 'male',
+        classification: 'male',
+        dateOfBirth: '2020-01-01',
+      });
+      const res = await client.post<TestDayResult>(`/v1/farms/${farmId}/milk/test-days`, {
+        date: iso(new Date()),
+        entries: [damId, child.body.id, male.body.id].map((animalId) => ({ animalId, kg: 2 })),
+      });
+      assert.equal(res.body.recorded, 1);
+      assert.deepEqual(res.body.skipped, [child.body.id, male.body.id]);
+      for (const animal of [child, male]) {
+        const history = await client.get<{ lactations: Lactation[] }>(
+          `/v1/farms/${farmId}/milk/animals/${animal.body.id}`,
+        );
+        assert.deepEqual(history.body.lactations, []);
+      }
+    });
+  });
+
   test('yield is estimated from the test points', async () => {
     await withServer(testApp(), async (url) => {
       const { client, farmId, damId } = await milkingEwe(url, '+966501111111', 90);
