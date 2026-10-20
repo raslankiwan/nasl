@@ -1,0 +1,21 @@
+apps/api/src/routes/milk.test.ts
+  s_c9959826314bf9::t_b6b173899f7fc6 154-213
+apps/api/src/services/milk.service.ts
+  s_c9959826314bf9::t_b6b173899f7fc6 129-134,266-275,281
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "3857c846451f9fabb0aaf65bdcc4729d30e8b936",
+  "prompts": {},
+  "sessions": {
+    "s_c9959826314bf9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ed41-6d4f-7fd1-8eef-bc4227e3e739",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "raslan <raslankiwan@gmail.com>"
+    }
+  }
+}
