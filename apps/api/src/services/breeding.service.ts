@@ -15,6 +15,7 @@ import { AnimalRepository } from '../repositories/animal.repository.ts';
 import { MilkService } from './milk.service.ts';
 import { TenantRepository } from '../repositories/tenantRepository.ts';
 import type { AnimalDoc } from '../models/animal.model.ts';
+import { Group, type GroupDoc } from '../models/group.model.ts';
 import {
   Abortion,
   Birth,
@@ -44,6 +45,7 @@ export class BreedingService {
   private readonly births: TenantRepository<BirthDoc>;
   private readonly weanings: TenantRepository<WeaningDoc>;
   private readonly abortions: TenantRepository<AbortionDoc>;
+  private readonly groups: TenantRepository<GroupDoc>;
   private readonly transactional: boolean;
 
   constructor(transactional = false, session?: ClientSession) {
@@ -55,6 +57,7 @@ export class BreedingService {
     this.births = new TenantRepository(Birth, undefined, session);
     this.weanings = new TenantRepository(Weaning, undefined, session);
     this.abortions = new TenantRepository(Abortion, undefined, session);
+    this.groups = new TenantRepository(Group, undefined, session);
   }
 
   private async loadDam(farmId: string, damId: string): Promise<AnimalDoc> {
@@ -141,6 +144,8 @@ export class BreedingService {
       if (sire.status !== 'active' || (sire.classification && sire.classification !== 'male'))
         throw AppError.badRequest('Select an active adult male as the sire.');
     }
+    if (input.breedingGroupId && !(await this.groups.findById(farmId, input.breedingGroupId)))
+      throw AppError.badRequest('That breeding group is not on this farm.');
 
     const next = this.advance(this.currentStatus(dam), {
       type: 'mating',
@@ -353,6 +358,11 @@ export class BreedingService {
     const born = lambs.filter(
       (lamb) => lamb.dateOfBirth && lamb.dateOfBirth.getTime() <= input.date.getTime(),
     );
+    const offspringIds = new Set(born.map((lamb) => lamb._id));
+    if (Object.keys(input.weightsKg ?? {}).some((id) => !offspringIds.has(id)))
+      throw AppError.badRequest(
+        'Weaning weights must belong to this mother’s offspring on this farm.',
+      );
 
     const weaning = await this.weanings.create(farmId, {
       ...(input.id ? { _id: input.id } : {}),

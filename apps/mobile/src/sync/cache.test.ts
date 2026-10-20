@@ -127,6 +127,39 @@ describe('folding in a change set', () => {
     );
   });
 
+  test('matching class labels and permanent numbers never merge farms or redirect a mother link', async () => {
+    const otherFarm = 'farm-2';
+    for (const farm of [FARM, otherFarm]) {
+      await cache.applyChanges(
+        farm,
+        changes({
+          created: [
+            doc(`${farm}-mother`, { tagNumber: '1', classLabel: 'M1' }),
+            doc(`${farm}-child`, { tagNumber: '2', classLabel: 'C1', damId: `${farm}-mother` }),
+          ],
+        }),
+      );
+    }
+    await cache.applyChanges(
+      FARM,
+      changes({
+        updated: [doc(`${FARM}-mother`, { tagNumber: '1', classLabel: 'M1', status: 'sold' })],
+        created: [doc('replacement-mother', { tagNumber: '3', classLabel: 'M1' })],
+      }),
+    );
+    const restarted = new FlockCache(store);
+    for (const farm of [FARM, otherFarm]) {
+      const child = await restarted.getAnimal(farm, `${farm}-child`);
+      assert.equal(child?.damId, `${farm}-mother`);
+      const mother = await restarted.getAnimal(farm, child!.damId!);
+      assert.equal(mother?.id, `${farm}-mother`);
+      assert.equal(mother?.status, farm === FARM ? 'sold' : 'active');
+    }
+    assert.equal(await restarted.getAnimal(FARM, `${otherFarm}-mother`), null);
+    assert.equal(await restarted.getAnimal(otherFarm, 'replacement-mother'), null);
+    assert.equal((await restarted.listAnimals(otherFarm)).length, 2);
+  });
+
   test('forgetting a farm takes its flock and its cursor with it', async () => {
     await cache.applyChanges(FARM, changes({ created: [doc('1001')] }));
     await cache.forget(FARM);

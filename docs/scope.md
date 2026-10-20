@@ -488,7 +488,8 @@ auditLog       { _id, actorId, action, targetFarmId, reason, before, after, at }
 
 ### Indexes that matter
 
-- `{ farmId: 1, tagNumber: 1 }` unique partial (excluding soft-deleted) — enforces FR-REG-02 at the database, not in application code.
+- `{ farmId: 1, tagNumber: 1 }` unique across all records, including archived animals — permanent numbers never repeat within a farm.
+- `{ farmId: 1, activeClassLabel: 1 }` unique for reserved labels — M/C/R sequences are farm-local and shared across sheep/goats. Sale/death releases the label; historical parent links retain the original animal ID.
 - `{ farmId: 1, updatedAt: 1 }` on every syncable collection — this is the sync pull index and it is on the hot path.
 - `{ farmId: 1, 'repro.state': 1, 'repro.dueDate': 1 }` — powers the Today list and the due-to-lamb alerts.
 - `{ farmId: 1, animalId: 1, date: -1 }` on every event collection — powers the per-animal history screens.

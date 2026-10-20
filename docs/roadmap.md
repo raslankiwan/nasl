@@ -1,5 +1,16 @@
 # Delivery plan
 
+## Farm identity and relationship isolation (20 October 2026)
+
+- [x] Regression tests cover two farms owned by the same user, concurrent sheep/goat registration,
+      independent permanent and M/C/R sequences, database uniqueness constraints, births, sales,
+      promotion, pedigree and sync. Label reuse never reassigns historical parent IDs.
+- [x] Animal registration/edits reject foreign pens; pen creation/edits reject foreign rams;
+      mating rejects foreign breeding groups. Existing dam/sire validation remains farm-scoped.
+- [x] Weaning rejects weights for another farm or another mother's animals before writing the
+      event or any weights. Offline cache tests retain independent IDs and mother links even when
+      farms share identical numbers/labels and a sold mother's label is reused.
+
 ## Animal classifications and audited support sessions (20 October 2026)
 
 - [x] Permanent farm numbers are assigned by the server across every class and never reused.

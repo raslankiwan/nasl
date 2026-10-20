@@ -46,6 +46,11 @@ export function groupRoutes(config: Config): Router {
   const movements = new TenantRepository<MovementDoc>(Movement);
   const animals = new AnimalRepository();
 
+  const assertRamIsOnFarm = async (farmId: string, ramId?: string) => {
+    if (ramId && !(await animals.findById(farmId, ramId)))
+      throw AppError.badRequest('That ram is not on this farm.');
+  };
+
   router.use(requireAuth(config.JWT_SECRET));
 
   router.get('/', requireFarmAccess('animals:read'), async (req, res) => {
@@ -65,6 +70,7 @@ export function groupRoutes(config: Config): Router {
   router.post('/', requireFarmAccess('animals:write'), async (req, res) => {
     const input = parse(groupInput, req.body);
     const { id, ...rest } = input;
+    await assertRamIsOnFarm(farmIdOf(req), input.ramId);
     try {
       const created = await groups.create(farmIdOf(req), {
         ...rest,
@@ -81,6 +87,7 @@ export function groupRoutes(config: Config): Router {
 
   router.patch('/:groupId', requireFarmAccess('animals:write'), async (req, res) => {
     const patch = parse(groupInput.partial().omit({ id: true }), req.body);
+    await assertRamIsOnFarm(farmIdOf(req), patch.ramId);
     const updated = await groups.updateById(farmIdOf(req), pathParam(req, 'groupId'), {
       $set: patch,
     });

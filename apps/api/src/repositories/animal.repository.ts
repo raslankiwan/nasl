@@ -3,6 +3,7 @@ import { CLASS_PREFIX, classificationError, type AnimalClass } from '@nasl/share
 import { AnimalNumberRepository } from './animalNumber.repository.ts';
 import { AppError } from '../errors.ts';
 import { Animal, type AnimalDoc } from '../models/animal.model.ts';
+import { Group, type GroupDoc } from '../models/group.model.ts';
 import { TenantRepository, type RepositoryLogger } from './tenantRepository.ts';
 
 export interface AnimalFilters {
@@ -133,6 +134,7 @@ export class AnimalRepository extends TenantRepository<AnimalDoc> {
         return previous;
       }
     }
+    await this.assertGroupIsOnFarm(farmId, input.currentGroupId);
     await this.assertParentageIsPossible(farmId, input);
     const classification = input.classification ?? 'child';
     const invalid = classificationError(
@@ -171,6 +173,7 @@ export class AnimalRepository extends TenantRepository<AnimalDoc> {
   }
 
   async updateAnimal(farmId: string, id: string, patch: Partial<AnimalDoc>) {
+    await this.assertGroupIsOnFarm(farmId, patch.currentGroupId);
     if (patch.tagNumber !== undefined) {
       patch = { ...patch, tagNumber: patch.tagNumber.trim() };
       await this.assertTagAvailable(farmId, patch.tagNumber!, id);
@@ -371,6 +374,13 @@ export class AnimalRepository extends TenantRepository<AnimalDoc> {
   // -------------------------------------------------------------------------
   // Pedigree
   // -------------------------------------------------------------------------
+
+  private async assertGroupIsOnFarm(farmId: string, groupId?: string | null) {
+    if (!groupId) return;
+    const groups = new TenantRepository<GroupDoc>(Group, undefined, this.session);
+    if (!(await groups.findById(farmId, groupId)))
+      throw AppError.badRequest('That pen is not on this farm.');
+  }
 
   /**
    * Reject a parentage link that cannot be true (FR-PED-05):
