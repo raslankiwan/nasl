@@ -1,0 +1,37 @@
+docs/scope.md
+  s_c9959826314bf9::t_63e8fa41bea08a 491-492
+apps/api/src/services/breeding.service.ts
+  s_c9959826314bf9::t_34b3b94a931196 18,48,60,147-148,361-363
+  s_c9959826314bf9::t_7a3b467c89bfa8 364-365
+apps/api/src/routes/groups.routes.ts
+  s_c9959826314bf9::t_34b3b94a931196 49-53,73,90
+docs/roadmap.md
+  s_c9959826314bf9::t_63e8fa41bea08a 3-13
+apps/mobile/src/sync/cache.test.ts
+  s_c9959826314bf9::t_63e8fa41bea08a 130-154,161
+  s_c9959826314bf9::t_7fa62aabf3deb2 155-160,162
+apps/api/src/routes/farm-isolation.test.ts
+  s_c9959826314bf9::t_03e9823e38e453 56-63,72-79,81-91,100-106,113-124,129-175,177-180,187-218,228-230,238-247,249-265,267-270,272-274,279-286,289-292,296-303,311-319,321-325,328-331,333-337,339-342
+  s_c9959826314bf9::t_2a800bccc5d02f 219-227
+  s_c9959826314bf9::t_8e4efe23ced955 1-55,64-71,80,92-99,107-112,125-128,176,181-186,231-237,248,266,271,275-278,287-288,293-295,304-310,320,326-327,332,338,343-344
+  s_c9959826314bf9::t_0f1630efdcb1de 345-346
+apps/api/src/repositories/animal.repository.ts
+  s_c9959826314bf9::t_34b3b94a931196 6,137,176,378-383
+  s_c9959826314bf9::t_a61dba1a95089a 384
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "e6496de8d12cf2f59bf695bddb0b84f2e6b05720",
+  "prompts": {},
+  "sessions": {
+    "s_c9959826314bf9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ed41-6d4f-7fd1-8eef-bc4227e3e739",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "raslan <raslankiwan@gmail.com>"
+    }
+  }
+}
