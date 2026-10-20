@@ -1,5 +1,13 @@
 import { model, Schema } from 'mongoose';
-import { ANIMAL_STATUSES, ORIGINS, REPRO_STATES, SEXES, SPECIES } from '@nasl/shared';
+import {
+  ANIMAL_CLASSES,
+  ANIMAL_STATUSES,
+  ORIGINS,
+  REPRO_STATES,
+  SEXES,
+  SPECIES,
+  type AnimalClass,
+} from '@nasl/shared';
 import { tenantSchema, type TenantDocument } from './base.ts';
 
 export interface ReproSubdoc {
@@ -11,6 +19,20 @@ export interface ReproSubdoc {
 
 export interface AnimalDoc extends TenantDocument {
   tagNumber: string;
+  classification?: AnimalClass | null;
+  classNumber?: number | null;
+  classLabel?: string | null;
+  activeClassLabel?: string | null;
+  lifecycle: Array<{
+    id: string;
+    kind: string;
+    from: string;
+    to: string;
+    date: Date;
+    recordedBy: string;
+    reason?: string;
+    classLabel?: string;
+  }>;
   eid?: string | null;
   name?: string | null;
   species: string;
@@ -45,6 +67,28 @@ const reproSchema = new Schema<ReproSubdoc>(
 
 const schema = tenantSchema<AnimalDoc>({
   tagNumber: { type: String, required: true, trim: true },
+  classification: { type: String, enum: ANIMAL_CLASSES, default: null },
+  classNumber: { type: Number, min: 1, default: null },
+  classLabel: { type: String, default: null },
+  activeClassLabel: { type: String, default: null },
+  lifecycle: {
+    type: [
+      new Schema(
+        {
+          id: { type: String, required: true },
+          kind: String,
+          from: String,
+          to: String,
+          date: Date,
+          recordedBy: String,
+          reason: String,
+          classLabel: String,
+        },
+        { _id: false },
+      ),
+    ],
+    default: [],
+  },
   eid: { type: String, default: null, trim: true },
   name: { type: String, default: null, trim: true },
   species: { type: String, enum: SPECIES, required: true },
@@ -71,6 +115,14 @@ const schema = tenantSchema<AnimalDoc>({
  * application code, which races (FR-REG-02). Historical numbers cannot be reassigned to another animal.
  */
 schema.index({ farmId: 1, tagNumber: 1 }, { unique: true, name: 'farm_tag_never_reused' });
+schema.index(
+  { farmId: 1, activeClassLabel: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { activeClassLabel: { $type: 'string' } },
+    name: 'farm_class_label_reserved',
+  },
+);
 
 // The Today list and the due-to-lamb alerts.
 schema.index({ farmId: 1, 'repro.state': 1, 'repro.dueDate': 1 });

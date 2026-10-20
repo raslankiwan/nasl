@@ -93,17 +93,17 @@ describe('flock export', () => {
       });
 
       const res = await getText(url, `/v1/farms/${farmId}/export/flock.csv`, token);
-      const lamb = res.body.split('\r\n').find((line) => line.startsWith('1002'))!;
-      assert.ok(lamb.includes('1001'), 'the dam appears as her tag');
+      const lamb = res.body.split('\r\n').find((line) => line.startsWith('2,'))!;
+      assert.ok(lamb.includes('1'), 'the dam appears as her tag');
       assert.ok(!lamb.includes(dam.body.id), 'and not as a uuid');
     });
   });
 
-  test('a tag that looks like a formula cannot execute when the file is opened', async () => {
+  test('a name that looks like a formula cannot execute when the file is opened', async () => {
     await withServer(testApp(), async (url) => {
       const { client, token, farmId } = await farm(url);
       await client.post(`/v1/farms/${farmId}/animals`, {
-        tagNumber: '=1+1',
+        name: '=1+1',
         species: 'sheep',
         sex: 'female',
       });

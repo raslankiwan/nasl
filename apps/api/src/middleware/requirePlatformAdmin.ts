@@ -13,6 +13,7 @@ export function requirePlatformAdmin() {
   return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
     try {
       const userId = req.auth?.userId;
+      if (req.auth?.impersonation) throw AppError.forbidden();
       if (!userId) throw AppError.unauthorized();
 
       const user = await User.findById(userId).select('isPlatformAdmin').lean().exec();

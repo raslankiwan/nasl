@@ -163,6 +163,7 @@ export class HealthService {
     const present = (animal: AnimalDoc, until: Date | null | undefined) => ({
       animalId: animal._id,
       tagNumber: animal.tagNumber,
+      classLabel: animal.classLabel ?? null,
       name: animal.name ?? null,
       until: until ? until.toISOString().slice(0, 10) : null,
       daysLeft: until ? Math.ceil((until.getTime() - today.getTime()) / 86_400_000) : 0,

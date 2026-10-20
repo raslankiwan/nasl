@@ -16,8 +16,10 @@ import type { Species } from './species.ts';
 export interface AlertSubject {
   id: string;
   tagNumber: string;
+  classLabel?: string | null;
   name?: string | null;
   species: string;
+  classification?: string | null;
   sex: string;
   status: string;
   repro?: { state: string; dueDate?: string | Date | null } | null;
@@ -28,6 +30,7 @@ export interface AlertSubject {
 export interface DueAlert {
   animalId: string;
   tagNumber: string;
+  classLabel?: string | null;
   dueDate: string;
   windowStart: string;
   windowEnd: string;
@@ -38,6 +41,7 @@ export interface DueAlert {
 export interface WithdrawalAlert {
   animalId: string;
   tagNumber: string;
+  classLabel?: string | null;
   until: string;
   daysLeft: number;
 }
@@ -74,7 +78,12 @@ export function deriveAlerts(animals: readonly AlertSubject[], today: Date): Ale
 
     if (animal.repro?.state === 'nursing') nursing += 1;
 
-    if (animal.sex === 'female' && animal.repro && CARRYING.has(animal.repro.state)) {
+    if (
+      animal.sex === 'female' &&
+      (!animal.classification || animal.classification === 'mother') &&
+      animal.repro &&
+      CARRYING.has(animal.repro.state)
+    ) {
       const due = asDate(animal.repro.dueDate);
       if (due) {
         const window = lambingWindow(due, animal.species as Species);
@@ -84,6 +93,7 @@ export function deriveAlerts(animals: readonly AlertSubject[], today: Date): Ale
         const entry: DueAlert = {
           animalId: animal.id,
           tagNumber: animal.tagNumber,
+          ...(animal.classLabel ? { classLabel: animal.classLabel } : {}),
           dueDate: toDateString(due),
           windowStart: toDateString(window.from),
           windowEnd: toDateString(window.to),
@@ -104,6 +114,7 @@ export function deriveAlerts(animals: readonly AlertSubject[], today: Date): Ale
         bucket.push({
           animalId: animal.id,
           tagNumber: animal.tagNumber,
+          ...(animal.classLabel ? { classLabel: animal.classLabel } : {}),
           until: toDateString(until),
           daysLeft: daysBetween(today, until),
         });

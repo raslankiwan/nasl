@@ -1,3 +1,4 @@
+import { useAnimal } from '../../src/sync/useFlock';
 import { useState } from 'react';
 import { TextInput } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
@@ -12,6 +13,7 @@ export default function RecordAbortion() {
   const { damId } = useLocalSearchParams<{ damId: string }>();
   const { t } = useTranslation(['breeding', 'common']);
   const { farmId } = useAuth();
+  const { animal } = useAnimal(damId);
 
   const [date, setDate] = useState(() => new Date(new Date().toISOString().slice(0, 10)));
   const [cause, setCause] = useState('');
@@ -19,7 +21,7 @@ export default function RecordAbortion() {
   return (
     <CaptureScreen
       title={t('breeding:abortion')}
-      canSave={Boolean(farmId && damId)}
+      canSave={Boolean(farmId && animal?.classification === 'mother' && animal.status === 'active')}
       path={`/v1/farms/${farmId}/breeding/abortions`}
       buildBody={(id) => ({
         id,

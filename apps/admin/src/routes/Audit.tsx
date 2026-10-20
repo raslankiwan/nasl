@@ -14,6 +14,8 @@ interface Entry {
   targetId: string;
   targetName: string | null;
   reason: string | null;
+  before?: unknown;
+  after?: unknown;
   createdAt: string;
 }
 
@@ -65,6 +67,20 @@ export function Audit() {
                   </td>
                   <td data-label={t('admin:action')}>
                     <span className="mono">{entry.action}</span>
+                    {entry.after ? (
+                      <details>
+                        <summary>{t('admin:auditDetails')}</summary>
+                        <pre
+                          style={{
+                            whiteSpace: 'pre-wrap',
+                            overflowWrap: 'anywhere',
+                            maxWidth: 360,
+                          }}
+                        >
+                          {JSON.stringify(entry.after, null, 2)}
+                        </pre>
+                      </details>
+                    ) : null}
                   </td>
                   <td data-label={t('admin:target')}>
                     {entry.targetType === 'farm' ? (

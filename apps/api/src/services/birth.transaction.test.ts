@@ -21,6 +21,8 @@ async function fixture() {
     tagNumber: '100',
     species: 'sheep',
     sex: 'female',
+    classification: 'mother',
+    dateOfBirth: new Date('2020-01-01'),
     name: 'ريم',
   });
   await breeding.recordMating(
@@ -50,27 +52,24 @@ test('birth retries and concurrent duplicate submissions create one litter with 
   assert.equal((await animals.ancestors(farmId, children[0]!._id))?.dam?.name, 'ريم');
   assert.deepEqual(births[0]!.offspring.map((child) => child.tagNumber).sort(), ['101', '102']);
 });
-test('a conflicting litter is rejected before any children are registered', async () => {
+test('old clients cannot assign duplicate or existing numbers to a litter', async () => {
   const { farmId, ...input } = await fixture();
-  for (const tags of [
-    ['101', '101'],
-    ['101', '100'],
-  ]) {
-    await assert.rejects(() =>
-      breeding.recordBirth(
-        farmId,
-        {
-          ...input,
-          offspring: tags.map((tagNumber) => ({ sex: 'female', outcome: 'live', tagNumber })),
-        },
-        actor,
-      ),
-    );
-    assert.equal(await Animal.countDocuments({ farmId }), 1);
-    assert.equal(await Birth.countDocuments({ farmId }), 0);
-  }
+  const birth = await breeding.recordBirth(
+    farmId,
+    {
+      ...input,
+      offspring: ['100', '100'].map((tagNumber) => ({ sex: 'female', outcome: 'live', tagNumber })),
+    },
+    actor,
+  );
+  assert.deepEqual(
+    birth.offspring.map((child) => child.tagNumber),
+    ['101', '102'],
+  );
+  const children = await animals.offspring(farmId, input.damId);
+  assert.deepEqual(children.map((child) => child.classLabel).sort(), ['C1', 'C2']);
 });
-test('automatic numbers skip every explicitly requested number in the litter', async () => {
+test('newborn numbers are assigned in order regardless of old client requests', async () => {
   const { farmId, ...input } = await fixture();
   const result = await breeding.recordBirth(
     farmId,
@@ -79,7 +78,7 @@ test('automatic numbers skip every explicitly requested number in the litter', a
   );
   assert.deepEqual(
     result.offspring.map((child) => child.tagNumber),
-    ['102', '101'],
+    ['101', '102'],
   );
 });
 test('failure after creating the litter rolls back numbers, children, birth and mother state', async (t) => {

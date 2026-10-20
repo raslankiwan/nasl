@@ -1,3 +1,4 @@
+import type { AnimalClass } from './classification.ts';
 import type { Species } from './species.ts';
 import type { ReproStatus } from './repro.ts';
 
@@ -19,6 +20,8 @@ export interface Animal {
   id: string;
   farmId: string;
   tagNumber: string;
+  classification?: AnimalClass;
+  classLabel?: string | null;
   /** Electronic (RFID) tag, when the farm uses EID. */
   eid?: string;
   name?: string;
@@ -48,8 +51,12 @@ export interface Animal {
 }
 
 /** Only females carry a reproductive state. */
-export function isBreedingFemale(animal: Pick<Animal, 'sex' | 'status'>): boolean {
-  return animal.sex === 'female' && animal.status === 'active';
+export function isBreedingFemale(
+  animal: Pick<Animal, 'sex' | 'status' | 'classification'>,
+): boolean {
+  return (
+    animal.sex === 'female' && animal.status === 'active' && animal.classification === 'mother'
+  );
 }
 
 /** True while a treatment withdrawal period blocks the animal leaving the farm for meat. */

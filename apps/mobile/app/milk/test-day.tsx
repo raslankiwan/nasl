@@ -1,3 +1,4 @@
+import { animalLabel } from '@nasl/shared';
 import { ScreenHeader } from '../../src/components/ScreenHeader';
 import { useCallback, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
@@ -13,12 +14,13 @@ interface Lactation {
   lactationId: string;
   animalId: string;
   tagNumber: string;
+  classLabel?: string | null;
   name: string | null;
   daysInMilk: number;
 }
 interface Result {
   recorded: number;
-  withheld: Array<{ tagNumber: string; until: string }>;
+  withheld: Array<{ tagNumber: string; classLabel?: string | null; until: string }>;
 }
 
 /**
@@ -110,7 +112,7 @@ export default function TestDay() {
           {withheld.length > 0 ? (
             <Notice tone="danger">
               {t('milk:withheldWarning', { count: withheld.length })} ·{' '}
-              {withheld.map((w) => w.tagNumber).join('، ')}
+              {withheld.map((w) => animalLabel(w)).join('، ')}
             </Notice>
           ) : null}
 
@@ -123,7 +125,7 @@ export default function TestDay() {
             return (
               <View key={ewe.animalId} style={[styles.row, value !== undefined && styles.rowDone]}>
                 <View style={styles.rowMain}>
-                  <Text style={styles.tag}>{ewe.tagNumber}</Text>
+                  <Text style={styles.tag}>{animalLabel(ewe)}</Text>
                   <Text style={styles.meta}>
                     {ewe.name ? `${ewe.name} · ` : ''}
                     {t('milk:daysInMilk')} {ewe.daysInMilk}
@@ -131,7 +133,7 @@ export default function TestDay() {
                 </View>
 
                 <NumberField
-                  label={`${t('milk:quantity')} · ${ewe.tagNumber}`}
+                  label={`${t('milk:quantity')} · ${animalLabel(ewe)}`}
                   value={value ?? null}
                   onChange={(next) => setYield(ewe.animalId, next)}
                   min={0}

@@ -1,3 +1,4 @@
+import { animalLabel } from '@nasl/shared';
 import { ScreenHeader } from '../../src/components/ScreenHeader';
 import { useCallback, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
@@ -11,6 +12,7 @@ import { radius, spacing, type, createThemedStyles } from '../../src/theme';
 interface Row {
   animalId: string;
   tagNumber: string;
+  classLabel?: string | null;
   name: string | null;
   until: string;
   daysLeft: number;
@@ -67,7 +69,7 @@ export default function UnderWithdrawal() {
             ]}
           >
             <View>
-              <Text style={styles.tag}>{row.tagNumber}</Text>
+              <Text style={styles.tag}>{animalLabel(row)}</Text>
               {row.name ? <Text style={styles.name}>{row.name}</Text> : null}
             </View>
             <Pill tone="accent">{t('health:daysLeft', { count: row.daysLeft })}</Pill>

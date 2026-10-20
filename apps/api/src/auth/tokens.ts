@@ -10,6 +10,7 @@ import { assertAccountAccess } from './accountAccess.ts';
 export interface AccessTokenClaims {
   sub: string;
   jti: string;
+  supportSessionId?: string;
 }
 
 export interface TokenPair {
@@ -29,8 +30,9 @@ export async function signAccessToken(
   userId: string,
   secret: string,
   ttlMinutes: number,
+  supportSessionId?: string,
 ): Promise<string> {
-  return new SignJWT({ jti: randomUUID() })
+  return new SignJWT({ jti: randomUUID(), ...(supportSessionId ? { supportSessionId } : {}) })
     .setProtectedHeader({ alg: 'HS256' })
     .setSubject(userId)
     .setIssuer(ISSUER)
@@ -47,7 +49,13 @@ export async function verifyAccessToken(token: string, secret: string): Promise<
       audience: AUDIENCE,
     });
     if (!payload.sub) throw new Error('missing subject');
-    return { sub: payload.sub, jti: String(payload.jti ?? '') };
+    return {
+      sub: payload.sub,
+      jti: String(payload.jti ?? ''),
+      ...(typeof payload.supportSessionId === 'string'
+        ? { supportSessionId: payload.supportSessionId }
+        : {}),
+    };
   } catch {
     throw AppError.unauthorized('Your session has expired. Sign in again.');
   }

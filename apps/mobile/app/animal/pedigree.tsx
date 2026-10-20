@@ -1,3 +1,4 @@
+import { animalLabel } from '@nasl/shared';
 import { ScreenHeader } from '../../src/components/ScreenHeader';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
@@ -12,6 +13,7 @@ import { radius, spacing, type, createThemedStyles } from '../../src/theme';
 interface Node {
   id: string;
   tagNumber: string;
+  classLabel?: string | null;
   name: string | null;
   sex: string;
   breedId: string | null;
@@ -83,7 +85,7 @@ export default function Pedigree() {
         >
           {relation ? <Text style={styles.relation}>{relation}</Text> : null}
           <View style={styles.rowBody}>
-            <Text style={styles.tag}>{node.tagNumber}</Text>
+            <Text style={styles.tag}>{animalLabel(node)}</Text>
             <Text style={styles.meta} numberOfLines={1}>
               {[node.name, breed].filter(Boolean).join(' · ') || '—'}
             </Text>

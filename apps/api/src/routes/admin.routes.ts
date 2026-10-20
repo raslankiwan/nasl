@@ -1,3 +1,4 @@
+import { startImpersonation } from '../auth/impersonation.ts';
 import { Router } from 'express';
 import { z } from 'zod';
 import { ACCOUNT_STATUSES, SPECIES } from '@nasl/shared';
@@ -309,6 +310,16 @@ export function adminRoutes(config: Config, mailer?: InvitationMailer): Router {
         config.NODE_ENV === 'production',
       ),
     );
+  });
+
+  router.post('/users/:userId/impersonation', async (req, res) => {
+    const { reason } = parse(
+      z.object({ reason: z.string().trim().min(3).max(300) }).strict(),
+      req.body,
+    );
+    res
+      .status(201)
+      .json(await startImpersonation(userIdOf(req), pathParam(req, 'userId'), reason, config));
   });
 
   router.get('/users/:userId', async (req, res) => {

@@ -1,3 +1,4 @@
+import { isImpersonating } from './impersonation';
 import type { RegistrationInput } from '@nasl/shared';
 import {
   createContext,
@@ -32,6 +33,7 @@ export interface Me {
   name: string | null;
   locale: string;
   isPlatformAdmin: boolean;
+  impersonation?: { sessionId: string; adminId: string; expiresAt: string } | null;
   farms: Array<{ farmId: string; role: string }>;
 }
 
@@ -93,13 +95,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const profile = await api.get<Me>('/v1/auth/me');
       if (current !== attempt.current) return;
-      await AsyncStorage.setItem(ME_CACHE_KEY, JSON.stringify(profile));
-      await reconcilePushOwner(profile.id).catch(() => {});
+      if (!isImpersonating()) {
+        await AsyncStorage.setItem(ME_CACHE_KEY, JSON.stringify(profile));
+        await reconcilePushOwner(profile.id).catch(() => {});
+      }
       if (current !== attempt.current) return;
       adopt(profile);
       return;
     } catch (err) {
       if (current !== attempt.current) return;
+      if (isImpersonating()) {
+        setMe(null);
+        setFarmId(null);
+        setStatus('signedOut');
+        return;
+      }
       // The server said no. That is the only thing that ends a session.
       if (err instanceof ApiError && err.status === 401) {
         await forgetPushOwner().catch(() => {});
@@ -144,6 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
   const authenticate = useCallback(
     async (login: () => Promise<{ accessToken: string; refreshToken: string }>) => {
+      if (isImpersonating()) throw new Error('Exit support before signing in.');
       const current = ++attempt.current;
       const session = await login();
       if (current !== attempt.current) return;
@@ -153,8 +164,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await saveTokens(session.accessToken, session.refreshToken);
       const profile = await api.get<Me>('/v1/auth/me');
       if (current !== attempt.current) return;
-      await AsyncStorage.setItem(ME_CACHE_KEY, JSON.stringify(profile));
-      await reconcilePushOwner(profile.id).catch(() => {});
+      if (!isImpersonating()) {
+        await AsyncStorage.setItem(ME_CACHE_KEY, JSON.stringify(profile));
+        await reconcilePushOwner(profile.id).catch(() => {});
+      }
       if (current !== attempt.current) return;
       adopt(profile);
     },
@@ -176,6 +189,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     attempt.current += 1;
+    if (isImpersonating()) {
+      await revokeSession();
+      return;
+    }
     await disablePush().catch(() => {});
     await revokeSession();
     await AsyncStorage.removeItem(ME_CACHE_KEY);

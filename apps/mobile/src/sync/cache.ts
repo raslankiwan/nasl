@@ -18,6 +18,17 @@ import type { KeyValueStore } from './storage.ts';
 export interface CachedAnimal {
   id: string;
   tagNumber: string;
+  classification?: 'mother' | 'child' | 'male' | null;
+  classLabel?: string | null;
+  lifecycle?: Array<{
+    id: string;
+    kind: string;
+    to: string;
+    date: string;
+    reason?: string;
+    classLabel?: string | null;
+  }>;
+
   name: string | null;
   species: string;
   breedId: string | null;
@@ -68,6 +79,9 @@ export function toCachedAnimal(doc: Record<string, unknown>): CachedAnimal | nul
   return {
     id,
     tagNumber: doc.tagNumber,
+    classification: doc.classification as CachedAnimal['classification'],
+    classLabel: (doc.classLabel as string | null) ?? null,
+    lifecycle: (doc.lifecycle as CachedAnimal['lifecycle']) ?? [],
     name: (doc.name as string | null) ?? null,
     species: (doc.species as string) ?? 'sheep',
     breedId: (doc.breedId as string | null) ?? null,

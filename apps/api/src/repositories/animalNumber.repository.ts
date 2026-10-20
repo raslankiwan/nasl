@@ -36,7 +36,7 @@ export class AnimalNumberRepository extends TenantRepository<AnimalNumberDoc> {
       )
       .lean();
     if (!counter)
-      throw AppError.conflict('No automatic animal numbers are available. Enter a unique tag.');
+      throw AppError.conflict('No automatic animal numbers are available. Contact support.');
     return String(counter.lastNumber);
   }
 }

@@ -37,12 +37,16 @@ async function milkingEwe(url: string, phone = '+966501111111', lambedDaysAgo = 
   const dam = await client.post<AnimalBody>(`/v1/farms/${farmId}/animals`, {
     tagNumber: '1001',
     species: 'sheep',
+    classification: 'mother',
+    dateOfBirth: '2020-01-01',
     sex: 'female',
     breedId: 'awassi',
   });
   const sire = await client.post<AnimalBody>(`/v1/farms/${farmId}/animals`, {
     tagNumber: '3001',
     species: 'sheep',
+    classification: 'male',
+    dateOfBirth: '2020-01-01',
     sex: 'male',
   });
 
@@ -135,6 +139,8 @@ describe('lactations', () => {
       const dry = await client.post<AnimalBody>(`/v1/farms/${farmId}/animals`, {
         tagNumber: '1001',
         species: 'sheep',
+        classification: 'mother',
+        dateOfBirth: '2020-01-01',
         sex: 'female',
       });
 
@@ -206,7 +212,7 @@ describe('test days', () => {
 
       assert.equal(res.body.recorded, 1, 'the measurement is real and is kept');
       assert.equal(res.body.withheld.length, 1, 'but her milk must not reach the tank');
-      assert.equal(res.body.withheld[0]?.tagNumber, '1001');
+      assert.equal(res.body.withheld[0]?.tagNumber, '1');
       assert.equal(res.body.withheld[0]?.until, iso(until));
     });
   });
@@ -234,6 +240,8 @@ describe('test days', () => {
       const second = await client.post<AnimalBody>(`/v1/farms/${farmId}/animals`, {
         tagNumber: '1002',
         species: 'sheep',
+        classification: 'mother',
+        dateOfBirth: '2020-01-01',
         sex: 'female',
       });
       await client.post(`/v1/farms/${farmId}/breeding/matings`, {
@@ -256,7 +264,7 @@ describe('test days', () => {
 
       const res = await client.get<{ lactations: Lactation[] }>(`/v1/farms/${farmId}/milk/milking`);
       assert.equal(res.body.lactations.length, 2);
-      assert.equal(res.body.lactations[0]?.tagNumber, '1002', 'the better milker leads');
+      assert.equal(res.body.lactations[0]?.tagNumber, '4', 'the better milker leads');
     });
   });
 });
@@ -315,6 +323,8 @@ describe('milk in the ewe scorecard', () => {
       const poor = await client.post<AnimalBody>(`/v1/farms/${farmId}/animals`, {
         tagNumber: '1002',
         species: 'sheep',
+        classification: 'mother',
+        dateOfBirth: '2020-01-01',
         sex: 'female',
       });
       await client.post(`/v1/farms/${farmId}/breeding/matings`, {
@@ -336,7 +346,7 @@ describe('milk in the ewe scorecard', () => {
         ewes: Array<{ tagNumber: string; bestLactationKg: number | null; lactations: number }>;
       }>(`/v1/farms/${farmId}/reports/ewes`);
 
-      const milker = res.body.ewes.find((e) => e.tagNumber === '1001')!;
+      const milker = res.body.ewes.find((e) => e.tagNumber === '1')!;
       assert.ok(milker.bestLactationKg && milker.bestLactationKg > 0, 'her litres are on the card');
       assert.equal(milker.lactations, 1);
 
@@ -347,7 +357,7 @@ describe('milk in the ewe scorecard', () => {
        */
       const order = res.body.ewes.map((e) => e.tagNumber);
       assert.ok(
-        order.indexOf('1002') < order.indexOf('1001'),
+        order.indexOf('4') < order.indexOf('1'),
         `the ewe with no milk recorded ranks worse: ${order.join(', ')}`,
       );
     });

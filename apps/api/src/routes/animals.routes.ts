@@ -1,7 +1,9 @@
 import { Router } from 'express';
+import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import {
   ANIMAL_STATUSES,
+  ANIMAL_CLASSES,
   ORIGINS,
   REPRO_STATES,
   SEXES,
@@ -13,15 +15,16 @@ import { AppError } from '../errors.ts';
 import { AnimalRepository } from '../repositories/animal.repository.ts';
 import { requireAuth } from '../middleware/requireAuth.ts';
 import { requireFarmAccess } from '../middleware/requireFarmAccess.ts';
-import { farmIdOf, parse, pathParam } from '../http/validate.ts';
+import { farmIdOf, parse, pathParam, userIdOf } from '../http/validate.ts';
 import type { AnimalDoc } from '../models/animal.model.ts';
 
-const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD');
+const isoDate = z.string().date('Use a valid YYYY-MM-DD date');
 
 const animalInput = z.object({
   /** The device mints the id so an animal recorded offline keeps its identity (scope §10). */
   id: z.string().uuid().optional(),
   tagNumber: z.string().trim().min(1).max(32).optional(),
+  classification: z.enum(ANIMAL_CLASSES).default('child'),
   eid: z.string().trim().max(64).optional(),
   name: z
     .string()
@@ -33,7 +36,12 @@ const animalInput = z.object({
   species: z.enum(SPECIES),
   breedId: z.string().trim().max(40).optional(),
   sex: z.enum(SEXES),
-  dateOfBirth: isoDate.optional(),
+  dateOfBirth: isoDate
+    .refine(
+      (date) => date <= new Date().toISOString().slice(0, 10),
+      'Birth cannot be in the future',
+    )
+    .optional(),
   dobIsEstimate: z.boolean().default(false),
   colour: z.string().trim().max(40).optional(),
   origin: z.enum(ORIGINS).default('born'),
@@ -43,13 +51,17 @@ const animalInput = z.object({
   currentGroupId: z.string().uuid().optional(),
 });
 
-const animalPatch = animalInput.partial().omit({ id: true });
+const animalPatch = animalInput
+  .partial()
+  .omit({ id: true, tagNumber: true, classification: true })
+  .strict();
 
 const listQuery = z.object({
   q: z.string().trim().max(60).optional(),
   species: z.enum(SPECIES).optional(),
   sex: z.enum(SEXES).optional(),
   status: z.enum(ANIMAL_STATUSES).optional(),
+  classification: z.enum(ANIMAL_CLASSES).optional(),
   breedId: z.string().optional(),
   groupId: z.string().optional(),
   reproState: z.enum(REPRO_STATES).optional(),
@@ -60,6 +72,7 @@ const listQuery = z.object({
 });
 
 const statusChange = z.object({
+  id: z.string().uuid().optional(),
   status: z.enum(ANIMAL_STATUSES),
   date: isoDate.optional(),
   reason: z.string().trim().max(200).optional(),
@@ -69,7 +82,8 @@ const statusChange = z.object({
 const LEAVES_AS_FOOD = new Set(['sold', 'slaughtered']);
 
 function toDoc(input: z.infer<typeof animalInput>): Partial<AnimalDoc> {
-  const { id: _id, dateOfBirth, acquiredAt, ...rest } = input;
+  // Old app versions may send a tag; only the server assigns the permanent farm number.
+  const { id: _id, tagNumber: _tagNumber, dateOfBirth, acquiredAt, ...rest } = input;
   return {
     ...rest,
     ...(dateOfBirth ? { dateOfBirth: new Date(dateOfBirth) } : {}),
@@ -81,6 +95,9 @@ function present(animal: AnimalDoc) {
   return {
     id: animal._id,
     tagNumber: animal.tagNumber,
+    classification: animal.classification ?? null,
+    classLabel: animal.classLabel ?? null,
+    lifecycle: animal.lifecycle ?? [],
     eid: animal.eid ?? null,
     name: animal.name ?? null,
     species: animal.species,
@@ -179,7 +196,8 @@ export function animalRoutes(config: Config): Router {
   });
 
   router.post('/:animalId/status', requireFarmAccess('animals:write'), async (req, res) => {
-    const { status } = parse(statusChange, req.body);
+    const input = parse(statusChange, req.body);
+    const { status } = input;
     const farmId = farmIdOf(req);
     const animalId = pathParam(req, 'animalId');
 
@@ -202,8 +220,43 @@ export function animalRoutes(config: Config): Router {
       }
     }
 
-    const updated = await animals.updateAnimal(farmId, animalId, { status });
+    const updated = await animals.changeStatus(
+      farmId,
+      animalId,
+      {
+        id: input.id ?? randomUUID(),
+        status,
+        date: input.date ? new Date(input.date) : new Date(),
+        ...(input.reason ? { reason: input.reason } : {}),
+      },
+      userIdOf(req),
+    );
     res.json(present(updated));
+  });
+
+  router.post('/:animalId/promote', requireFarmAccess('animals:write'), async (req, res) => {
+    const input = parse(
+      z
+        .object({
+          id: z.string().uuid(),
+          classification: z.enum(['mother', 'male']),
+          dateOfBirth: isoDate.optional(),
+        })
+        .strict(),
+      req.body,
+    );
+    res.json(
+      present(
+        await animals.promote(
+          farmIdOf(req),
+          pathParam(req, 'animalId'),
+          input.id,
+          input.classification,
+          userIdOf(req),
+          input.dateOfBirth ? new Date(input.dateOfBirth) : undefined,
+        ),
+      ),
+    );
   });
 
   router.delete('/:animalId', requireFarmAccess('animals:write'), async (req, res) => {

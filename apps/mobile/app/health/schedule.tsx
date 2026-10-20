@@ -1,3 +1,4 @@
+import { animalLabel } from '@nasl/shared';
 import { ScreenHeader } from '../../src/components/ScreenHeader';
 import { useCallback, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, Switch, Text, View } from 'react-native';
@@ -21,7 +22,13 @@ interface Group {
   overdue: number;
   due: number;
   upcoming: number;
-  animals: Array<{ animalId: string; tagNumber: string; name: string | null; dueOn: string }>;
+  animals: Array<{
+    animalId: string;
+    tagNumber: string;
+    classLabel?: string | null;
+    name: string | null;
+    dueOn: string;
+  }>;
 }
 interface Schedule {
   total: number;
@@ -205,7 +212,7 @@ export default function ScheduleScreen() {
               ) : null}
 
               <Text style={styles.tags} numberOfLines={2}>
-                {group.animals.map((a) => a.tagNumber).join('، ')}
+                {group.animals.map((a) => animalLabel(a)).join('، ')}
               </Text>
 
               {group.deliveredBy === 'farm' ? (

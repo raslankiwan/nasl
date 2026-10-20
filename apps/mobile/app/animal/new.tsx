@@ -1,24 +1,24 @@
 import { useHeaderHeight } from 'expo-router/react-navigation';
 import { useCallback, useRef, useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { SEXES, SPECIES, type Sex, type Species } from '@nasl/shared';
+import {
+  ANIMAL_CLASSES,
+  classificationError,
+  animalLabel,
+  SEXES,
+  SPECIES,
+  type AnimalClass,
+  type Sex,
+  type Species,
+} from '@nasl/shared';
 import { api, ApiError } from '../../src/api/client';
 import { useAuth } from '../../src/auth/AuthProvider';
 import { Body, Button, Card, Field, Notice } from '../../src/components/ui';
-import { Toggle } from '../../src/components/form';
+import { Toggle, DateField, FieldGroup } from '../../src/components/form';
 import { useFlock } from '../../src/sync/useFlock';
-import { Keypad } from '../../src/components/Keypad';
 import { ScreenHeader } from '../../src/components/ScreenHeader';
 import { MIN_TOUCH, radius, spacing, type, createThemedStyles } from '../../src/theme';
 
@@ -27,7 +27,7 @@ import { MIN_TOUCH, radius, spacing, type, createThemedStyles } from '../../src/
  *
  * The battle a flock app loses is the first evening: if registering two hundred head means two
  * hundred trips through a form, the herder stops at animal thirty and never comes back. So the
- * species and sex are chosen once for the session, the tag goes in on a large keypad, and each
+ * species and sex are chosen once for the session, the classification is retained, and each
  * animal is one tap. A name or distinguishing label is optional and belongs to this animal only.
  */
 
@@ -79,64 +79,83 @@ export default function QuickAdd() {
 
   const [species, setSpecies] = useState<Species>('sheep');
   const [sex, setSex] = useState<Sex>('female');
-  const { allAnimals, refresh } = useFlock();
-  const [automatic, setAutomatic] = useState(true);
+  const { refresh } = useFlock();
+  const [classification, setClassification] = useState<AnimalClass>('child');
+  const [dateOfBirth, setDateOfBirth] = useState(
+    () => new Date(new Date().toISOString().slice(0, 10)),
+  );
+  const [knownBirthDate, setKnownBirthDate] = useState(false);
+  const invalid = classificationError(
+    { species, sex, dateOfBirth: knownBirthDate ? dateOfBirth : null },
+    classification,
+  );
   const recordId = useRef(globalThis.crypto.randomUUID());
   const saving = useRef(false);
-  const [tag, setTag] = useState('');
   const [name, setName] = useState('');
-  const [added, setAdded] = useState<Array<{ id: string; tagNumber: string; name: string | null }>>(
-    [],
-  );
+  const [added, setAdded] = useState<
+    Array<{ id: string; tagNumber: string; classLabel: string; name: string | null }>
+  >([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const save = useCallback(async () => {
-    if (!farmId || saving.current || (!automatic && !tag.trim())) return;
+    if (!farmId || saving.current || invalid) return;
     saving.current = true;
     setBusy(true);
     setError(null);
     try {
-      const created = await api.post<{ id: string; tagNumber: string; name: string | null }>(
-        `/v1/farms/${farmId}/animals`,
-        {
-          id: recordId.current,
-          ...(!automatic ? { tagNumber: tag.trim() } : {}),
-          species,
-          sex,
-          ...(name.trim() ? { name: name.trim() } : {}),
-        },
-      );
+      const created = await api.post<{
+        id: string;
+        tagNumber: string;
+        classLabel: string;
+        name: string | null;
+      }>(`/v1/farms/${farmId}/animals`, {
+        id: recordId.current,
+        classification,
+        ...(knownBirthDate ? { dateOfBirth: dateOfBirth.toISOString().slice(0, 10) } : {}),
+        species,
+        sex,
+        ...(name.trim() ? { name: name.trim() } : {}),
+      });
       setAdded((prev) => [created, ...prev]);
       void refresh();
       recordId.current = globalThis.crypto.randomUUID();
-      setTag('');
       setName('');
     } catch (err) {
-      setError(
-        err instanceof ApiError && (err.details as { field?: string })?.field === 'tagNumber'
-          ? t('animals:duplicateTag', { tag })
-          : err instanceof ApiError
-            ? err.message
-            : t('common:errorRetry'),
-      );
+      setError(err instanceof ApiError ? err.message : t('common:errorRetry'));
     } finally {
       saving.current = false;
       setBusy(false);
     }
-  }, [farmId, tag, name, species, sex, t, automatic, refresh]);
+  }, [
+    farmId,
+    name,
+    species,
+    sex,
+    t,
+    classification,
+    knownBirthDate,
+    dateOfBirth,
+    invalid,
+    refresh,
+  ]);
 
   const undo = useCallback(
     async (id: string) => {
       if (!farmId) return;
       try {
-        await api.post(`/v1/farms/${farmId}/animals/${id}/status`, { status: 'culled' });
+        await api.post(`/v1/farms/${farmId}/animals/${id}/status`, {
+          id: globalThis.crypto.randomUUID(),
+          status: 'culled',
+        });
+        void refresh();
       } catch {
-        // The list below is a session log, not the source of truth; drop it either way.
+        setError(t('common:errorRetry'));
+        return;
       }
       setAdded((prev) => prev.filter((a) => a.id !== id));
     },
-    [farmId],
+    [farmId, refresh, t],
   );
 
   return (
@@ -191,41 +210,32 @@ export default function QuickAdd() {
 
         <View style={styles.gap} />
 
+        <FieldGroup label={t('animals:classification')}>
+          <Choice
+            options={ANIMAL_CLASSES}
+            value={classification}
+            onChange={(next) => {
+              setClassification(next);
+              if (next === 'mother') setSex('female');
+              if (next === 'male') setSex('male');
+            }}
+            labelFor={(option) => t(`animals:${option}`)}
+          />
+        </FieldGroup>
+        <Body muted>{t('animals:numberingHint')}</Body>
         <Toggle
-          label={t('animals:autoNumber')}
-          value={automatic}
-          onChange={(value) => {
-            if (!busy) setAutomatic(value);
-          }}
+          label={t('animals:recordBirthDate')}
+          value={knownBirthDate}
+          onChange={setKnownBirthDate}
         />
-        {automatic ? (
-          <Body muted>{t('animals:autoNumberHint')}</Body>
-        ) : (
-          <>
-            <View style={styles.tagDisplay}>
-              <Text style={styles.tagLabel}>{t('animals:tagNumberShort')}</Text>
-              <TextInput
-                accessibilityLabel={t('animals:tagNumber')}
-                keyboardType="number-pad"
-                value={tag}
-                onChangeText={setTag}
-                maxLength={32}
-                editable={!busy}
-                style={[styles.tagValue, { width: '100%', textAlign: 'center' }]}
-              />
-            </View>
-            <Keypad
-              onDigit={(digit) => setTag((prev) => (prev.length < 32 ? prev + digit : prev))}
-              onBackspace={() => setTag((prev) => prev.slice(0, -1))}
-              onClear={() => setTag('')}
-              disabled={busy}
-            />
-            {[...allAnimals, ...added].some((animal) => animal.tagNumber === tag.trim()) ? (
-              <Notice tone="danger">{t('animals:duplicateTag', { tag })}</Notice>
-            ) : null}
-          </>
-        )}
-
+        {knownBirthDate ? (
+          <DateField
+            label={t('animals:dateOfBirth')}
+            value={dateOfBirth}
+            onChange={setDateOfBirth}
+          />
+        ) : null}
+        {invalid ? <Notice tone="danger">{t(`animals:${invalid}`)}</Notice> : null}
         <View style={styles.gap} />
         <Field
           label={t('animals:nameOrLabel')}
@@ -241,11 +251,7 @@ export default function QuickAdd() {
         <Button
           label={t('common:add')}
           onPress={() => void save()}
-          disabled={
-            !automatic &&
-            (!tag.trim() ||
-              [...allAnimals, ...added].some((animal) => animal.tagNumber === tag.trim()))
-          }
+          disabled={Boolean(invalid)}
           busy={busy}
         />
 
@@ -254,7 +260,9 @@ export default function QuickAdd() {
             {added.map((animal) => (
               <View key={animal.id} style={styles.logRow}>
                 <View style={{ flexShrink: 1 }}>
-                  <Text style={styles.logTag}>{t('animals:added', { tag: animal.tagNumber })}</Text>
+                  <Text style={styles.logTag}>
+                    {t('animals:added', { tag: animalLabel(animal) })}
+                  </Text>
                   {animal.name ? <Text style={styles.logName}>{animal.name}</Text> : null}
                 </View>
                 <Pressable

@@ -1,3 +1,4 @@
+import { animalLabel } from '@nasl/shared';
 import { TabScreen } from '../../src/components/TabScreen';
 import { useCallback, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
@@ -12,6 +13,7 @@ import { radius, spacing, type, createThemedStyles } from '../../src/theme';
 interface EweRow {
   animalId: string;
   tagNumber: string;
+  classLabel?: string | null;
   name: string | null;
   lambings: number;
   lambsBorn: number;
@@ -128,7 +130,7 @@ export default function Reports() {
               ]}
             >
               <View style={styles.rowHead}>
-                <Text style={styles.tag}>{ewe.tagNumber}</Text>
+                <Text style={styles.tag}>{animalLabel(ewe)}</Text>
                 {ewe.name ? <Text style={styles.name}>{ewe.name}</Text> : null}
               </View>
 

@@ -30,6 +30,7 @@ export interface LactationSummary {
   lactationId: string;
   animalId: string;
   tagNumber: string;
+  classLabel?: string | null;
   name: string | null;
   startDate: string;
   endDate: string | null;
@@ -115,7 +116,12 @@ export class MilkService {
     recordedBy: string,
   ) {
     const recorded: MilkTestDayDoc[] = [];
-    const withheld: Array<{ animalId: string; tagNumber: string; until: string }> = [];
+    const withheld: Array<{
+      animalId: string;
+      tagNumber: string;
+      classLabel?: string | null;
+      until: string;
+    }> = [];
     const skipped: string[] = [];
 
     for (const entry of input.entries) {
@@ -164,6 +170,7 @@ export class MilkService {
         withheld.push({
           animalId: animal._id,
           tagNumber: animal.tagNumber,
+          classLabel: animal.classLabel ?? null,
           until: animal.withholdMilkUntil!.toISOString().slice(0, 10),
         });
       }
@@ -208,6 +215,7 @@ export class MilkService {
         animal.tagNumber,
         animal.name ?? null,
         today,
+        animal.classLabel,
       ),
     );
   }
@@ -218,6 +226,7 @@ export class MilkService {
     tagNumber: string,
     name: string | null,
     today: Date,
+    classLabel?: string | null,
   ): LactationSummary {
     const points: TestDay[] = tests.map((t) => ({ date: t.date, kg: t.kg }));
     const end = lactation.endDate ?? today;
@@ -226,6 +235,7 @@ export class MilkService {
       lactationId: lactation._id,
       animalId: lactation.animalId,
       tagNumber,
+      classLabel: classLabel ?? null,
       name,
       startDate: lactation.startDate.toISOString().slice(0, 10),
       endDate: lactation.endDate?.toISOString().slice(0, 10) ?? null,
@@ -262,6 +272,7 @@ export class MilkService {
           animal?.tagNumber ?? '—',
           animal?.name ?? null,
           today,
+          animal?.classLabel,
         );
       })
       .sort((a, b) => b.standardised150Kg - a.standardised150Kg);

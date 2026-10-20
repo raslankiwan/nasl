@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { DefaultTheme, DarkTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '../src/auth/AuthProvider';
+import { SupportFrame } from '../src/auth/SupportFrame';
 import { BiometricGate } from '../src/auth/BiometricGate';
 import { initI18n } from '../src/i18n';
 import { SyncProvider } from '../src/sync/SyncProvider';
@@ -52,6 +53,9 @@ function AuthGate() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="notification" options={{ headerShown: false }} />
         <Stack.Screen name="animal/new" />
+        <Stack.Screen name="animal/promote" />
+        <Stack.Screen name="animal/sell" />
+        <Stack.Screen name="animal/status" />
         <Stack.Screen name="animal/[id]" />
         <Stack.Screen name="animal/pedigree" />
         <Stack.Screen name="animal/move" />
@@ -105,9 +109,11 @@ function AppLayout() {
       <AuthProvider>
         <SyncProvider>
           <ThemeProvider value={navigationTheme}>
-            <BiometricGate>
-              <AuthGate />
-            </BiometricGate>
+            <SupportFrame>
+              <BiometricGate>
+                <AuthGate />
+              </BiometricGate>
+            </SupportFrame>
           </ThemeProvider>
         </SyncProvider>
       </AuthProvider>

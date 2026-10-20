@@ -1,3 +1,4 @@
+import { ImpersonateUser } from '../components/ImpersonateUser';
 import type { AccountStatus } from '@nasl/shared';
 import { useState } from 'react';
 import { Link, useParams } from '@tanstack/react-router';
@@ -65,6 +66,9 @@ export function UserDetail() {
         <div className="notice" role="status">
           {t('admin:ownerSaved')}
         </div>
+      ) : null}
+      {data.status === 'approved' && !data.isPlatformAdmin ? (
+        <ImpersonateUser userId={userId} />
       ) : null}
       <AccountReview
         key={userId}

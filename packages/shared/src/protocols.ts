@@ -341,6 +341,7 @@ export function defaultProtocolIds(): string[] {
 export interface ProtocolSubject {
   id: string;
   tagNumber: string;
+  classLabel?: string | null;
   name?: string | null;
   sex: string;
   status: string;
@@ -362,6 +363,7 @@ export interface ProtocolCompletion {
 export interface ProtocolTask {
   animalId: string;
   tagNumber: string;
+  classLabel?: string | null;
   name: string | null;
   protocolId: string;
   stepId: string;
@@ -505,6 +507,7 @@ export function dueProtocolTasks(
         tasks.push({
           animalId: animal.id,
           tagNumber: animal.tagNumber,
+          ...(animal.classLabel ? { classLabel: animal.classLabel } : {}),
           name: animal.name ?? null,
           protocolId: protocol.id,
           stepId: step.id,

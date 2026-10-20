@@ -51,9 +51,9 @@ export default function Settings() {
             <InstallApp />
           </Card>
           <View style={styles.gap} />
-          <PushSettings />
+          {!me?.impersonation ? <PushSettings /> : null}
           <View style={styles.gap} />
-          <SecuritySettings />
+          {!me?.impersonation ? <SecuritySettings /> : null}
           <View style={styles.gap} />
           <RowGroup>
             <NavigationRow

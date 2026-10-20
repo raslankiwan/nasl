@@ -27,10 +27,18 @@ interface ErrorBody {
 const ewe = (tagNumber: string, extra: Record<string, unknown> = {}) => ({
   tagNumber,
   species: 'sheep',
+  classification: 'mother',
+  dateOfBirth: '2020-01-01',
   sex: 'female',
   ...extra,
 });
-const ram = (tagNumber: string) => ({ tagNumber, species: 'sheep', sex: 'male' });
+const ram = (tagNumber: string) => ({
+  tagNumber,
+  species: 'sheep',
+  classification: 'male',
+  dateOfBirth: '2020-01-01',
+  sex: 'male',
+});
 
 /** A farm with one ewe and one ram, ready to breed. */
 async function flock(url: string, phone = '+966501111111') {
@@ -236,8 +244,8 @@ describe('lambing', () => {
         lambs.every((l) => l.sireId === sireId),
         'paternity comes from the mating',
       );
-      assert.equal(lambs[0]?.tagNumber, '1101');
-      assert.equal(lambs[1]?.tagNumber, '3002', 'an untagged lamb gets its own next farm number');
+      assert.equal(lambs[0]?.tagNumber, '3');
+      assert.equal(lambs[1]?.tagNumber, '4', 'an untagged lamb gets its own next farm number');
 
       assert.equal(await state(client, farmId, damId), 'nursing');
     });
@@ -455,7 +463,7 @@ describe('alerts', () => {
         overdue: unknown[];
       }>(`${base}/alerts`);
       assert.equal(due.body.dueSoon.length, 1);
-      assert.equal(due.body.dueSoon[0]?.tagNumber, '1001');
+      assert.equal(due.body.dueSoon[0]?.tagNumber, '1');
       assert.ok(due.body.dueSoon[0]!.days <= 14 && due.body.dueSoon[0]!.days >= 0);
       assert.equal(due.body.overdue.length, 0);
     });

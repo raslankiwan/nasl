@@ -109,6 +109,7 @@ export class WeightsService {
     return {
       animalId,
       tagNumber: animal.tagNumber,
+      classLabel: animal.classLabel ?? null,
       birthWeightKg: birthWeight,
       current: last?.kg ?? null,
       lifetimeGainPerDay: lifetimeGain(points),

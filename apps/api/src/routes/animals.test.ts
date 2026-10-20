@@ -65,13 +65,13 @@ describe('registering animals', () => {
         }),
       );
       assert.equal(created.status, 201);
-      assert.equal(created.body.tagNumber, '0012');
+      assert.equal(created.body.tagNumber, '1');
       assert.equal(created.body.name, 'بيضاء الوجه');
       const path = `/v1/farms/${farmId}/animals/${created.body.id}`;
       const renamed = await client.patch<AnimalBody>(path, { name: '  ريم  ' });
       assert.equal(renamed.status, 200);
       assert.equal(renamed.body.name, 'ريم');
-      assert.equal(renamed.body.tagNumber, '0012');
+      assert.equal(renamed.body.tagNumber, '1');
       const stored = await Animal.findById(created.body.id).lean();
       assert.equal(stored?.origin, 'purchased');
       assert.equal(stored?.dobIsEstimate, true);
@@ -80,7 +80,7 @@ describe('registering animals', () => {
         const cleared = await client.patch<AnimalBody>(path, { name });
         assert.equal(cleared.status, 200);
         assert.equal(cleared.body.name, null);
-        assert.equal(cleared.body.tagNumber, '0012');
+        assert.equal(cleared.body.tagNumber, '1');
       }
     });
   });
@@ -94,7 +94,7 @@ describe('registering animals', () => {
       assert.equal((await client.post(path, ewe('2', { name: 'بيضاء الوجه' }))).status, 201);
       const unlabelled = await client.post<AnimalBody>(path, ewe('3'));
       assert.equal(unlabelled.body.name, null);
-      assert.equal((await client.post(path, ewe('1', { name: 'Another label' }))).status, 409);
+      assert.equal((await client.post(path, ewe('1', { name: 'Another label' }))).status, 201);
       assert.equal((await client.post(path, ewe('4', { name: 'x'.repeat(61) }))).status, 400);
       assert.equal(
         (await client.patch(`${path}/${unlabelled.body.id}`, { name: 'x'.repeat(61) })).status,
@@ -130,7 +130,7 @@ describe('registering animals', () => {
         ewe('1001', { name: 'غزال', breedId: 'awassi', dateOfBirth: '2024-03-01' }),
       );
       assert.equal(created.status, 201);
-      assert.equal(created.body.tagNumber, '1001');
+      assert.equal(created.body.tagNumber, '1');
       assert.equal(created.body.name, 'غزال');
       assert.equal(created.body.status, 'active');
 
@@ -154,17 +154,17 @@ describe('registering animals', () => {
     });
   });
 
-  test('a duplicate tag is refused and names the animal it collides with', async () => {
+  test('a caller-supplied number is ignored and every new animal receives a different number', async () => {
     await withServer(testApp(), async (url) => {
       const { session, farmId } = await signInWithFarm(url, '+966501111111');
       const client = api(url, session.accessToken);
 
       const first = await client.post<AnimalBody>(`/v1/farms/${farmId}/animals`, ewe('1001'));
-      const second = await client.post<ErrorBody>(`/v1/farms/${farmId}/animals`, ewe('1001'));
+      const second = await client.post<AnimalBody>(`/v1/farms/${farmId}/animals`, ewe('1001'));
 
-      assert.equal(second.status, 409);
-      assert.equal(second.body.error.code, 'conflict');
-      assert.equal(second.body.error.details?.conflictsWith?.id, first.body.id);
+      assert.equal(second.status, 201);
+      assert.equal(first.body.tagNumber, '1');
+      assert.equal(second.body.tagNumber, '2');
     });
   });
 
@@ -180,7 +180,12 @@ describe('registering animals', () => {
       });
 
       const reused = await client.post<AnimalBody>(`/v1/farms/${farmId}/animals`, ewe('1001'));
-      assert.equal(reused.status, 409, 'historical numbers cannot be reassigned');
+      assert.equal(reused.status, 201);
+      assert.notEqual(
+        reused.body.tagNumber,
+        first.body.tagNumber,
+        'historical numbers cannot be reassigned',
+      );
     });
   });
 
@@ -211,11 +216,15 @@ describe('registering animals', () => {
         created: AnimalBody[];
         failed: Array<{ tagNumber: string; code: string }>;
       }>(`/v1/farms/${farmId}/animals/bulk`, {
-        animals: [ewe('2001'), ewe('2002'), ewe('2001'), ram('2003')],
+        animals: [ewe('2001'), ewe('2002'), ewe('2001', { classification: 'mother' }), ram('2003')],
       });
 
       assert.equal(res.status, 201);
-      assert.equal(res.body.created.length, 3, 'one bad tag must not discard the pen');
+      assert.equal(
+        res.body.created.length,
+        3,
+        'one invalid classification must not discard the pen',
+      );
       assert.equal(res.body.failed.length, 1);
       assert.equal(res.body.failed[0]?.tagNumber, '2001');
     });
@@ -237,8 +246,8 @@ describe('listing and filtering', () => {
       const females = await client.get<ListBody>(`/v1/farms/${farmId}/animals?sex=female`);
       assert.equal(females.body.total, 2);
 
-      const byTag = await client.get<ListBody>(`/v1/farms/${farmId}/animals?q=100`);
-      assert.equal(byTag.body.total, 2);
+      const byTag = await client.get<ListBody>(`/v1/farms/${farmId}/animals?q=1`);
+      assert.equal(byTag.body.total, 1);
 
       const byName = await client.get<ListBody>(
         `/v1/farms/${farmId}/animals?q=${encodeURIComponent('غزال')}`,
@@ -405,9 +414,9 @@ describe('parentage', () => {
         `/v1/farms/${farmId}/animals/${subject.body.id}/pedigree?generations=4`,
       );
       assert.equal(tree.status, 200);
-      assert.equal(tree.body.dam?.tagNumber, '2003');
-      assert.equal(tree.body.dam?.dam?.tagNumber, '3002');
-      assert.equal(tree.body.dam?.dam?.dam?.tagNumber, '4001');
+      assert.equal(tree.body.dam?.tagNumber, '3');
+      assert.equal(tree.body.dam?.dam?.tagNumber, '2');
+      assert.equal(tree.body.dam?.dam?.dam?.tagNumber, '1');
       assert.equal(tree.body.dam?.dam?.dam?.dam, null, 'the line ends where records do');
     });
   });
@@ -470,13 +479,13 @@ describe('withdrawal periods gate sale', () => {
         animals: [ewe('1001'), ewe('1002')],
       });
       await Animal.updateOne(
-        { tagNumber: '1001' },
+        { farmId, tagNumber: '1' },
         { $set: { withholdMeatUntil: new Date(Date.now() + 86_400_000) } },
       );
 
       const res = await client.get<ListBody>(`/v1/farms/${farmId}/animals?underWithdrawal=true`);
       assert.equal(res.body.total, 1);
-      assert.equal(res.body.animals[0]?.tagNumber, '1001');
+      assert.equal(res.body.animals[0]?.tagNumber, '1');
     });
   });
 });
@@ -494,11 +503,11 @@ test('automatic numbers are unique across simultaneous creation, edits and retri
     );
     assert.ok(rows.every((row) => row.status === 201));
     assert.equal(new Set(rows.map((row) => row.body.tagNumber)).size, 8);
-    assert.ok(rows.every((row) => Number(row.body.tagNumber) > 100));
+    assert.ok(rows.every((row) => Number(row.body.tagNumber) > 1));
     assert.equal(
       (await client.patch(`${path}/${rows[0]!.body.id}`, { tagNumber: rows[1]!.body.tagNumber }))
         .status,
-      409,
+      400,
     );
     const id = randomUUID();
     const retried = await Promise.all(

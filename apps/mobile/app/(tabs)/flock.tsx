@@ -1,4 +1,12 @@
-import { can, isWithdrawalActive, type Role } from '@nasl/shared';
+import { Choice, FieldGroup } from '../../src/components/form';
+import {
+  ANIMAL_CLASSES,
+  ANIMAL_STATUSES,
+  animalLabel,
+  can,
+  isWithdrawalActive,
+  type Role,
+} from '@nasl/shared';
 import { TabScreen } from '../../src/components/TabScreen';
 import { useCallback, useState } from 'react';
 import { Pressable, RefreshControl, Text, View } from 'react-native';
@@ -23,15 +31,22 @@ export default function Flock() {
   const router = useRouter();
   const role = me?.farms.find((farm) => farm.farmId === farmId)?.role;
   const canWrite = role && can(role as Role, 'animals:write');
-  const { animals, animalsById, loading, stale, refresh } = useFlock();
+  const { animals, allAnimals, animalsById, loading, stale, refresh } = useFlock();
   const [query, setQuery] = useState('');
   const search = query.trim().toLocaleLowerCase();
-  const visibleAnimals = animals.filter(
-    (animal) =>
-      !search ||
-      animal.tagNumber.toLocaleLowerCase().includes(search) ||
-      animal.name?.toLocaleLowerCase().includes(search),
-  );
+  const [classification, setClassification] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('active');
+  const visibleAnimals = allAnimals
+    .filter(
+      (animal) =>
+        animal.status === statusFilter &&
+        (classification === 'all' || animal.classification === classification) &&
+        (!search ||
+          [animalLabel(animal), animal.tagNumber, animal.name].some((value) =>
+            value?.toLocaleLowerCase().includes(search),
+          )),
+    )
+    .sort((a, b) => animalLabel(a).localeCompare(animalLabel(b), 'en', { numeric: true }));
 
   useFocusEffect(
     useCallback(() => {
@@ -79,6 +94,27 @@ export default function Flock() {
         />
       </View>
 
+      <View style={styles.search}>
+        <Choice
+          options={['all', ...ANIMAL_CLASSES]}
+          value={classification}
+          onChange={setClassification}
+          labelFor={(value) =>
+            t(value === 'all' ? 'animals:allClasses' : (`animals:${value}` as 'animals:mother'))
+          }
+        />
+        <FieldGroup label={t('animals:status')}>
+          <Choice
+            columns={3}
+            options={ANIMAL_STATUSES}
+            value={statusFilter}
+            onChange={setStatusFilter}
+            labelFor={(value) =>
+              t(`animals:statusValues.${value}` as 'animals:statusValues.active')
+            }
+          />
+        </FieldGroup>
+      </View>
       <FlashList
         keyboardShouldPersistTaps="handled"
         data={visibleAnimals}
@@ -103,7 +139,7 @@ export default function Flock() {
                 A tag number is an identifier, not a quantity: never grouped, never localised into
                 other digits, and not necessarily numeric at all. Printed verbatim, left-to-right.
               */}
-              <Text style={styles.tag}>{item.tagNumber}</Text>
+              <Text style={styles.tag}>{animalLabel(item)}</Text>
               <Text style={styles.name} numberOfLines={1}>
                 {item.name ||
                   t(`animals:speciesValues.${item.species}` as 'animals:speciesValues.sheep')}
@@ -112,8 +148,7 @@ export default function Flock() {
                 <View style={{ alignSelf: 'flex-start', marginTop: spacing.xs }}>
                   <Pill>
                     {t('animals:motherBadge', {
-                      mother:
-                        animalsById.get(item.damId)!.name || animalsById.get(item.damId)!.tagNumber,
+                      mother: animalLabel(animalsById.get(item.damId)!),
                     })}
                   </Pill>
                 </View>
@@ -122,7 +157,11 @@ export default function Flock() {
 
             <View style={styles.rowMeta}>
               {/* A milk hold outranks everything else: it is the question asked at milking. */}
-              {isWithdrawalActive(item.withholdMilkUntil) ? (
+              {item.status !== 'active' ? (
+                <Pill>
+                  {t(`animals:statusValues.${item.status}` as 'animals:statusValues.sold')}
+                </Pill>
+              ) : isWithdrawalActive(item.withholdMilkUntil) ? (
                 <Pill tone="accent">{t('health:doNotMilk')}</Pill>
               ) : isWithdrawalActive(item.withholdMeatUntil) ? (
                 <Pill tone="accent">{t('health:doNotSell')}</Pill>

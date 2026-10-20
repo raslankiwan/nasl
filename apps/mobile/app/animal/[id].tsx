@@ -21,6 +21,7 @@ import {
 } from '../../src/components/ui';
 import { ACTION_LABELS, ACTION_ROUTES } from '../../src/breeding';
 import {
+  animalLabel,
   actionsFor,
   can,
   isWithdrawalActive,
@@ -128,7 +129,7 @@ export default function AnimalScreen() {
     role &&
     can(role as Role, 'breeding:write') &&
     animal &&
-    animal.sex === 'female' &&
+    animal.classification === 'mother' &&
     animal.status === 'active'
       ? actionsFor(animal.repro?.state as ReproState | undefined)
       : [];
@@ -159,9 +160,9 @@ export default function AnimalScreen() {
           {animal ? (
             <>
               <View style={styles.head}>
-                <Title>{animal.name || animal.tagNumber}</Title>
+                <Title>{animalLabel(animal)}</Title>
                 {/* Only worth repeating the tag when the title is a name. */}
-                {animal.name ? <Text style={styles.tag}>{animal.tagNumber}</Text> : null}
+                {animal.name ? <Body>{animal.name}</Body> : null}
               </View>
 
               {farmId && canEdit && editingName ? (
@@ -199,6 +200,11 @@ export default function AnimalScreen() {
               ) : null}
 
               <Card>
+                <Row label={t('animals:permanentNumber')} value={animal.tagNumber} />
+                <Row
+                  label={t('animals:classification')}
+                  value={t(`animals:${animal.classification ?? 'child'}`)}
+                />
                 <Row
                   label={t('animals:species')}
                   value={t(
@@ -229,19 +235,73 @@ export default function AnimalScreen() {
                 />
               </Card>
 
+              {animal.status === 'active' ? (
+                <View style={styles.actionSpacing}>
+                  {canEdit && animal.classification === 'child' ? (
+                    <NavigationRow
+                      icon="arrow-up-circle-outline"
+                      label={t(
+                        animal.sex === 'male' ? 'animals:promoteMale' : 'animals:promoteMother',
+                      )}
+                      onPress={() =>
+                        router.push({
+                          pathname: '/animal/promote',
+                          params: { animalId: animal.id },
+                        })
+                      }
+                    />
+                  ) : null}
+                  {role && can(role as Role, 'finance:write') ? (
+                    <NavigationRow
+                      icon="cash"
+                      label={t('animals:sell')}
+                      onPress={() =>
+                        router.push({ pathname: '/animal/sell', params: { animalId: animal.id } })
+                      }
+                    />
+                  ) : null}
+                  {canEdit ? (
+                    <NavigationRow
+                      icon="clipboard-text-outline"
+                      label={t('animals:changeStatus')}
+                      onPress={() =>
+                        router.push({ pathname: '/animal/status', params: { animalId: animal.id } })
+                      }
+                    />
+                  ) : null}
+                </View>
+              ) : null}
+              {animal.lifecycle?.length ? (
+                <Card>
+                  <Body>{t('animals:history')}</Body>
+                  {[...animal.lifecycle].reverse().map((event) => (
+                    <Row
+                      key={event.id}
+                      label={formatDate(new Date(event.date), locale)}
+                      value={
+                        event.kind === 'classification'
+                          ? t(`animals:${event.to}` as 'animals:mother')
+                          : event.kind === 'promotion'
+                            ? t('animals:promotionRecorded', { label: event.classLabel })
+                            : t(`animals:statusValues.${event.to}` as 'animals:statusValues.dead')
+                      }
+                    />
+                  ))}
+                </Card>
+              ) : null}
               {animal.damId ? (
                 <View style={styles.actionSpacing}>
                   <NavigationRow
                     icon="family-tree"
                     label={t('animals:motherBadge', {
-                      mother: mother?.name || mother?.tagNumber || t('animals:dam'),
+                      mother: mother ? animalLabel(mother) : t('animals:dam'),
                     })}
                     onPress={() => router.push(`/animal/${animal.damId}`)}
                   />
                 </View>
               ) : null}
 
-              {animal.sex === 'female' && animal.status === 'active' ? (
+              {animal.classification === 'mother' && animal.status === 'active' ? (
                 <>
                   <View style={styles.gap} />
                   <Card>

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { SEXES, SPECIES } from '@nasl/shared';
+import { ANIMAL_CLASSES, SEXES, SPECIES } from '@nasl/shared';
 import type { Config } from '../config.ts';
 import { requireAuth } from '../middleware/requireAuth.ts';
 import { requireFarmAccess } from '../middleware/requireFarmAccess.ts';
@@ -8,7 +8,7 @@ import { farmIdOf, parse, userIdOf } from '../http/validate.ts';
 import { FinanceService } from '../services/finance.service.ts';
 import { EXPENSE_CATEGORIES } from '../models/finance.model.ts';
 
-const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD');
+const isoDate = z.string().date('Use a valid YYYY-MM-DD date');
 const money = z.number().min(0).max(10_000_000);
 const today = () => new Date(new Date().toISOString().slice(0, 10));
 
@@ -30,7 +30,9 @@ const purchaseInput = z.object({
   animals: z
     .array(
       z.object({
-        tagNumber: z.string().trim().min(1).max(32),
+        tagNumber: z.string().trim().max(32).optional(),
+        classification: z.enum(ANIMAL_CLASSES).default('child'),
+        dateOfBirth: isoDate.optional(),
         species: z.enum(SPECIES),
         sex: z.enum(SEXES),
         breedId: z.string().trim().max(40).optional(),
@@ -59,7 +61,7 @@ const feedInput = z.object({
 
 export function financeRoutes(config: Config): Router {
   const router = Router({ mergeParams: true });
-  const finance = new FinanceService();
+  const finance = new FinanceService(config.NODE_ENV === 'production');
 
   router.use(requireAuth(config.JWT_SECRET));
 

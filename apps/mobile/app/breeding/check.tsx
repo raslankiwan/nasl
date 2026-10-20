@@ -1,3 +1,4 @@
+import { useAnimal } from '../../src/sync/useFlock';
 import { useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -12,6 +13,7 @@ export default function RecordPregnancyCheck() {
   const { damId } = useLocalSearchParams<{ damId: string }>();
   const { t } = useTranslation(['breeding', 'common']);
   const { farmId } = useAuth();
+  const { animal } = useAnimal(damId);
 
   const [date, setDate] = useState(() => new Date(new Date().toISOString().slice(0, 10)));
   const [method, setMethod] = useState<(typeof METHODS)[number]>('ultrasound');
@@ -24,7 +26,7 @@ export default function RecordPregnancyCheck() {
   return (
     <CaptureScreen
       title={t('breeding:pregnancyCheck')}
-      canSave={Boolean(farmId && damId)}
+      canSave={Boolean(farmId && animal?.classification === 'mother' && animal.status === 'active')}
       path={`/v1/farms/${farmId}/breeding/pregnancy-checks`}
       buildBody={(id) => ({
         id,

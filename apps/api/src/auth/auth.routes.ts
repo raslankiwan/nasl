@@ -1,3 +1,4 @@
+import { impersonationRoutes } from './impersonation.ts';
 import { Router } from 'express';
 import rateLimit, { type Options } from 'express-rate-limit';
 import { z } from 'zod';
@@ -49,6 +50,7 @@ export function authRoutes(config: Config, injectedMailer?: VerificationMailer):
   });
   router.use('/admin-invitations', invitationAuthRoutes(config));
   router.use('/email', emailVerificationRoutes(config, sendEmail));
+  router.use('/impersonation', impersonationRoutes(config));
   router.use('/passkeys', passkeyRoutes(config));
 
   const limitOptions: Partial<Options> = {
@@ -173,7 +175,8 @@ export function authRoutes(config: Config, injectedMailer?: VerificationMailer):
       locale: user.locale,
       email: user.email,
       username: user.username,
-      isPlatformAdmin: user.isPlatformAdmin === true,
+      isPlatformAdmin: !req.auth?.impersonation && user.isPlatformAdmin === true,
+      impersonation: req.auth?.impersonation ?? null,
       farms: memberships.map((m) => ({ farmId: m.farmId, role: m.role })),
     });
   });

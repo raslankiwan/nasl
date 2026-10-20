@@ -6,6 +6,10 @@
  */
 export const en = {
   common: {
+    actingAs: 'Acting as {{name}}',
+    supportHint: 'Support session · changes are audited · online only · 15 minutes',
+    supportEnded: 'Support session ended or could not connect.',
+    exitSupport: 'Exit support session',
     appName: 'Nasl',
     tagline: 'Flock management',
     language: 'Language',
@@ -191,6 +195,35 @@ export const en = {
       'Unable to reconnect. Your session is saved. Check your connection and try again.',
   },
   animals: {
+    classification: 'Classification',
+    mother: 'Mothers',
+    child: 'Children',
+    male: 'Adult males',
+    allClasses: 'All',
+    numberingHint:
+      'Permanent farm numbers are assigned automatically and never reused. Active M, C and R labels are unique; labels become available after sale, death or promotion.',
+    permanentNumber: 'Permanent farm number',
+    promote: 'Promote to adult',
+    promoteMother: 'Convert to mother',
+    promoteMale: 'Convert to adult male',
+    promotionHint:
+      'Children must be promoted before breeding. Eligibility starts at {{months}} months for this species; age alone does not establish breeding readiness.',
+    eligibleOn: 'Eligible from {{date}}',
+    classification_sex: 'Mothers must be female; adult males must be male.',
+    birth_date_required: 'Record a birth date before selecting an adult classification.',
+    classification_age: 'This animal has not reached the minimum age for an adult classification.',
+    recordBirthDate: 'Record birth date',
+    sell: 'Sell animal',
+    saleAmount: 'Sale amount (ILS)',
+    buyer: 'Buyer (optional)',
+    note: 'Note (optional)',
+    changeStatus: 'Record death or departure',
+    departureHint:
+      'This removes the animal from the active flock and preserves its history and family tree. Sold and dead animals release their class label.',
+    history: 'Classification and status history',
+    promotionRecorded: 'Promoted from {{label}}',
+    birthNumberHint:
+      'Every live newborn receives a unique permanent farm number and a C label. Its mother remains linked in the family tree.',
     animalDetails: 'Animal details',
     title: 'Flock',
     animal: 'Animal',
@@ -422,6 +455,13 @@ export const en = {
     },
   },
   admin: {
+    auditDetails: 'Change details',
+    impersonate: 'Access as user',
+    impersonateHint:
+      'Make changes using this user’s farm permissions. Every change is logged under your administrator account. The session expires after 15 minutes.',
+    supportReason: 'Reason for access',
+    startSupport: 'Prepare support session',
+    openSupport: 'Open user app · link valid for 60 seconds',
     approvalNeedsEmail: 'This user must verify their email before you can approve the account.',
     inviteOnly:
       'Administrator access is by email invitation only. Contact an existing administrator for access.',

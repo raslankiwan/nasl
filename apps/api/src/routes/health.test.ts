@@ -292,7 +292,7 @@ describe('who is restricted', () => {
       const res = await client.get<WithdrawalBody>(`/v1/farms/${farmId}/health/withdrawal`);
       assert.equal(res.body.meat.length, 2, 'both are held from meat');
       assert.equal(res.body.milk.length, 1, 'only the antibiotic holds milk');
-      assert.equal(res.body.milk[0]?.tagNumber, '1001');
+      assert.equal(res.body.milk[0]?.tagNumber, '1');
       assert.equal(res.body.milk[0]?.daysLeft, 7);
     });
   });

@@ -1,3 +1,4 @@
+import { animalLabel } from '@nasl/shared';
 import { createHash } from 'node:crypto';
 import webpush from 'web-push';
 import { birthReminders, birthReminderDays, can, type Role } from '@nasl/shared';
@@ -121,7 +122,7 @@ export function reminderMessage(
   const copy = (subscription.locale === 'en' ? en : ar).notifications;
   const vars: Record<string, string> = {
     count: String(rows.length),
-    tag: `\u2068${first.tagNumber}\u2069`,
+    tag: `\u2068${animalLabel(first)}\u2069`,
     start: `\u2068${formatDate(new Date(first.windowStart), subscription.locale)}\u2069`,
     end: `\u2068${formatDate(new Date(first.windowEnd), subscription.locale)}\u2069`,
   };

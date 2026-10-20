@@ -1,5 +1,33 @@
 # Delivery plan
 
+## Animal classifications and audited support sessions (20 October 2026)
+
+- [x] Permanent farm numbers are assigned by the server across every class and never reused.
+      Public creation/birth/purchase ignores old-client manual numbers; edits cannot change them.
+- [x] Mothers use M, children C, and adult males R. A farm-scoped unique index arbitrates concurrent
+      label allocation. Sale/death releases the label; promotion releases C and reserves M or R.
+      Historical labels and immutable lifecycle events remain attached to the original animal ID.
+- [x] Only mothers can record reproductive events, and only adult males can be selected as sires.
+      Explicit promotion requires the correct sex and a birth date reaching the species profile's
+      lower puberty bound (currently six calendar months for sheep/goats). This is a product
+      eligibility threshold, not a recommendation that every six-month-old is ready to breed.
+- [x] Roster class/status filters, promotion, sale and death/departure forms, label-first lists and
+      pedigree links ship in Arabic and English. Production sales atomically commit the financial
+      record, animal history and released label. Meat withdrawal restrictions remain enforced.
+- [x] Admin user details can open a reason-logged support session for an approved farm user.
+      A one-use 60-second link yields a 15-minute token with no refresh. The server rechecks both
+      accounts and grants only the target's farm permissions. Credentials and admin operations
+      are unavailable. Every attempted farm mutation persists an intent before dispatch and an
+      outcome after handling; audit-store failure before dispatch blocks the write.
+- [x] Support tokens use tab-scoped session storage; profile/flock/outbox persistence and push
+      ownership are isolated from the normal user. Support edits require a connection. A persistent
+      banner identifies the target and exits back to Admin without replacing the admin session.
+- [x] `prepare-animal-classifications.ts` runs read-only unless `--apply` is supplied. It preserves
+      permanent numbers and parent IDs, recognizes historical breeding evidence, otherwise uses
+      recorded age. Unknown-age animals without breeding evidence remain children until a birth
+      date is recorded and they are promoted. Run before deployment, then recheck after deployment.
+      API production configuration needs the exact `USER_APP_URL` origin for support exchange.
+
 ## Password visibility and minimum length (18 October 2026)
 
 - [x] Both login pages provide accessible show/hide password buttons, hidden by default. The

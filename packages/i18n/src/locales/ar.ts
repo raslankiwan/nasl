@@ -11,6 +11,10 @@ type Translated<T> = { [K in keyof T]: T[K] extends string ? string : Translated
  */
 export const ar: Translated<Catalogue> = {
   common: {
+    actingAs: 'تعمل باسم {{name}}',
+    supportHint: 'جلسة دعم · التغييرات مسجلة · تتطلب اتصالاً · ١٥ دقيقة',
+    supportEnded: 'انتهت جلسة الدعم أو تعذر الاتصال.',
+    exitSupport: 'إنهاء جلسة الدعم',
     appName: 'نَسْل',
     tagline: 'إدارة القطيع',
     language: 'اللغة',
@@ -189,6 +193,35 @@ export const ar: Translated<Catalogue> = {
     sessionUnavailable: 'تعذّر الاتصال. جلسة دخولك محفوظة. تحقّق من الاتصال وحاول مجدداً.',
   },
   animals: {
+    classification: 'التصنيف',
+    mother: 'الأمهات',
+    child: 'الصغار',
+    male: 'الذكور البالغة',
+    allClasses: 'الكل',
+    numberingHint:
+      'تُعيّن أرقام المزرعة الدائمة تلقائياً ولا تُعاد. رموز M وC وR فريدة للحيوانات النشطة، وتتاح بعد البيع أو النفوق أو الترقية.',
+    permanentNumber: 'رقم المزرعة الدائم',
+    promote: 'الترقية إلى بالغ',
+    promoteMother: 'التحويل إلى أم',
+    promoteMale: 'التحويل إلى ذكر بالغ',
+    promotionHint:
+      'يجب ترقية الصغار قبل تسجيل التناسل. يبدأ العمر المسموح لهذا النوع عند {{months}} أشهر؛ العمر وحده لا يثبت الجاهزية للتزاوج.',
+    eligibleOn: 'مؤهل من {{date}}',
+    classification_sex: 'يجب أن تكون الأم أنثى والذكر البالغ ذكراً.',
+    birth_date_required: 'أدخل تاريخ الميلاد قبل اختيار تصنيف بالغ.',
+    classification_age: 'لم يبلغ هذا الحيوان الحد الأدنى للعمر لتصنيف بالغ.',
+    recordBirthDate: 'تسجيل تاريخ الميلاد',
+    sell: 'بيع الحيوان',
+    saleAmount: 'قيمة البيع (شيكل)',
+    buyer: 'المشتري (اختياري)',
+    note: 'ملاحظة (اختياري)',
+    changeStatus: 'تسجيل نفوق أو مغادرة',
+    departureHint:
+      'يُزال الحيوان من القطيع النشط مع الاحتفاظ بسجله وشجرة العائلة. يحرّر البيع أو النفوق رمز التصنيف.',
+    history: 'سجل التصنيف والحالة',
+    promotionRecorded: 'تمت الترقية من {{label}}',
+    birthNumberHint:
+      'يحصل كل مولود حي على رقم مزرعة دائم وفريد ورمز C، وتبقى أمه مرتبطة به في شجرة العائلة.',
     animalDetails: 'تفاصيل الحيوان',
     title: 'القطيع',
     animal: 'حيوان',
@@ -419,6 +452,13 @@ export const ar: Translated<Catalogue> = {
     },
   },
   admin: {
+    auditDetails: 'تفاصيل التغيير',
+    impersonate: 'الدخول باسم المستخدم',
+    impersonateHint:
+      'أجرِ التغييرات بصلاحيات المستخدم في مزارعه. يُسجّل كل تغيير باسم حسابك الإداري. تنتهي الجلسة بعد ١٥ دقيقة.',
+    supportReason: 'سبب الدخول',
+    startSupport: 'تجهيز جلسة الدعم',
+    openSupport: 'فتح تطبيق المستخدم · الرابط صالح لمدة ٦٠ ثانية',
     approvalNeedsEmail: 'يجب على المستخدم تأكيد بريده الإلكتروني قبل الموافقة على الحساب.',
     inviteOnly:
       'دخول المسؤولين متاح بدعوة عبر البريد الإلكتروني فقط. تواصل مع أحد المسؤولين الحاليين للحصول على دعوة.',

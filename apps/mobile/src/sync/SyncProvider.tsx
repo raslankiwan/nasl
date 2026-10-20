@@ -9,6 +9,7 @@ import {
 } from 'react';
 import type { ReactNode } from 'react';
 import { AppState } from 'react-native';
+import { isImpersonating } from '../auth/impersonation';
 import { request } from '../api/client';
 import { useAuth } from '../auth/AuthProvider';
 import { isStuck, type OutboxEntry } from './outbox';
@@ -61,7 +62,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
 
   const runFlush = useCallback(
     async (retryBlocked = false) => {
-      if (flushingRef.current || current.current.status !== 'signedIn') return;
+      if (isImpersonating() || flushingRef.current || current.current.status !== 'signedIn') return;
       flushingRef.current = true;
       setFlushing(true);
       try {
@@ -97,7 +98,9 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       const userId = current.current.me?.id;
       if (current.current.status !== 'signedIn' || !userId || !acceptsPath(path))
         throw new Error('Sign in to this farm before saving');
-      const sent = await delivery.send({ id, path, body, userId });
+      const sent = isImpersonating()
+        ? (await request(path, { method: 'POST', body }), true)
+        : await delivery.send({ id, path, body, userId });
       setOnline(sent);
       const farm = current.current.me?.farms.find((entry) =>
         path.startsWith(`/v1/farms/${entry.farmId}/`),

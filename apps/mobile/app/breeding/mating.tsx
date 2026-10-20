@@ -6,13 +6,14 @@ import { useAuth } from '../../src/auth/AuthProvider';
 import { CaptureScreen } from '../../src/components/CaptureScreen';
 import { Choice, DateField, FieldGroup } from '../../src/components/form';
 import { Body } from '../../src/components/ui';
-import { expectedDueDate, type Species } from '@nasl/shared';
+import { animalLabel, expectedDueDate, type Species } from '@nasl/shared';
 import { useAnimal } from '../../src/sync/useFlock';
 import { LambingWindow } from '../../src/components/LambingWindow';
 
 interface Ram {
   id: string;
   tagNumber: string;
+  classLabel?: string | null;
   name: string | null;
 }
 
@@ -32,7 +33,7 @@ export default function RecordMating() {
   useEffect(() => {
     if (!farmId) return;
     api
-      .get<{ animals: Ram[] }>(`/v1/farms/${farmId}/animals?sex=male&limit=50`)
+      .get<{ animals: Ram[] }>(`/v1/farms/${farmId}/animals?classification=male&limit=200`)
       .then((res) => setRams(res.animals))
       .catch(() => setRams([]));
   }, [farmId]);
@@ -40,7 +41,7 @@ export default function RecordMating() {
   return (
     <CaptureScreen
       title={t('breeding:recordMating')}
-      canSave={Boolean(farmId && damId)}
+      canSave={Boolean(farmId && animal?.classification === 'mother' && animal.status === 'active')}
       path={`/v1/farms/${farmId}/breeding/matings`}
       buildBody={(id) => ({
         id,
@@ -68,11 +69,7 @@ export default function RecordMating() {
             value={sireId}
             onChange={setSireId}
             labelFor={(id) =>
-              id === ''
-                ? t('breeding:noSire')
-                : (rams.find((r) => r.id === id)?.name ??
-                  rams.find((r) => r.id === id)?.tagNumber ??
-                  id)
+              id === '' ? t('breeding:noSire') : animalLabel(rams.find((r) => r.id === id)!)
             }
           />
         )}

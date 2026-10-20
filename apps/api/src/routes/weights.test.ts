@@ -26,6 +26,7 @@ async function flock(url: string, phone = '+966501111111') {
   const animal = await client.post<AnimalBody>(`/v1/farms/${farmId}/animals`, {
     tagNumber: '1001',
     species: 'sheep',
+    classification: 'mother',
     sex: 'female',
     dateOfBirth: '2026-01-01',
   });
@@ -79,8 +80,20 @@ describe('recording weights', () => {
         `/v1/farms/${farmId}/animals/bulk`,
         {
           animals: [
-            { tagNumber: '2001', species: 'sheep', sex: 'female' },
-            { tagNumber: '2002', species: 'sheep', sex: 'female' },
+            {
+              tagNumber: '2001',
+              species: 'sheep',
+              classification: 'mother',
+              dateOfBirth: '2020-01-01',
+              sex: 'female',
+            },
+            {
+              tagNumber: '2002',
+              species: 'sheep',
+              classification: 'mother',
+              dateOfBirth: '2020-01-01',
+              sex: 'female',
+            },
           ],
         },
       );
@@ -145,6 +158,8 @@ describe('growth history', () => {
       const sire = await client.post<AnimalBody>(`/v1/farms/${farmId}/animals`, {
         tagNumber: '3001',
         species: 'sheep',
+        classification: 'male',
+        dateOfBirth: '2020-01-01',
         sex: 'male',
       });
 

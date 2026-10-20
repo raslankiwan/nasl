@@ -45,6 +45,8 @@ async function fixture(url: string, identity = 'one') {
   const animal = await client.post<{ id: string }>(`/v1/farms/${farmId}/animals`, {
     tagNumber: '001',
     species: 'sheep',
+    classification: 'mother',
+    dateOfBirth: '2020-01-01',
     sex: 'female',
   });
   await client.post(`/v1/farms/${farmId}/breeding/matings`, {
@@ -119,7 +121,13 @@ test('dispatch is farm-isolated, batches animals and deduplicates repeated/concu
     await fixture(url, 'two');
     const secondAnimal = await first.client.post<{ id: string }>(
       `/v1/farms/${first.farmId}/animals`,
-      { tagNumber: '002', species: 'sheep', sex: 'female' },
+      {
+        tagNumber: '002',
+        species: 'sheep',
+        classification: 'mother',
+        dateOfBirth: '2020-01-01',
+        sex: 'female',
+      },
     );
     await first.client.post(`/v1/farms/${first.farmId}/breeding/matings`, {
       damId: secondAnimal.body.id,

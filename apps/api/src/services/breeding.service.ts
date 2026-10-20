@@ -61,6 +61,10 @@ export class BreedingService {
     const dam = await this.animals.findById(farmId, damId);
     if (!dam) throw AppError.notFound('That female is not in this flock.');
     if (dam.sex !== 'female') throw AppError.badRequest('Only a female carries a pregnancy.');
+    if (dam.classification && dam.classification !== 'mother')
+      throw AppError.conflict('Promote this child to a mother before recording breeding events.', {
+        reason: 'mother_required',
+      });
     if (dam.status !== 'active') {
       throw AppError.conflict('That animal is no longer in the working flock.');
     }
@@ -134,6 +138,8 @@ export class BreedingService {
       const sire = await this.animals.findById(farmId, input.sireId);
       if (!sire) throw AppError.badRequest('That sire is not in this flock.');
       if (sire.sex !== 'male') throw AppError.badRequest('A sire must be male.');
+      if (sire.status !== 'active' || (sire.classification && sire.classification !== 'male'))
+        throw AppError.badRequest('Select an active adult male as the sire.');
     }
 
     const next = this.advance(this.currentStatus(dam), {
@@ -263,14 +269,7 @@ export class BreedingService {
     const birthType =
       (['single', 'twin', 'triplet', 'quad'] as const)[input.offspring.length - 1] ?? 'quad';
 
-    // Validate the whole litter before creating the first child (also safe on standalone dev Mongo).
-    const explicitTags = input.offspring
-      .filter((lamb) => lamb.outcome === 'live' && lamb.tagNumber)
-      .map((lamb) => lamb.tagNumber!.trim());
-    if (new Set(explicitTags).size !== explicitTags.length)
-      throw AppError.conflict('Each lamb must have its own number.', { field: 'tagNumber' });
-    for (const tag of explicitTags) await this.animals.assertTagAvailable(farmId, tag);
-    await this.animals.reserveNumbers(farmId, explicitTags);
+    // Every live newborn receives an automatic permanent number and child label.
     const recorded: OffspringRecord[] = [];
     for (const lamb of input.offspring) {
       let animalId: string | null = null;
@@ -279,7 +278,7 @@ export class BreedingService {
       // Only a live lamb joins the flock. A stillbirth belongs on the birth record, not the roster.
       if (lamb.outcome === 'live') {
         const created = await this.animals.register(farmId, {
-          ...(lamb.tagNumber ? { tagNumber: lamb.tagNumber } : {}),
+          classification: 'child',
           species: dam.species,
           sex: lamb.sex,
           dateOfBirth: input.date,
@@ -290,7 +289,7 @@ export class BreedingService {
           breedId: dam.breedId ?? null,
           currentGroupId: dam.currentGroupId ?? null,
           ...(lamb.birthWeightKg ? { lastWeightKg: lamb.birthWeightKg } : {}),
-        } as Partial<AnimalDoc> & { tagNumber: string });
+        } as Partial<AnimalDoc>);
         animalId = created._id;
         assignedTag = created.tagNumber;
       }
@@ -504,6 +503,8 @@ export class BreedingService {
       animals.map((a) => ({
         id: a._id,
         tagNumber: a.tagNumber,
+        classLabel: a.classLabel ?? null,
+        classification: a.classification,
         name: a.name ?? null,
         species: a.species,
         sex: a.sex,

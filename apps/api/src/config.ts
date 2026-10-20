@@ -23,6 +23,7 @@ const schema = z
       .optional(),
     VAPID_SUBJECT: z.string().url().optional(),
     CRON_SECRET: z.string().min(32).optional(),
+    USER_APP_URL: z.string().url().optional(),
     ADMIN_APP_URL: z.string().url().optional(),
     RESEND_API_KEY: z.string().min(1).optional(),
     EMAIL_FROM: z.string().email().optional(),
@@ -33,15 +34,17 @@ const schema = z
       .default('info'),
   })
   .superRefine((config, ctx) => {
-    if (config.ADMIN_APP_URL) {
-      const url = new URL(config.ADMIN_APP_URL);
+    for (const key of ['ADMIN_APP_URL', 'USER_APP_URL'] as const) {
+      const appUrl = config[key];
+      if (!appUrl) continue;
+      const url = new URL(appUrl);
       if (
-        url.origin !== config.ADMIN_APP_URL ||
+        url.origin !== appUrl ||
         (config.NODE_ENV === 'production' && url.protocol !== 'https:')
       ) {
         ctx.addIssue({
           code: 'custom',
-          path: ['ADMIN_APP_URL'],
+          path: [key],
           message: 'Use an exact admin origin, with HTTPS in production',
         });
       }

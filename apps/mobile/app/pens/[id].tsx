@@ -1,3 +1,4 @@
+import { animalLabel } from '@nasl/shared';
 import { ScreenHeader } from '../../src/components/ScreenHeader';
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
@@ -94,7 +95,7 @@ export default function PenDetail() {
                 ]}
               >
                 <View style={styles.rowMain}>
-                  <Text style={styles.tag}>{animal.tagNumber}</Text>
+                  <Text style={styles.tag}>{animalLabel(animal)}</Text>
                   {animal.name ? <Text style={styles.meta}>{animal.name}</Text> : null}
                 </View>
                 {animal.repro ? (

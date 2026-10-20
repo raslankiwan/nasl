@@ -1,4 +1,7 @@
-import { isUnderMeatWithdrawal } from '@nasl/shared';
+import mongoose, { type ClientSession } from 'mongoose';
+import { randomUUID } from 'node:crypto';
+import type { AnimalClass } from '@nasl/shared';
+import { isWithdrawalActive } from '@nasl/shared';
 import { AppError } from '../errors.ts';
 import { AnimalRepository } from '../repositories/animal.repository.ts';
 import { TenantRepository } from '../repositories/tenantRepository.ts';
@@ -18,10 +21,18 @@ import { MilkDisposition, type MilkDispositionDoc } from '../models/milk.model.t
  * not maintain a ledger, and the useful question is "did this season pay", not "does it balance".
  */
 export class FinanceService {
-  private readonly animals = new AnimalRepository();
-  private readonly transactions = new TenantRepository<TransactionDoc>(Transaction);
-  private readonly feed = new TenantRepository<FeedLogDoc>(FeedLog);
-  private readonly milk = new TenantRepository<MilkDispositionDoc>(MilkDisposition);
+  private readonly animals: AnimalRepository;
+  private readonly transactions: TenantRepository<TransactionDoc>;
+  private readonly feed: TenantRepository<FeedLogDoc>;
+  private readonly milk: TenantRepository<MilkDispositionDoc>;
+  private readonly transactional: boolean;
+  constructor(transactional = false, session?: ClientSession) {
+    this.transactional = transactional;
+    this.animals = new AnimalRepository(undefined, session);
+    this.transactions = new TenantRepository(Transaction, undefined, session);
+    this.feed = new TenantRepository(FeedLog, undefined, session);
+    this.milk = new TenantRepository(MilkDisposition, undefined, session);
+  }
 
   private async currencyFor(farmId: string): Promise<string> {
     const farm = await Farm.findById(farmId).select('currency').lean().exec();
@@ -46,20 +57,39 @@ export class FinanceService {
       paid?: boolean;
     },
     recordedBy: string,
-  ) {
+  ): Promise<TransactionDoc> {
+    const request = { ...input, id: input.id ?? randomUUID() };
+    if (this.transactional) {
+      return mongoose.connection.transaction((session) =>
+        new FinanceService(false, session).recordSale(farmId, request, recordedBy),
+      );
+    }
+    const previous = await this.transactions.findById(farmId, request.id);
+    if (previous) {
+      if (
+        previous.type !== 'sale' ||
+        previous.amount !== input.amount ||
+        previous.date.getTime() !== input.date.getTime() ||
+        [...previous.animalIds].sort().join(',') !== [...input.animalIds].sort().join(',')
+      )
+        throw AppError.conflict('This sale ID is already used.');
+      return previous;
+    }
+    if (new Set(input.animalIds).size !== input.animalIds.length)
+      throw AppError.badRequest('Choose each animal only once.');
     const today = new Date();
+    if (!Number.isFinite(input.date.getTime()) || input.date > today)
+      throw AppError.badRequest('Choose a sale date up to today.');
     const animals = [];
 
     for (const animalId of input.animalIds) {
       const animal = await this.animals.findById(farmId, animalId);
       if (!animal) throw AppError.badRequest('One of those animals is not in this flock.');
+      if (animal.status !== 'active') throw AppError.conflict('Only active animals can be sold.');
+      if (animal.dateOfBirth && input.date < animal.dateOfBirth)
+        throw AppError.badRequest('A sale cannot predate birth.');
 
-      if (
-        isUnderMeatWithdrawal(
-          { withholdMeatUntil: animal.withholdMeatUntil?.toISOString() ?? undefined },
-          today,
-        )
-      ) {
+      if (isWithdrawalActive(animal.withholdMeatUntil, today)) {
         throw AppError.conflict(
           `Tag ${animal.tagNumber} is under a withdrawal period until ${animal
             .withholdMeatUntil!.toISOString()
@@ -71,7 +101,7 @@ export class FinanceService {
     }
 
     const transaction = await this.transactions.create(farmId, {
-      ...(input.id ? { _id: input.id } : {}),
+      _id: request.id,
       type: 'sale',
       amount: input.amount,
       currency: await this.currencyFor(farmId),
@@ -84,7 +114,12 @@ export class FinanceService {
     } as Partial<TransactionDoc>);
 
     for (const animal of animals) {
-      await this.animals.updateById(farmId, animal._id, { $set: { status: 'sold' } });
+      await this.animals.changeStatus(
+        farmId,
+        animal._id,
+        { id: request.id, status: 'sold', date: input.date, reason: input.note },
+        recordedBy,
+      );
     }
 
     return transaction;
@@ -98,14 +133,25 @@ export class FinanceService {
       amount: number;
       date: Date;
       counterparty?: string;
-      animals: Array<{ tagNumber: string; species: string; sex: string; breedId?: string }>;
+      animals: Array<{
+        tagNumber?: string;
+        classification?: AnimalClass;
+        dateOfBirth?: string;
+        species: string;
+        sex: string;
+        breedId?: string;
+      }>;
     },
     recordedBy: string,
   ) {
     const created: string[] = [];
     for (const animal of input.animals) {
       const registered = await this.animals.register(farmId, {
-        ...animal,
+        species: animal.species,
+        sex: animal.sex,
+        breedId: animal.breedId,
+        classification: animal.classification ?? 'child',
+        ...(animal.dateOfBirth ? { dateOfBirth: new Date(animal.dateOfBirth) } : {}),
         origin: 'purchased',
         acquiredAt: input.date,
         dobIsEstimate: true,

@@ -1,3 +1,4 @@
+import { animalLabel } from '@nasl/shared';
 import { TabScreen } from '../../src/components/TabScreen';
 import { useCallback } from 'react';
 import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
@@ -40,7 +41,7 @@ export default function Today() {
       style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
     >
       <View style={styles.rowDetail}>
-        <Text style={styles.tag}>{row.tagNumber}</Text>
+        <Text style={styles.tag}>{animalLabel(row)}</Text>
         <Text style={styles.windowDate}>
           {formatDate(new Date(row.windowStart), locale)}
           {row.windowStart !== row.windowEnd

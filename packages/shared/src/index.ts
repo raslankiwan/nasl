@@ -1,4 +1,5 @@
 export * from './animal.ts';
+export * from './classification.ts';
 export * from './breeds.ts';
 export * from './dates.ts';
 export * from './health.ts';

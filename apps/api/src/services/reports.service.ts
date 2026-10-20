@@ -15,6 +15,7 @@ import { Lactation, MilkTestDay } from '../models/milk.model.ts';
 export interface EweRow {
   animalId: string;
   tagNumber: string;
+  classLabel?: string | null;
   name: string | null;
   ageMonths: number | null;
   lambings: number;
@@ -51,6 +52,7 @@ export class ReportsService {
       farmId,
       deletedAt: null,
       sex: 'female',
+      $or: [{ classification: 'mother' }, { classification: null }],
       status: 'active',
     })
       .lean<AnimalDoc[]>()
@@ -192,6 +194,7 @@ export class ReportsService {
     return {
       animalId: ewe._id,
       tagNumber: ewe.tagNumber,
+      classLabel: ewe.classLabel ?? null,
       name: ewe.name ?? null,
       ageMonths,
       lambings: herBirths.length,

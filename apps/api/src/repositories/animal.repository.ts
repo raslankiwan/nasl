@@ -1,4 +1,5 @@
 import type { ClientSession, FilterQuery } from 'mongoose';
+import { CLASS_PREFIX, classificationError, type AnimalClass } from '@nasl/shared';
 import { AnimalNumberRepository } from './animalNumber.repository.ts';
 import { AppError } from '../errors.ts';
 import { Animal, type AnimalDoc } from '../models/animal.model.ts';
@@ -10,6 +11,7 @@ export interface AnimalFilters {
   species?: string;
   sex?: string;
   status?: string;
+  classification?: AnimalClass;
   breedId?: string;
   groupId?: string;
   reproState?: string;
@@ -23,6 +25,7 @@ export interface AnimalFilters {
 export interface PedigreeNode {
   id: string;
   tagNumber: string;
+  classLabel: string | null;
   name: string | null;
   sex: string;
   breedId: string | null;
@@ -96,6 +99,26 @@ export class AnimalRepository extends TenantRepository<AnimalDoc> {
     for (const tag of tags) await this.numberSequence(farmId, tag);
   }
 
+  /** Lowest free class slot. The unique index arbitrates concurrent allocations. */
+  async classAssignment(farmId: string, classification: AnimalClass) {
+    const reserved = await this.find(
+      farmId,
+      { classification, activeClassLabel: { $ne: null } },
+      {
+        includeDeleted: true,
+        projection: { classNumber: 1 },
+        sort: { classNumber: 1 },
+      },
+    );
+    let classNumber = 1;
+    for (const row of reserved) {
+      if (row.classNumber === classNumber) classNumber++;
+      else if (row.classNumber && row.classNumber > classNumber) break;
+    }
+    const classLabel = `${CLASS_PREFIX[classification]}${classNumber}`;
+    return { classification, classNumber, classLabel, activeClassLabel: classLabel };
+  }
+
   async register(farmId: string, input: Partial<AnimalDoc>) {
     const tag = input.tagNumber?.trim();
     if (input._id) {
@@ -111,12 +134,19 @@ export class AnimalRepository extends TenantRepository<AnimalDoc> {
       }
     }
     await this.assertParentageIsPossible(farmId, input);
+    const classification = input.classification ?? 'child';
+    const invalid = classificationError(
+      { sex: input.sex!, species: input.species!, dateOfBirth: input.dateOfBirth },
+      classification,
+    );
+    if (invalid) throw AppError.badRequest(invalid, { field: 'classification', reason: invalid });
     if (tag) await this.assertTagAvailable(farmId, tag);
     const sequence = await this.numberSequence(farmId, tag);
-    for (let attempt = 0; attempt < 10; attempt++) {
+    for (let attempt = 0; attempt < 40; attempt++) {
       const tagNumber = tag ?? (await sequence.next(farmId));
       try {
-        return await this.create(farmId, { ...input, tagNumber });
+        const assignment = await this.classAssignment(farmId, classification);
+        return await this.create(farmId, { ...input, ...assignment, tagNumber });
       } catch (error) {
         if (!isDuplicateKey(error)) throw error;
         if (this.session) throw error;
@@ -132,7 +162,8 @@ export class AnimalRepository extends TenantRepository<AnimalDoc> {
         }
         if (tag) {
           await this.assertTagAvailable(farmId, tag);
-          throw AppError.conflict('This animal ID has already been assigned.');
+          // A class-slot collision can be retried even when an internal import supplied a tag.
+          continue;
         }
       }
     }
@@ -154,6 +185,13 @@ export class AnimalRepository extends TenantRepository<AnimalDoc> {
       if (!current) throw AppError.notFound('Animal not found');
       await this.assertParentageIsPossible(farmId, { ...current, ...patch }, id);
     }
+    if (patch.sex !== undefined || patch.species !== undefined || patch.dateOfBirth !== undefined) {
+      const current = await this.findById(farmId, id);
+      if (!current) throw AppError.notFound('Animal not found');
+      const candidate = { ...current, ...patch };
+      const invalid = classificationError(candidate, candidate.classification ?? 'child');
+      if (invalid) throw AppError.badRequest(invalid, { field: 'classification', reason: invalid });
+    }
 
     try {
       const updated = await this.updateById(farmId, id, { $set: patch });
@@ -167,6 +205,132 @@ export class AnimalRepository extends TenantRepository<AnimalDoc> {
     }
   }
 
+  async promote(
+    farmId: string,
+    id: string,
+    eventId: string,
+    classification: 'mother' | 'male',
+    recordedBy: string,
+    dateOfBirth?: Date,
+  ) {
+    for (let attempt = 0; attempt < 40; attempt++) {
+      const current = await this.findById(farmId, id);
+      if (!current) throw AppError.notFound('Animal not found');
+      const previous = current.lifecycle?.find((event) => event.id === eventId);
+      if (previous) {
+        if (previous.kind !== 'promotion' || previous.to !== classification)
+          throw AppError.conflict('This event ID is already used.');
+        return current;
+      }
+      if (current.status !== 'active' || current.classification !== 'child')
+        throw AppError.conflict('Only an active child can be promoted.');
+      const candidate = { ...current, ...(dateOfBirth ? { dateOfBirth } : {}) };
+      const invalid = classificationError(candidate, classification);
+      await this.assertParentageIsPossible(farmId, candidate, id);
+      if (invalid) throw AppError.badRequest(invalid, { field: 'classification', reason: invalid });
+      const assignment = await this.classAssignment(farmId, classification);
+      try {
+        const updated = await this.model
+          .findOneAndUpdate(
+            this.scope(farmId, {
+              _id: id,
+              status: 'active',
+              classification: 'child',
+              updatedAt: current.updatedAt,
+            }),
+            {
+              $set: { ...assignment, ...(dateOfBirth ? { dateOfBirth } : {}) },
+              $push: {
+                lifecycle: {
+                  id: eventId,
+                  kind: 'promotion',
+                  from: 'child',
+                  to: classification,
+                  date: new Date(),
+                  recordedBy,
+                  classLabel: current.classLabel,
+                },
+              },
+            },
+            { new: true, runValidators: true, session: this.session },
+          )
+          .lean<AnimalDoc>();
+        if (updated) return updated;
+      } catch (error) {
+        if (!isDuplicateKey(error) || this.session) throw error;
+      }
+    }
+    throw AppError.conflict('Another save changed this animal. Try again.');
+  }
+
+  async changeStatus(
+    farmId: string,
+    id: string,
+    event: { id: string; status: string; date: Date; reason?: string },
+    recordedBy: string,
+  ) {
+    const animal = await this.findById(farmId, id);
+    if (!animal) throw AppError.notFound('Animal not found');
+    const previous = animal.lifecycle?.find((entry) => entry.id === event.id);
+    if (previous) {
+      if (previous.kind !== 'status' || previous.to !== event.status)
+        throw AppError.conflict('This event ID is already used.');
+      return animal;
+    }
+    if (animal.status !== 'active' || event.status === 'active')
+      throw AppError.conflict('This animal has already left the active flock.');
+    if (
+      !Number.isFinite(event.date.getTime()) ||
+      event.date > new Date() ||
+      (animal.dateOfBirth && event.date < animal.dateOfBirth)
+    )
+      throw AppError.badRequest('The event date must be between birth and today.');
+    const food = ['sold', 'slaughtered'].includes(event.status);
+    const updated = await this.model
+      .findOneAndUpdate(
+        this.scope(farmId, {
+          _id: id,
+          status: 'active',
+          updatedAt: animal.updatedAt,
+          ...(food
+            ? {
+                $or: [
+                  { withholdMeatUntil: null },
+                  { withholdMeatUntil: { $lt: new Date(new Date().toISOString().slice(0, 10)) } },
+                ],
+              }
+            : {}),
+        }),
+        {
+          $set: {
+            status: event.status,
+            ...(['sold', 'dead'].includes(event.status) ? { activeClassLabel: null } : {}),
+          },
+          $push: {
+            lifecycle: {
+              id: event.id,
+              kind: 'status',
+              from: animal.status,
+              to: event.status,
+              date: event.date,
+              recordedBy,
+              reason: event.reason,
+              classLabel: animal.classLabel,
+            },
+          },
+        },
+        { new: true, runValidators: true, session: this.session },
+      )
+      .lean<AnimalDoc>();
+    if (!updated) {
+      const current = await this.findById(farmId, id);
+      if (current?.lifecycle?.some((entry) => entry.id === event.id && entry.to === event.status))
+        return current;
+      throw AppError.conflict('This animal changed or is under a meat withdrawal period.');
+    }
+    return updated;
+  }
+
   async list(farmId: string, filters: AnimalFilters = {}) {
     const filter: Record<string, unknown> = {};
 
@@ -174,17 +338,22 @@ export class AnimalRepository extends TenantRepository<AnimalDoc> {
       const pattern = escapeRegex(filters.q);
       filter.$or = [
         { tagNumber: { $regex: `^${pattern}`, $options: 'i' } },
+        { classLabel: { $regex: `^${pattern}`, $options: 'i' } },
         { name: { $regex: pattern, $options: 'i' } },
       ];
     }
     if (filters.species) filter.species = filters.species;
     if (filters.sex) filter.sex = filters.sex;
+    if (filters.classification) filter.classification = filters.classification;
     if (filters.breedId) filter.breedId = filters.breedId;
     if (filters.groupId) filter.currentGroupId = filters.groupId;
     if (filters.reproState) filter['repro.state'] = filters.reproState;
     // Default to the working flock: a roster full of sold and dead animals is noise.
     filter.status = filters.status ?? 'active';
-    if (filters.breedingFemalesOnly) filter.sex = 'female';
+    if (filters.breedingFemalesOnly) {
+      filter.sex = 'female';
+      filter.classification = 'mother';
+    }
     if (filters.underWithdrawal) filter.withholdMeatUntil = { $gte: new Date() };
 
     const [items, total] = await Promise.all([
@@ -286,6 +455,7 @@ export class AnimalRepository extends TenantRepository<AnimalDoc> {
       const node: PedigreeNode = {
         id: animal._id,
         tagNumber: animal.tagNumber,
+        classLabel: animal.classLabel ?? null,
         name: animal.name ?? null,
         sex: animal.sex,
         breedId: animal.breedId ?? null,

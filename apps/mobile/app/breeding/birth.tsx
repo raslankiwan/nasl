@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../src/auth/AuthProvider';
@@ -7,7 +7,7 @@ import { useFlock } from '../../src/sync/useFlock';
 import { Body, Notice } from '../../src/components/ui';
 import { CaptureScreen } from '../../src/components/CaptureScreen';
 import { Choice, DateField, FieldGroup, NumberField } from '../../src/components/form';
-import { MIN_TOUCH, radius, spacing, type, useTheme, createThemedStyles } from '../../src/theme';
+import { MIN_TOUCH, radius, spacing, type, createThemedStyles } from '../../src/theme';
 
 const SEXES = ['female', 'male'] as const;
 const OUTCOMES = ['live', 'stillborn', 'died24h'] as const;
@@ -18,7 +18,6 @@ interface LambDraft {
   sex: (typeof SEXES)[number];
   outcome: (typeof OUTCOMES)[number];
   birthWeightKg: number | null;
-  tagNumber: string;
 }
 
 const blankLamb = (): LambDraft => ({
@@ -26,7 +25,6 @@ const blankLamb = (): LambDraft => ({
   sex: 'female',
   outcome: 'live',
   birthWeightKg: null,
-  tagNumber: '',
 });
 
 /**
@@ -39,7 +37,6 @@ const blankLamb = (): LambDraft => ({
  */
 export default function RecordBirth() {
   const styles = useStyles();
-  const { colors } = useTheme();
   const { damId } = useLocalSearchParams<{ damId: string }>();
   const { t } = useTranslation(['breeding', 'animals', 'common']);
   const { farmId } = useAuth();
@@ -52,19 +49,15 @@ export default function RecordBirth() {
   const update = (key: string, patch: Partial<LambDraft>) =>
     setLambs((prev) => prev.map((l) => (l.key === key ? { ...l, ...patch } : l)));
 
-  const tags = lambs
-    .filter((lamb) => lamb.outcome === 'live')
-    .map((lamb) => lamb.tagNumber.trim())
-    .filter(Boolean);
-  const duplicate = tags.find(
-    (tag, index) =>
-      tags.indexOf(tag) !== index || allAnimals.some((animal) => animal.tagNumber === tag),
-  );
+  const mother = allAnimals.find((animal) => animal.id === damId);
 
   return (
     <CaptureScreen
       title={t('breeding:recordBirth')}
-      canSave={Boolean(farmId && damId) && lambs.length > 0 && !duplicate}
+      canSave={
+        Boolean(farmId && mother?.classification === 'mother' && mother.status === 'active') &&
+        lambs.length > 0
+      }
       path={`/v1/farms/${farmId}/breeding/births`}
       buildBody={(id) => ({
         id,
@@ -76,14 +69,13 @@ export default function RecordBirth() {
           sex: lamb.sex,
           outcome: lamb.outcome,
           ...(lamb.birthWeightKg !== null ? { birthWeightKg: lamb.birthWeightKg } : {}),
-          ...(lamb.tagNumber.trim() ? { tagNumber: lamb.tagNumber.trim() } : {}),
         })),
       })}
     >
-      {duplicate ? (
-        <Notice tone="danger">{t('animals:duplicateTag', { tag: duplicate })}</Notice>
+      {mother && mother.classification !== 'mother' ? (
+        <Notice tone="danger">{t('animals:promoteMother')}</Notice>
       ) : null}
-      <Body muted>{t('animals:autoNumberHint')}</Body>
+      <Body muted>{t('animals:birthNumberHint')}</Body>
       <DateField label={t('breeding:birth')} value={date} onChange={setDate} />
 
       <FieldGroup label={t('breeding:difficulty')}>
@@ -145,18 +137,6 @@ export default function RecordBirth() {
                 suffix="kg"
                 optional
               />
-              <FieldGroup label={t('animals:tagNumber')}>
-                <TextInput
-                  accessibilityLabel={t('animals:tagNumber')}
-                  maxLength={32}
-                  value={lamb.tagNumber}
-                  onChangeText={(tagNumber) => update(lamb.key, { tagNumber })}
-                  keyboardType="number-pad"
-                  placeholder={t('animals:autoNumber')}
-                  placeholderTextColor={colors.muted}
-                  style={styles.tagInput}
-                />
-              </FieldGroup>
             </>
           ) : null}
         </View>

@@ -32,6 +32,8 @@ async function farmWithRam(url: string, phone = '+966501111111') {
     tagNumber: '3001',
     species: 'sheep',
     sex: 'male',
+    classification: 'male',
+    dateOfBirth: daysAgo(1200),
   });
   return { client, farmId, sireId: sire.body.id, userId: session.user.id };
 }
@@ -46,6 +48,7 @@ async function addEwe(
     tagNumber,
     species: 'sheep',
     sex: 'female',
+    classification: 'mother',
     dateOfBirth: daysAgo(bornDaysAgo),
   });
   return res.body.id;
@@ -114,7 +117,7 @@ describe('the ewe scorecard', () => {
       await fullCycle(client, farmId, dam, sireId, { matedDaysAgo: 400, lambs: 2, weanKg: 24 });
 
       const res = await client.get<Scorecard>(`/v1/farms/${farmId}/reports/ewes`);
-      const row = res.body.ewes.find((e) => e.tagNumber === '1001')!;
+      const row = res.body.ewes.find((e) => e.tagNumber === '2')!;
 
       assert.equal(row.lambings, 2);
       assert.equal(row.lambsBorn, 4);
@@ -132,8 +135,8 @@ describe('the ewe scorecard', () => {
       await addEwe(client, farmId, '1002', 200); // still a lamb herself
 
       const res = await client.get<Scorecard>(`/v1/farms/${farmId}/reports/ewes`);
-      const old = res.body.ewes.find((e) => e.tagNumber === '1001')!;
-      const young = res.body.ewes.find((e) => e.tagNumber === '1002')!;
+      const old = res.body.ewes.find((e) => e.tagNumber === '2')!;
+      const young = res.body.ewes.find((e) => e.tagNumber === '3')!;
 
       assert.ok(old.cullSignals.includes('neverLambed'));
       assert.deepEqual(young.cullSignals, [], 'a ewe lamb is not a cull candidate');
@@ -147,7 +150,7 @@ describe('the ewe scorecard', () => {
       await fullCycle(client, farmId, dam, sireId, { matedDaysAgo: 700, lambs: 1 });
 
       const res = await client.get<Scorecard>(`/v1/farms/${farmId}/reports/ewes`);
-      const row = res.body.ewes.find((e) => e.tagNumber === '1001')!;
+      const row = res.body.ewes.find((e) => e.tagNumber === '2')!;
       assert.ok(row.cullSignals.includes('longSinceLambing'));
     });
   });
@@ -161,7 +164,7 @@ describe('the ewe scorecard', () => {
       await fullCycle(client, farmId, dam, sireId, { matedDaysAgo: 300, lambs: 1, difficulty: 4 });
 
       const res = await client.get<Scorecard>(`/v1/farms/${farmId}/reports/ewes`);
-      const row = res.body.ewes.find((e) => e.tagNumber === '1001')!;
+      const row = res.body.ewes.find((e) => e.tagNumber === '2')!;
       assert.equal(row.assistedLambings, 2);
       assert.ok(row.cullSignals.includes('repeatedDifficulty'));
     });
@@ -174,7 +177,7 @@ describe('the ewe scorecard', () => {
       await fullCycle(client, farmId, dam, sireId, { matedDaysAgo: 300, lambs: 3, live: 1 });
 
       const res = await client.get<Scorecard>(`/v1/farms/${farmId}/reports/ewes`);
-      const row = res.body.ewes.find((e) => e.tagNumber === '1001')!;
+      const row = res.body.ewes.find((e) => e.tagNumber === '2')!;
       assert.ok(row.cullSignals.includes('poorSurvival'));
     });
   });
@@ -189,7 +192,7 @@ describe('the ewe scorecard', () => {
       await fullCycle(client, farmId, good, sireId, { matedDaysAgo: 180, lambs: 2 });
 
       const res = await client.get<Scorecard>(`/v1/farms/${farmId}/reports/ewes`);
-      assert.equal(res.body.ewes[0]?.tagNumber, '1002', 'the problem ewe leads');
+      assert.equal(res.body.ewes[0]?.tagNumber, '3', 'the problem ewe leads');
       assert.equal(res.body.cullCandidates, 1);
     });
   });
@@ -315,7 +318,7 @@ describe('flock composition', () => {
       assert.equal(res.body.bySpecies.goat, 1);
       assert.equal(res.body.byBreed.awassi, 1);
       assert.equal(res.body.byAgeBand.lamb, 1, 'the hundred-day-old');
-      assert.equal(res.body.byAgeBand.mature, 1, '1200 days is three and a bit years');
+      assert.equal(res.body.byAgeBand.mature, 2, 'the adult ewe and ram are both mature');
       assert.equal(res.body.byAgeBand.aged, 1, 'past five years');
     });
   });
@@ -356,7 +359,7 @@ describe('treatment register', () => {
       }>(`/v1/farms/${farmId}/reports/treatments`);
 
       assert.equal(res.body.entries.length, 1);
-      assert.equal(res.body.entries[0]?.tagNumber, '1001');
+      assert.equal(res.body.entries[0]?.tagNumber, '2');
       assert.equal(res.body.entries[0]?.batchNo, 'LOT-42');
       assert.equal(res.body.entries[0]?.administeredBy, 'البيطري');
       assert.ok(res.body.entries[0]?.withholdMilkUntil, 'the register carries the hold');

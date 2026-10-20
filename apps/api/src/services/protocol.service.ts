@@ -106,6 +106,7 @@ export class ProtocolService {
     const subjects: ProtocolSubject[] = animals.map((animal) => ({
       id: animal._id,
       tagNumber: animal.tagNumber,
+      classLabel: animal.classLabel ?? null,
       name: animal.name ?? null,
       sex: animal.sex,
       status: animal.status,
@@ -147,7 +148,13 @@ export interface TaskGroup {
   overdue: number;
   due: number;
   upcoming: number;
-  animals: Array<{ animalId: string; tagNumber: string; name: string | null; dueOn: string }>;
+  animals: Array<{
+    animalId: string;
+    tagNumber: string;
+    classLabel?: string | null;
+    name: string | null;
+    dueOn: string;
+  }>;
 }
 
 function groupByStep(tasks: readonly ProtocolTask[]): TaskGroup[] {
@@ -174,6 +181,7 @@ function groupByStep(tasks: readonly ProtocolTask[]): TaskGroup[] {
     group.animals.push({
       animalId: task.animalId,
       tagNumber: task.tagNumber,
+      classLabel: task.classLabel ?? null,
       name: task.name,
       dueOn: task.dueOn,
     });
