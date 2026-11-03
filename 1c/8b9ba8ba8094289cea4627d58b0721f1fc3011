@@ -1,0 +1,21 @@
+apps/mobile/app/(tabs)/flock.tsx
+  s_c9959826314bf9::t_a052b2bc4d2a44 34,75-77
+docs/roadmap.md
+  s_c9959826314bf9::t_378048231bf951 3-7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "1c8b9ba8ba8094289cea4627d58b0721f1fc3011",
+  "prompts": {},
+  "sessions": {
+    "s_c9959826314bf9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ed41-6d4f-7fd1-8eef-bc4227e3e739",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "raslan <raslankiwan@gmail.com>"
+    }
+  }
+}
