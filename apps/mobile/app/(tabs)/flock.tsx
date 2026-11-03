@@ -31,7 +31,7 @@ export default function Flock() {
   const router = useRouter();
   const role = me?.farms.find((farm) => farm.farmId === farmId)?.role;
   const canWrite = role && can(role as Role, 'animals:write');
-  const { animals, allAnimals, animalsById, loading, stale, refresh } = useFlock();
+  const { allAnimals, animalsById, loading, stale, refresh } = useFlock();
   const [query, setQuery] = useState('');
   const search = query.trim().toLocaleLowerCase();
   const [classification, setClassification] = useState('all');
@@ -72,7 +72,9 @@ export default function Flock() {
       <View style={styles.header}>
         <Title>{t('animals:title')}</Title>
         <View style={styles.headerActions}>
-          <Text style={styles.count}>{t('animals:headCount', { count: animals.length })}</Text>
+          <Text style={styles.count}>
+            {t('animals:headCount', { count: visibleAnimals.length })}
+          </Text>
           {canWrite ? (
             <IconButton
               label={t('animals:addAnimal')}

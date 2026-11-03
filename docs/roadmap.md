@@ -1,5 +1,10 @@
 # Delivery plan
 
+## Filtered flock count (3 November 2026)
+
+- [x] The roster header counts the displayed animals after class, status and search filters.
+      Browser checks cover combined filters, zero matches and clearing filters to restore the total.
+
 ## Farm identity and relationship isolation (20 October 2026)
 
 - [x] Regression tests cover two farms owned by the same user, concurrent sheep/goat registration,
