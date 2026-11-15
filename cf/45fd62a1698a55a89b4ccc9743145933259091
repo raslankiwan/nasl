@@ -1,0 +1,19 @@
+CONVERSATION_HANDOFF.md
+  s_0fe044944ab9f4::t_8b13d7ba304b72 1-34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "cf45fd62a1698a55a89b4ccc9743145933259091",
+  "prompts": {},
+  "sessions": {
+    "s_0fe044944ab9f4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1df62-17fb-7f30-b35e-2defe4db2ebe",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "raslan <raslankiwan@gmail.com>"
+    }
+  }
+}
