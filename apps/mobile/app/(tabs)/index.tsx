@@ -68,9 +68,7 @@ export default function Today() {
   );
 
   const nothingToDo =
-    alerts.overdue.length === 0 &&
-    alerts.dueSoon.length === 0 &&
-    !hasDueReminder(reminders, today);
+    alerts.overdue.length === 0 && alerts.dueSoon.length === 0 && !hasDueReminder(reminders, today);
 
   return (
     <TabScreen>

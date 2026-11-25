@@ -60,6 +60,9 @@ describe('openReminders', () => {
       { ...base, id: 'late', dueDate: '2026-11-20', createdAt: '2026-11-03T00:00:00Z' },
       { ...base, id: 'note-new', dueDate: null, createdAt: '2026-11-04T00:00:00Z' },
     ]);
-    assert.deepEqual(ordered.map((r) => r.id), ['late', 'later', 'note-new', 'note-old']);
+    assert.deepEqual(
+      ordered.map((r) => r.id),
+      ['late', 'later', 'note-new', 'note-old'],
+    );
   });
 });

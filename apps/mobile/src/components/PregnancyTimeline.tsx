@@ -24,6 +24,16 @@ export function PregnancyTimeline({
   const hasRange = Boolean(profileFor(species).gestationRangeDays);
   const progress = Math.min(1, Math.max(0, timeline.gestationDay / timeline.gestationDays));
 
+  // Singular chosen here, not by i18next plural suffixes: those need all six Arabic plural forms.
+  // A zero part is dropped, so "0 months and 12 days" reads "12 days".
+  const duration = ({ months, days }: { months: number; days: number }) => {
+    const m = months === 1 ? t('durationMonth') : t('durationMonths', { count: months });
+    const d = days === 1 ? t('durationDay') : t('durationDays', { count: days });
+    if (months === 0) return d;
+    if (days === 0) return m;
+    return t('durationAnd', { first: m, second: d });
+  };
+
   const day = (date: Date) => formatDate(date, locale);
   const range = (window: { from: Date; to: Date }) => `${day(window.from)} – ${day(window.to)}`;
   const hijriWindow = `${formatHijriDate(timeline.window.from, locale)} – ${formatHijriDate(timeline.window.to, locale)}`;
@@ -52,12 +62,10 @@ export function PregnancyTimeline({
         <View style={[styles.fill, { width: `${progress * 100}%` }]} />
       </View>
 
-      <Text style={styles.line}>
-        {t('sinceMating', { months: timeline.elapsed.months, days: timeline.elapsed.days })}
-      </Text>
+      <Text style={styles.line}>{t('sinceMating', { duration: duration(timeline.elapsed) })}</Text>
       <Text style={styles.line}>
         {timeline.daysToDue >= 0
-          ? t('leftToDue', { months: timeline.remaining.months, days: timeline.remaining.days })
+          ? t('leftToDue', { duration: duration(timeline.remaining) })
           : t('overdueBy', { count: -timeline.daysToDue })}
       </Text>
       {timeline.daysToDue >= 0 ? (
@@ -71,11 +79,7 @@ export function PregnancyTimeline({
         <DateRow label={t('preLambingBooster')} value={range(timeline.booster)} />
         <DateRow label={t('dropPen')} value={day(timeline.dropPenDate)} />
         {hasRange ? (
-          <DateRow
-            label={t('lambingWindow')}
-            value={range(timeline.window)}
-            hint={hijriWindow}
-          />
+          <DateRow label={t('lambingWindow')} value={range(timeline.window)} hint={hijriWindow} />
         ) : null}
         <DateRow
           label={t('referenceDueDate', { day: timeline.gestationDays })}

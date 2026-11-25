@@ -78,7 +78,11 @@ export class ReminderStore {
 
   async remove(userId: string, farmId: string, id: string): Promise<Reminder[]> {
     const current = await this.list(userId, farmId);
-    return this.write(userId, farmId, current.filter((reminder) => reminder.id !== id));
+    return this.write(
+      userId,
+      farmId,
+      current.filter((reminder) => reminder.id !== id),
+    );
   }
 }
 
