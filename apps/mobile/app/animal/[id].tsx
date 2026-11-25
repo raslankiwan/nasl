@@ -6,7 +6,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { formatDate, formatHijriDate, type Locale } from '@nasl/i18n';
 import { api } from '../../src/api/client';
-import { useAnimal } from '../../src/sync/useFlock';
+import { useAnimal, useFlock } from '../../src/sync/useFlock';
 import { useAuth } from '../../src/auth/AuthProvider';
 import {
   Body,
@@ -29,7 +29,8 @@ import {
   type ReproState,
   type Species,
 } from '@nasl/shared';
-import { LambingWindow } from '../../src/components/LambingWindow';
+import { PregnancyTimeline } from '../../src/components/PregnancyTimeline';
+import { MotherRecord } from '../../src/components/MotherRecord';
 import { AnimalNameEditor } from '../../src/components/AnimalNameEditor';
 import { spacing, type, createThemedStyles } from '../../src/theme';
 
@@ -58,15 +59,18 @@ interface TreatmentRow {
   productName: string | null;
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+/** `ltr` for identifiers: a tag is printed verbatim, left-to-right, in either locale. */
+function Row({ label, value, ltr }: { label: string; value: string; ltr?: boolean }) {
   const styles = useStyles();
   return (
     <View style={styles.detailRow}>
       <Text style={styles.detailLabel}>{label}</Text>
-      <Text style={styles.detailValue}>{value}</Text>
+      <Text style={[styles.detailValue, ltr && styles.ltr]}>{value}</Text>
     </View>
   );
 }
+
+const CARRYING = new Set(['mated', 'pregnant', 'due']);
 
 export default function AnimalScreen() {
   const styles = useStyles();
@@ -79,7 +83,14 @@ export default function AnimalScreen() {
 
   // Read from the device first, refresh behind it — the pen is where the signal is not.
   const { animal, loading, stale, refresh } = useAnimal(id);
-  const { animal: mother } = useAnimal(animal?.damId ?? undefined);
+  const { animal: mother, loading: motherLoading } = useAnimal(animal?.damId ?? undefined);
+  const { allAnimals } = useFlock();
+  // Every animal on file that names her as dam, youngest first.
+  const childAnimals = animal
+    ? allAnimals
+        .filter((candidate) => candidate.damId === animal.id)
+        .sort((a, b) => (b.dateOfBirth ?? '').localeCompare(a.dateOfBirth ?? ''))
+    : [];
   const [editingName, setEditingName] = useState(false);
   const role = me?.farms.find((farm) => farm.farmId === farmId)?.role;
   const canEdit = role && can(role as Role, 'animals:write');
@@ -289,16 +300,37 @@ export default function AnimalScreen() {
                   ))}
                 </Card>
               ) : null}
+              {/* Who her mother is, by name and number, a tap from the mother's own page. */}
               {animal.damId ? (
-                <View style={styles.actionSpacing}>
-                  <NavigationRow
-                    icon="family-tree"
-                    label={t('animals:motherBadge', {
-                      mother: mother ? animalLabel(mother) : t('animals:dam'),
-                    })}
-                    onPress={() => router.push(`/animal/${animal.damId}`)}
-                  />
-                </View>
+                <>
+                  <View style={styles.gap} />
+                  <Card>
+                    <Body>{t('animals:motherDetails')}</Body>
+                    {mother ? (
+                      <>
+                        <Row label={t('animals:motherName')} value={mother.name || dash} />
+                        <Row label={t('animals:motherNumber')} value={animalLabel(mother)} ltr />
+                        {mother.classLabel && mother.classLabel !== mother.tagNumber ? (
+                          <Row label={t('animals:permanentNumber')} value={mother.tagNumber} ltr />
+                        ) : null}
+                      </>
+                    ) : (
+                      <Body muted>
+                        {motherLoading ? t('common:loading') : t('animals:motherNotOnFile')}
+                      </Body>
+                    )}
+                  </Card>
+                  <View style={styles.gap} />
+                  <View style={styles.actionSpacing}>
+                    <NavigationRow
+                      icon="family-tree"
+                      label={t('animals:motherBadge', {
+                        mother: mother ? animalLabel(mother) : t('animals:dam'),
+                      })}
+                      onPress={() => router.push(`/animal/${animal.damId}`)}
+                    />
+                  </View>
+                </>
               ) : null}
 
               {animal.classification === 'mother' && animal.status === 'active' ? (
@@ -312,10 +344,11 @@ export default function AnimalScreen() {
                         `breeding:states.${animal.repro?.state ?? 'open'}` as 'breeding:states.open',
                       )}
                     </Pill>
-                    {animal.repro?.dueDate ? (
-                      <LambingWindow
+                    {animal.repro?.dueDate && CARRYING.has(animal.repro.state) ? (
+                      <PregnancyTimeline
                         dueDate={animal.repro.dueDate}
                         species={animal.species as Species}
+                        today={new Date()}
                       />
                     ) : null}
                   </Card>
@@ -345,6 +378,14 @@ export default function AnimalScreen() {
                   ) : (
                     <Body muted>{t('breeding:nothingToRecord')}</Body>
                   )}
+                </>
+              ) : null}
+
+              {/* Her lifetime record stays readable after she is sold or dies. */}
+              {animal.classification === 'mother' && farmId ? (
+                <>
+                  <View style={styles.gap} />
+                  <MotherRecord farmId={farmId} animalId={animal.id} childAnimals={childAnimals} />
                 </>
               ) : null}
 
@@ -501,4 +542,5 @@ const useStyles = createThemedStyles((colors) => ({
     flexShrink: 1,
     textAlign: 'right',
   },
+  ltr: { writingDirection: 'ltr' },
 }));

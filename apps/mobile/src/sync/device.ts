@@ -3,6 +3,7 @@ import { request } from '../api/client';
 import { FlockCache, type PullResponse } from './cache';
 import { createPullFlock } from './pull';
 import { Outbox } from './outbox';
+import { ReminderStore } from '../reminders/reminders';
 import { tolerant } from './storage';
 import { deviceStore } from './storage.native';
 
@@ -14,6 +15,7 @@ import { deviceStore } from './storage.native';
  */
 export const outbox = new Outbox(deviceStore, (work) => platformLock('nasl.outbox', work));
 export const flockCache = new FlockCache(tolerant(deviceStore));
+export const reminderStore = new ReminderStore(tolerant(deviceStore));
 
 /**
  * Fetch what has changed since the last pull and fold it into the cache.

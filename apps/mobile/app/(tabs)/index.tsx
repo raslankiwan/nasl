@@ -7,6 +7,8 @@ import { useTranslation } from 'react-i18next';
 import { formatDate, formatHijriDate, type Locale } from '@nasl/i18n';
 import { deriveAlerts, type Alerts } from '@nasl/shared';
 import { useFlock } from '../../src/sync/useFlock';
+import { useReminders } from '../../src/reminders/useReminders';
+import { hasDueReminder, MyReminders } from '../../src/components/MyReminders';
 import { Body, Card, Pill, Screen, Title } from '../../src/components/ui';
 import { radius, spacing, type, createThemedStyles } from '../../src/theme';
 
@@ -16,7 +18,8 @@ import { radius, spacing, type, createThemedStyles } from '../../src/theme';
  * It derives its alerts from the flock cached on the device using the same function the server
  * runs, so it works with no signal and cannot disagree with the server about who is due
  * (FR-ALT-05). Overdue comes first, and a milk hold comes before either — milking happens twice a
- * day and a treated ewe contaminates the whole tank.
+ * day and a treated ewe contaminates the whole tank. The herder's own reminders and notes sit
+ * underneath, kept on the device.
  */
 export default function Today() {
   const styles = useStyles();
@@ -24,6 +27,7 @@ export default function Today() {
   const router = useRouter();
   const locale = (i18n.resolvedLanguage ?? 'ar') as Locale;
   const { animals, loading, stale, refresh } = useFlock();
+  const { reminders, add, complete, remove } = useReminders();
   const today = new Date();
 
   useFocusEffect(
@@ -63,7 +67,8 @@ export default function Today() {
     </Pressable>
   );
 
-  const nothingToDo = alerts && alerts.overdue.length === 0 && alerts.dueSoon.length === 0;
+  const nothingToDo =
+    alerts.overdue.length === 0 && alerts.dueSoon.length === 0 && !hasDueReminder(reminders, today);
 
   return (
     <TabScreen>
@@ -122,6 +127,16 @@ export default function Today() {
               <Body>{t('tasks:allClear')}</Body>
             </Card>
           ) : null}
+
+          {/* The flock's alerts first, then what the herder asked to be reminded of. */}
+          <View style={styles.gap} />
+          <MyReminders
+            reminders={reminders}
+            today={today}
+            onAdd={add}
+            onComplete={(id) => void complete(id)}
+            onRemove={(id) => void remove(id)}
+          />
         </Screen>
       </ScrollView>
     </TabScreen>
