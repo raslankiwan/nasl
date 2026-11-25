@@ -42,45 +42,56 @@ export class ReminderStore {
     }
   }
 
-  private async write(userId: string, farmId: string, reminders: Reminder[]): Promise<Reminder[]> {
-    await this.store.set(this.key(userId, farmId), JSON.stringify(reminders));
-    return reminders;
+  /** Mutations run one at a time: two quick taps must not each read the list before either writes. */
+  private queue: Promise<unknown> = Promise.resolve();
+
+  /** Read, change and write the list as one step. `change` returns null to leave it untouched. */
+  private mutate(
+    userId: string,
+    farmId: string,
+    change: (current: Reminder[]) => Reminder[] | null,
+  ): Promise<Reminder[]> {
+    const run = this.queue.then(async () => {
+      const current = await this.list(userId, farmId);
+      const next = change(current);
+      if (!next) return current;
+      await this.store.set(this.key(userId, farmId), JSON.stringify(next));
+      return next;
+    });
+    this.queue = run.catch(() => undefined);
+    return run;
   }
 
-  async add(
+  add(
     userId: string,
     farmId: string,
     input: { id: string; text: string; dueDate: string | null; now: Date },
   ): Promise<Reminder[]> {
     const text = input.text.trim().slice(0, MAX_REMINDER_LENGTH);
-    const current = await this.list(userId, farmId);
-    if (!text) return current;
-    return this.write(userId, farmId, [
-      ...current,
-      {
-        id: input.id,
-        text,
-        dueDate: input.dueDate,
-        done: false,
-        createdAt: input.now.toISOString(),
-      },
-    ]);
+    return this.mutate(userId, farmId, (current) =>
+      text
+        ? [
+            ...current,
+            {
+              id: input.id,
+              text,
+              dueDate: input.dueDate,
+              done: false,
+              createdAt: input.now.toISOString(),
+            },
+          ]
+        : null,
+    );
   }
 
-  async setDone(userId: string, farmId: string, id: string, done: boolean): Promise<Reminder[]> {
-    const current = await this.list(userId, farmId);
-    return this.write(
-      userId,
-      farmId,
+  setDone(userId: string, farmId: string, id: string, done: boolean): Promise<Reminder[]> {
+    return this.mutate(userId, farmId, (current) =>
       current.map((reminder) => (reminder.id === id ? { ...reminder, done } : reminder)),
     );
   }
 
-  async remove(userId: string, farmId: string, id: string): Promise<Reminder[]> {
-    const current = await this.list(userId, farmId);
-    return this.write(
-      userId,
-      farmId,
+  remove(userId: string, farmId: string, id: string): Promise<Reminder[]> {
+    return this.mutate(userId, farmId, (current) =>
       current.filter((reminder) => reminder.id !== id),
     );
   }

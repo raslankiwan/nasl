@@ -44,6 +44,26 @@ describe('ReminderStore', () => {
     assert.equal(long!.text.length, MAX_REMINDER_LENGTH);
   });
 
+  test('changes made at the same moment all land', async () => {
+    const reminders = new ReminderStore(memoryStore());
+    await reminders.add('u', 'f', { id: 'a', text: 'one', dueDate: null, now });
+    await reminders.add('u', 'f', { id: 'b', text: 'two', dueDate: null, now });
+    await Promise.all([
+      reminders.setDone('u', 'f', 'a', true),
+      reminders.setDone('u', 'f', 'b', true),
+      reminders.add('u', 'f', { id: 'c', text: 'three', dueDate: null, now }),
+    ]);
+    const list = await reminders.list('u', 'f');
+    assert.deepEqual(
+      list.map((r) => [r.id, r.done]),
+      [
+        ['a', true],
+        ['b', true],
+        ['c', false],
+      ],
+    );
+  });
+
   test('a corrupt entry reads as empty rather than throwing', async () => {
     const reminders = new ReminderStore(memoryStore({ 'nasl.reminders.u.f': '{not json' }));
     assert.deepEqual(await reminders.list('u', 'f'), []);

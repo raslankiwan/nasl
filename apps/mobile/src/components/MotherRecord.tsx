@@ -34,10 +34,12 @@ export function MotherRecord({
   childAnimals: CachedAnimal[];
 }) {
   const styles = useStyles();
-  const { t, i18n } = useTranslation(['breeding', 'animals']);
+  const { t, i18n } = useTranslation(['breeding', 'animals', 'common']);
   const locale = (i18n.resolvedLanguage ?? 'ar') as Locale;
   const router = useRouter();
   const [births, setBirths] = useState<BirthRow[] | null>(null);
+  // Only a failed request means "offline"; until the first answer, the history is just loading.
+  const [failed, setFailed] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -45,10 +47,12 @@ export function MotherRecord({
       api
         .get<{ births: BirthRow[] }>(`/v1/farms/${farmId}/breeding/history/${animalId}`)
         .then((res) => {
-          if (active) setBirths(res.births);
+          if (!active) return;
+          setBirths(res.births);
+          setFailed(false);
         })
         .catch(() => {
-          if (active) setBirths(null);
+          if (active) setFailed(true);
         });
       return () => {
         active = false;
@@ -77,7 +81,9 @@ export function MotherRecord({
           </Text>
         ) : null}
         {births === null ? (
-          <Text style={styles.muted}>{t('breeding:historyNeedsConnection')}</Text>
+          <Text style={styles.muted}>
+            {failed ? t('breeding:historyNeedsConnection') : t('common:loading')}
+          </Text>
         ) : null}
 
         {births && births.length > 0 ? (
