@@ -5,6 +5,7 @@ export * from './dates.ts';
 export * from './health.ts';
 export * from './ids.ts';
 export * from './repro.ts';
+export * from './pregnancy.ts';
 export * from './roles.ts';
 export * from './species.ts';
 export * from './alerts.ts';
